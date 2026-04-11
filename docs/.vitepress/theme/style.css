@@ -89,10 +89,13 @@
 }
 
 /* ---- Footnote styles ---- */
+.vp-doc .footnotes-sep {
+  display: none;
+}
+
 .vp-doc .footnotes {
-  margin-top: 2.5rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid var(--vp-c-divider);
+  margin-top: 1rem;
+  padding-top: 0;
   font-size: 0.88em;
   color: var(--vp-c-text-2);
 }
@@ -154,7 +157,7 @@ mjx-assistive-mml {
   display: block !important;
 }
 
-mjx-container[display="true"] {
+mjx-container[display='true'] {
   display: block;
   text-align: center;
   margin: 1em 0;

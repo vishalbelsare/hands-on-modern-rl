@@ -50,13 +50,13 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter01_cartpole/intro/</loc>
-    <lastmod>2026-04-10T09:06:14.529Z</lastmod>
+    <lastmod>2026-04-11T14:52:32.900Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter01_cartpole/metrics/</loc>
-    <lastmod>2026-04-11T03:26:51.559Z</lastmod>
+    <lastmod>2026-04-11T14:57:11.254Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -80,19 +80,19 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter02_dpo/principles/</loc>
-    <lastmod>2026-04-11T05:44:12.140Z</lastmod>
+    <lastmod>2026-04-11T10:40:24.272Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/bandit/</loc>
-    <lastmod>2026-04-11T09:33:50.906Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.084Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/bellman-equation/</loc>
-    <lastmod>2026-04-11T09:38:06.799Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.107Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -104,49 +104,55 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/formalism/</loc>
-    <lastmod>2026-04-11T09:35:58.171Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.173Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/intro/</loc>
-    <lastmod>2026-04-11T09:41:52.249Z</lastmod>
+    <lastmod>2026-04-11T14:58:57.339Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/atari-dqn/</loc>
-    <lastmod>2026-04-11T09:43:22.031Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.204Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/cartpole-dqn/</loc>
-    <lastmod>2026-04-11T09:18:57.368Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.218Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/dqn-components/</loc>
-    <lastmod>2026-04-11T08:28:48.210Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.235Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/dqn-family/</loc>
-    <lastmod>2026-04-11T09:04:02.945Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.263Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/from-q-to-dqn/</loc>
-    <lastmod>2026-04-11T08:27:47.385Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.281Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/intro/</loc>
-    <lastmod>2026-04-11T07:42:52.207Z</lastmod>
+    <lastmod>2026-04-11T14:59:30.227Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/retro-pokemon/</loc>
+    <lastmod>2026-04-11T14:57:35.301Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -158,43 +164,43 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/vizdoom-dqn/</loc>
-    <lastmod>2026-04-11T10:21:15.464Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.331Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/actor-critic/</loc>
-    <lastmod>2026-04-11T03:44:39.558Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.349Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/baseline-experiment/</loc>
-    <lastmod>2026-04-11T03:44:39.567Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.361Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/dice-game/</loc>
-    <lastmod>2026-04-11T03:44:39.580Z</lastmod>
+    <lastmod>2026-04-11T10:25:14.537Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/intro/</loc>
-    <lastmod>2026-04-11T03:44:39.587Z</lastmod>
+    <lastmod>2026-04-11T15:00:54.545Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/policy-gradient/</loc>
-    <lastmod>2026-04-11T03:44:39.610Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.398Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter06_ppo/intro/</loc>
-    <lastmod>2026-04-11T03:24:22.473Z</lastmod>
+    <lastmod>2026-04-11T15:00:20.478Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -218,7 +224,7 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter09_continuous_control/pybullet-hands-on/</loc>
-    <lastmod>2026-04-11T09:42:50.224Z</lastmod>
+    <lastmod>2026-04-11T14:57:35.485Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -247,6 +253,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter13_future_trends/pettingzoo/</loc>
+    <lastmod>2026-04-11T15:02:52.264Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/</loc>
     <lastmod>2026-04-11T03:13:45.620Z</lastmod>
     <changefreq>weekly</changefreq>
@@ -254,13 +266,13 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/preface/brief-history/</loc>
-    <lastmod>2026-04-11T04:39:01.864Z</lastmod>
+    <lastmod>2026-04-11T14:54:28.362Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/preface/intro/</loc>
-    <lastmod>2026-04-11T07:35:01.050Z</lastmod>
+    <lastmod>2026-04-11T14:54:59.654Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

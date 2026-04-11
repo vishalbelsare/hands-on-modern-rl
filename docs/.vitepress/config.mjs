@@ -126,11 +126,27 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter04_dqn/intro' },
-            { text: '从 Q-Learning 到 DQN', link: '/chapter04_dqn/from-q-to-dqn' },
+            {
+              text: '从 Q-Learning 到 DQN',
+              link: '/chapter04_dqn/from-q-to-dqn'
+            },
             { text: 'DQN 三大组件', link: '/chapter04_dqn/dqn-components' },
-            { text: '动手：DQN 玩 CartPole', link: '/chapter04_dqn/cartpole-dqn' },
-            { text: '动手：从像素学玩 Atari', link: '/chapter04_dqn/atari-dqn' },
-            { text: '动手：3D 第一人称 ViZDoom', link: '/chapter04_dqn/vizdoom-dqn' },
+            {
+              text: '动手：DQN 玩 CartPole',
+              link: '/chapter04_dqn/cartpole-dqn'
+            },
+            {
+              text: '动手：从像素学玩 Atari',
+              link: '/chapter04_dqn/atari-dqn'
+            },
+            {
+              text: '动手：3D 第一人称 ViZDoom',
+              link: '/chapter04_dqn/vizdoom-dqn'
+            },
+            {
+              text: '动手：stable-retro 玩宝可梦',
+              link: '/chapter04_dqn/retro-pokemon'
+            },
             { text: '观察训练过程', link: '/chapter04_dqn/training-analysis' },
             { text: 'DQN 家族与视角迁移', link: '/chapter04_dqn/dqn-family' }
           ]
@@ -182,13 +198,26 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter09_continuous_control/intro' },
-            { text: '动手：PyBullet 机器人仿真', link: '/chapter09_continuous_control/pybullet-hands-on' }
+            {
+              text: '动手：PyBullet 机器人仿真',
+              link: '/chapter09_continuous_control/pybullet-hands-on'
+            }
           ]
         },
         { text: '第10章：RLHF 完整流水线', link: '/chapter10_rlhf/intro' },
         { text: '第11章：VLM 强化学习', link: '/chapter11_vlm_rl/intro' },
         { text: '第12章：Agentic RL', link: '/chapter12_agentic_rl/intro' },
-        { text: '第13章：未来趋势', link: '/chapter13_future_trends/intro' }
+        {
+          text: '第13章：未来趋势',
+          collapsed: false,
+          items: [
+            { text: '章节导览', link: '/chapter13_future_trends/intro' },
+            {
+              text: '动手：PettingZoo 多智能体',
+              link: '/chapter13_future_trends/pettingzoo'
+            }
+          ]
+        }
       ]
     },
     {

@@ -98,6 +98,38 @@ graph TD
     style H1 fill:#f1f8ff,stroke:#0969da,color:#0969da,stroke-width:1px
 ```
 
+如果换一个角度，从"怎么求解"的视角看这条演进链，会发现所有 RL 算法本质上只做两件事中的一件——要么先搞清楚"每个动作值多少分"再选最好的，要么跳过打分直接学"什么情况做什么动作"。这两条路线最终会在一个叫 Actor-Critic 的架构中汇合，而后续所有 LLM 对齐算法都建立在这个汇合点之上：
+
+```mermaid
+graph TD
+    ROOT["RL 的核心目标<br/>最大化累计奖励"] --> VB["Value-Based 路线<br/>先学每个动作值多少分"]
+    ROOT --> PB["Policy-Based 路线<br/>直接学做什么动作"]
+
+    VB --> DQN["DQN（第 4 章）"]
+    PB --> PG["REINFORCE（第 5 章）"]
+
+    DQN --> AC["Actor-Critic 汇合<br/>（第 5 章末）"]
+    PG --> AC
+
+    AC --> PPO["PPO（第 6 章）"]
+
+    PPO --> LLM["LLM 对齐"]
+    LLM --> DPOG["DPO：绕过 RM（第 7 章）"]
+    LLM --> GRPOG["GRPO：绕过 Critic（第 8 章）"]
+
+    style ROOT fill:#f8f9fa,stroke:#24292f,color:#24292f
+    style VB fill:#e3f2fd,stroke:#1976d2,color:#000
+    style PB fill:#fff3e0,stroke:#f57c00,color:#000
+    style AC fill:#e8f5e9,stroke:#388e3c,color:#000
+    style PPO fill:#e8f5e9,stroke:#388e3c,color:#000
+    style DPOG fill:#fce4ec,stroke:#c62828,color:#000
+    style GRPOG fill:#fce4ec,stroke:#c62828,color:#000
+```
+
+**Value-Based** 路线（蓝色）的代表是第 4 章的 DQN——先学 Q 值再选最优动作。**Policy-Based** 路线（橙色）的代表是第 5 章的 REINFORCE——跳过打分，直接优化策略。两条路线在第 5 章末尾汇合为 Actor-Critic 架构——Actor 学策略，Critic 学价值，两者互相配合。这个双网络结构就是第 6 章 PPO 的骨架，也是后续所有 LLM 对齐算法的出发点。
+
+之后每章开头都会回到这张图，标出"你在这里"——让你始终知道当前位置在整个知识版图上的位置。
+
 沿着这条演进链，本部分的四章将逐一展开：第 3 章通过猜硬币游戏引入 MDP 形式化定义，推导贝尔曼方程，建立价值函数与 TD Error 的直觉，并完成从表格方法到神经网络函数逼近的过渡。第 4 章从经典 Q-Learning 出发，引入深度 Q 网络（DQN），解析经验回放与目标网络两大支柱机制，延伸至 Double DQN、Dueling DQN、Rainbow 等改进谱系。第 5 章从摇骰子实验出发推导策略梯度定理，实现 REINFORCE 算法并观察高方差问题，引入基线与优势函数，最终构建 Actor-Critic 架构。第 6 章深入剖析当前使用最广泛的 on-policy 算法 PPO（近端策略优化），理解裁剪机制、GAE（广义优势估计）以及 Reward Model 的训练，建立 PPO 与 LLM 对齐的对应关系。
 
 **第三部分：LLM 时代（第 7-8 章）。** 集中讨论大语言模型后训练中的对齐算法。第 7 章探讨 DPO（直接偏好优化）及其扩展方法族（KTO、SimPO、IPO），推导 Bradley-Terry 偏好模型到 DPO 损失函数的等价变换，对比各方法的适用场景。第 8 章聚焦 GRPO（群体相对策略优化），理解其用组内相对比较替代 Critic 网络的核心思路；延伸至 DAPO、SAPO 等改进以及可验证奖励范式 RLVR（Reinforcement Learning from Verifiable Rewards）。

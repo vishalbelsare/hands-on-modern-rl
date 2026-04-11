@@ -43,8 +43,6 @@
 
 今天，强化学习已经不再是象牙塔里的理论玩具，它是通向通用人工智能（AGI）的必经之路。在接下来的章节中，我们将沿着这段历史的脉络，从第一行代码开始，亲手将这些伟大的算法实现出来。
 
----
-
 ## 参考文献
 
 [^1]: Bellman, R. (1957). A Markovian Decision Process. _Journal of Mathematics and Mechanics_, 6(5), 679-684.

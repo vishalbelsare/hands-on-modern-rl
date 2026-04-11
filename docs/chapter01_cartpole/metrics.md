@@ -120,6 +120,45 @@
 
 这就是强化学习的魔力所在——**没有人教它怎么做，它通过试错和反馈自己学会了**。
 
+## 全景导航：RL 的两条路线
+
+你刚才跑的 CartPole 训练，背后的算法叫 PPO。它很厉害，但现在你不需要理解它的细节——只需要知道它在整个 RL 版图上的位置。
+
+所有 RL 算法都在回答同一个问题："怎么让 Agent 选出累计奖励最大的动作？"但有两条截然不同的思路：
+
+```mermaid
+graph TD
+    ROOT["RL = 最大化累计奖励"] --> VB["Value-Based<br/>先学每个动作值多少分"]
+    ROOT --> PB["Policy-Based<br/>直接学做什么动作"]
+
+    VB --> DQN["DQN（第 4 章）"]
+    PB --> PG["REINFORCE（第 5 章）"]
+
+    DQN --> AC["Actor-Critic 汇合（第 5 章末）"]
+    PG --> AC
+
+    AC --> PPO["PPO（第 6 章）<br/>← 你刚用的就是这个"]
+
+    PPO --> LLM["LLM 对齐"]
+    LLM --> DPOG["DPO（第 7 章）<br/>← 第 2 章要用的"]
+    LLM --> GRPOG["GRPO（第 8 章）"]
+
+    style ROOT fill:#f8f9fa,stroke:#24292f,color:#24292f
+    style VB fill:#e3f2fd,stroke:#1976d2,color:#000
+    style PB fill:#fff3e0,stroke:#f57c00,color:#000
+    style AC fill:#e8f5e9,stroke:#388e3c,color:#000
+    style PPO fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
+    style DPOG fill:#fce4ec,stroke:#c62828,stroke-width:3px,color:#000
+    style GRPOG fill:#fce4ec,stroke:#c62828,color:#000
+```
+
+- **Value-Based**（蓝色）：先搞清楚"每个动作值多少分"（Q 值），然后选分数最高的。代表是第 4 章的 DQN。
+- **Policy-Based**（橙色）：跳过打分，直接学"什么情况做什么动作"的策略。代表是第 5 章的 REINFORCE。
+- 两条路线最终在 **Actor-Critic** 架构中汇合——Actor 学策略，Critic 学价值。这就是 PPO 的骨架。
+- 在 LLM 时代，DPO 绕过了 PPO 的奖励模型，GRPO 绕过了 Critic 网络——路线越来越简洁，但底层逻辑不变。
+
+这张图会在后续每章的开头再次出现，高亮"你在这里"。现在你只需要记住一件事：**你刚才用的 PPO，就是两条路线汇合之后的产物。接下来的第 2 章，你会用到 DPO——那是 PPO 在 LLM 时代的简化版。**
+
 在下一章中，我们将打开另一扇门：看看 RL 不只是让小车平衡杆子——它还能让大语言模型学会"说好话"。那将是完全不同的应用场景，但核心循环仍然是这四个要素。
 
 ---

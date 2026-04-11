@@ -1,25 +1,28 @@
-# 4.7 基线实验与章节总结
+# 5.4 基线实验与总结
 
-在前面几节中，我们从理论推导到架构设计，一步步理解了从 REINFORCE 到 Actor-Critic 的演进逻辑。现在让我们回到代码，用实验亲眼看到**基线**（Baseline）的力量——它是 REINFORCE 和 Actor-Critic 之间的关键一步。
+前三节我们走了从直觉到理论再到架构的完整路径：赌博机实验让我们看到策略梯度能工作，策略梯度定理解释了为什么能工作，Actor-Critic 展示了怎么让它工作得更好。
 
-## 对比实验：有基线 vs 无基线
+但"更好"到底好了多少？基线真的能显著降低方差吗？这一节我们回到代码，用同一个赌博机环境做一个对比实验，亲眼看看有基线和没基线的差距。
 
-### 实验设计
+## 实验设计
 
-我们用同一个摇骰子赌博机（A: 30%, B: 70%），分别运行两个版本：
+还是那个两臂赌博机（A: 30%，B: 70%），分别跑两个版本：
 
 - **无基线**：标准 REINFORCE，`loss = -log_prob * G`
 - **有基线**：减去运行中的平均回报，`loss = -log_prob * (G - baseline)`
+
+为了公平起见，每个版本各跑 5 次取平均——单次运行的随机性太大，只有平均趋势才有说服力。
 
 ```python
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import random
+import numpy as np
 import matplotlib.pyplot as plt
 
 # ==========================================
-# 策略网络（和上一节相同）
+# 策略网络（和 5.1 节相同）
 # ==========================================
 class PolicyNetwork(nn.Module):
     def __init__(self):
@@ -30,7 +33,7 @@ class PolicyNetwork(nn.Module):
         return torch.softmax(self.linear(x), dim=-1)
 
 # ==========================================
-# 环境和训练参数
+# 环境
 # ==========================================
 win_probs = [0.3, 0.7]
 num_episodes = 500
@@ -42,14 +45,15 @@ def pull_arm(action):
 # ==========================================
 # 训练函数（支持有无基线）
 # ==========================================
-def train_reinforce(use_baseline=False):
+def train_reinforce(use_baseline=False, seed=0):
+    torch.manual_seed(seed)
+    random.seed(seed)
     policy = PolicyNetwork()
     optimizer = optim.Adam(policy.parameters(), lr=lr)
     prob_history = []
 
-    # 运行中的平均回报作为基线
     baseline = 0.0
-    alpha_baseline = 0.05  # 基线的更新速率
+    alpha_baseline = 0.05
 
     for ep in range(num_episodes):
         state = torch.tensor([1.0])
@@ -61,13 +65,12 @@ def train_reinforce(use_baseline=False):
         reward = pull_arm(action.item())
 
         if use_baseline:
-            # 有基线：减去平均回报，只保留"比平均好了多少"
+            # 核心区别：用"比平均好了多少"替代绝对回报
             advantage = reward - baseline
             loss = -log_prob * advantage
-            # 更新基线（指数移动平均）
+            # 基线跟随运行平均（指数移动平均）
             baseline = baseline + alpha_baseline * (reward - baseline)
         else:
-            # 无基线：直接用回报
             loss = -log_prob * reward
 
         optimizer.zero_grad()
@@ -75,8 +78,7 @@ def train_reinforce(use_baseline=False):
         optimizer.step()
 
         with torch.no_grad():
-            current_probs = policy(state)
-            prob_history.append(current_probs[1].item())
+            prob_history.append(policy(state)[1].item())
 
     return prob_history
 
@@ -84,96 +86,101 @@ def train_reinforce(use_baseline=False):
 # 运行对比实验（各跑 5 次取平均）
 # ==========================================
 num_runs = 5
-no_baseline_all = []
-with_baseline_all = []
+no_baseline_all = [train_reinforce(False, seed=i) for i in range(num_runs)]
+with_baseline_all = [train_reinforce(True, seed=i+100) for i in range(num_runs)]
 
-for run in range(num_runs):
-    torch.manual_seed(run)
-    random.seed(run)
-    no_baseline_all.append(train_reinforce(use_baseline=False))
-    torch.manual_seed(run + 100)
-    random.seed(run + 100)
-    with_baseline_all.append(train_reinforce(use_baseline=True))
-
-# 计算平均值
-import numpy as np
 no_baseline_avg = np.mean(no_baseline_all, axis=0)
 with_baseline_avg = np.mean(with_baseline_all, axis=0)
+```
 
-# ==========================================
-# 可视化对比
-# ==========================================
+代码的关键差异就一处：`advantage = reward - baseline`。基线用指数移动平均来跟踪"到目前为止的平均回报"——这不是最精确的基线（最好的基线是 Critic 网络输出的 $V(s)$），但在这个无状态的赌博机场景中足够用了。
+
+## 实验结果
+
+把两个版本的训练曲线画在一起：
+
+```python
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
 # 左图：单次运行对比
-ax1.plot(no_baseline_all[0], alpha=0.7, color='red', label='No Baseline (1 run)')
-ax1.plot(with_baseline_all[0], alpha=0.7, color='blue', label='With Baseline (1 run)')
-ax1.axhline(y=0.7, color='green', linestyle='--', alpha=0.5)
+ax1.plot(no_baseline_all[0], alpha=0.7, color='red', label='无基线')
+ax1.plot(with_baseline_all[0], alpha=0.7, color='blue', label='有基线')
+ax1.axhline(y=0.7, color='green', linestyle='--', alpha=0.5, label='最优 (P(B)=0.7)')
 ax1.set_xlabel('Episode')
-ax1.set_ylabel('P(choose B)')
-ax1.set_title('Single Run: Baseline Reduces Oscillation')
+ax1.set_ylabel('P(选择 B)')
+ax1.set_title('单次运行')
 ax1.legend()
 ax1.grid(True, alpha=0.3)
 
 # 右图：5次平均对比
-ax2.plot(no_baseline_avg, color='red', linewidth=2, label='No Baseline (5-run avg)')
-ax2.plot(with_baseline_avg, color='blue', linewidth=2, label='With Baseline (5-run avg)')
+ax2.plot(no_baseline_avg, color='red', linewidth=2, label='无基线 (5次平均)')
+ax2.plot(with_baseline_avg, color='blue', linewidth=2, label='有基线 (5次平均)')
 ax2.axhline(y=0.7, color='green', linestyle='--', alpha=0.5)
 ax2.set_xlabel('Episode')
-ax2.set_ylabel('P(choose B)')
-ax2.set_title('5-Run Average: Baseline Converges Faster')
+ax2.set_ylabel('P(选择 B)')
+ax2.set_title('5 次平均')
 ax2.legend()
 ax2.grid(True, alpha=0.3)
 
 plt.tight_layout()
 plt.savefig('baseline_comparison.png', dpi=150)
 plt.show()
-
-print(f"无基线最终 P(B): {no_baseline_avg[-1]:.3f}")
-print(f"有基线最终 P(B): {with_baseline_avg[-1]:.3f}")
 ```
 
-### 实验结果解读
+你会看到这样的画面：
 
-你会看到两张图：
+```
+单次运行对比                          5 次平均对比
 
-**左图（单次运行）**：
+ 1.0 ┤                                1.0 ┤
+     │      ╱━╮  ╱━╮ ╱━━━━          │         ╱━━━━━━━━━━━━
+ 0.9 ┤   ╱━╯  ╲╱  ╲╱                │    ╱━━━╱
+     │  ╱ ╱╲╱                        │ ╱━╱
+ 0.8 ┤ ╱╱╱         有基线            │╱╱           有基线
+     │╱╱╱╲╱╲╱╲╱╲                     │╱
+ 0.7 ┤─ ─ ─ ─ ─ ─ ─ ─ ─             ├─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+     │╲╱ ╲╱╲ ╱╲╱╲╱ 无基线           │╲╱╲╱╲╱╲╱ 无基线
+ 0.6 ┤ ╲╱ ╲╱╲╱                       │ ╲╱
+     │  ╲╱                            │  ╲
+ 0.5 ┤                                0.5 ┤
+     └──────────────────              └──────────────────
+      0  100 200 300 400 500           0  100 200 300 400 500
+```
 
-- 红线（无基线）：策略概率在 0.5 到 0.9 之间剧烈震荡
-- 蓝线（有基线）：策略概率平滑上升，最终稳定在 0.85-0.95
+左图（单次运行）中，红线（无基线）在 0.5 到 0.9 之间剧烈震荡——某次采样到 A 赢了就大幅降低选 B 的概率，下次采样到 B 赢了又拉回来。蓝线（有基线）则平滑得多，稳定地爬升到高概率区间。
 
-**右图（5次平均）**：
+右图（5 次平均）进一步放大了这个差距。即使取了 5 次平均，红线仍然有明显的波动；蓝线则收敛得更快、更稳。
 
-- 红线：即使取了平均，仍然能看出明显的波动
-- 蓝线：收敛更快、更稳定
+## 基线到底做了什么？
 
-> 🖼️ **[此处可添加：基线对比实验图——展示无基线（锯齿状）vs 有基线（平滑上升）]**
+具体看一个例子。假设赌博机的运行平均回报（基线）是 0.5：
 
-### 为什么基线这么有效？
+| 情况      | 实际发生了什么 | 无基线的梯度信号    | 有基线的梯度信号                  |
+| --------- | -------------- | ------------------- | --------------------------------- |
+| 摇 A 赢了 | A: 30% 概率    | reward=1 → 增加选 A | reward=1-0.5=**0.5** → 只微微增加 |
+| 摇 A 输了 | A: 70% 概率    | reward=0 → 不变     | reward=0-0.5=**-0.5** → 降低选 A  |
+| 摇 B 赢了 | B: 70% 概率    | reward=1 → 增加选 B | reward=1-0.5=**0.5** → 微微增加   |
+| 摇 B 输了 | B: 30% 概率    | reward=0 → 不变     | reward=0-0.5=**-0.5** → 降低选 B  |
 
-|               | 无基线                     | 有基线                               |
-| ------------- | -------------------------- | ------------------------------------ |
-| **梯度信号**  | $G_t$ 的绝对值             | $G_t - b$（相对值）                  |
-| **摇 A 赢了** | reward=1 → 增加选 A 的概率 | reward=1 - baseline=0.5 → 只增加 0.5 |
-| **摇 B 赢了** | reward=1 → 增加选 B 的概率 | reward=1 - baseline=0.5 → 只增加 0.5 |
-| **关键区别**  | "赢了就是赢了"             | "赢了，但只比平均好了 0.5"           |
+无基线版本中，"摇 A 赢了"和"摇 B 赢了"给出相同的梯度信号（都是 1）——但 B 赢的频率更高，所以 B 的概率最终会更高，只是过程非常嘈杂。有基线版本中，"摇 A 赢了"的信号被基线削弱为 0.5（"虽然赢了，但只比平均好了 0.5"），同时"摇 A 输了"会给出 -0.5 的反向信号（"比平均差了 0.5"）。因为 A 输的频率远高于 B，A 会收到更多的反向信号，B 的概率上升得更干脆。
 
-基线的作用是**减掉"运气"带来的噪声**。当你赢的时候，基线也在跟踪"正常情况下赢的概率"，所以梯度信号只反映"真正因为动作选择带来的好坏差异"，而不是"运气好不好"。
+这就是基线的核心作用：**把"赢了/输了"的二元信号变成"比平均好了多少"的连续信号**，让梯度估计更精确、更少被运气误导。
 
-## 本章小结
+## 本章走过的路
 
-在这一章中，你完成了从"理论推导"到"架构设计"的完整旅程：
+从第 1 节到第 4 节，我们完成了一条完整的知识链：
 
-1. **亲手实现了 REINFORCE**：用一个极简的赌博机实验，亲眼看到策略网络学会"偏爱好的动作"
-2. **理解了策略梯度定理**：$\nabla J = \mathbb{E}[\nabla \log \pi \times G_t]$——"好结果强化动作概率"
-3. **认识了 REINFORCE 的致命缺陷**：高方差让训练像"醉汉走路"
-4. **理解了基线（Baseline）**：减掉"平均期望"可以降低方差而不改变梯度方向
-5. **学会了 Actor-Critic 架构**：Actor（策略网络）+ Critic（价值网络），用 TD Error 做桥梁
-6. **建立了两个核心认知**：
-   - **探索 vs 利用**：RL 最核心的张力
-   - **偏差-方差权衡**：MC（无偏高方差）vs TD（低偏差有偏差）
+**摇骰子赌博机**让我们亲手看到策略网络能学会"偏爱好的动作"。一个只有 Softmax 层的网络，通过 `loss = -log_prob * reward` 这一行代码，从随机选择进化到稳定选择赢率更高的 B。
 
-这些概念在后续章节的演进：
+**策略梯度定理**解释了为什么那一行代码能工作。数学推导的核心是：$\nabla_\theta J = \mathbb{E}[\nabla_\theta \log \pi(a|s) \cdot G_t]$——好结果强化对应动作的概率。对数导数技巧让不可计算的期望变成了可以用采样估计的梯度。
+
+**Actor-Critic 架构**解决了 REINFORCE 的致命缺陷。引入基线 $V(s)$ 不改变梯度方向但降低方差，用 TD Error 替代 $G_t$ 使得每一步都能更新。Actor（策略网络）和 Critic（价值网络）通过优势函数 $A(s,a)$ 协作，成为后续 PPO、DPO、GRPO 的共同骨架。
+
+**基线实验**用代码验证了上面的理论——有基线的版本收敛更快、更稳定，方差明显降低。
+
+贯穿这整条链的暗线是**高方差问题**——从 REINFORCE 的"醉汉走路"，到基线的"减掉运气噪声"，到 Actor-Critic 的"用 Critic 稳定信号"，每一步改进都在降方差。这个主题在第 6 章 PPO 的 GAE 中还会继续深化。
+
+## 后续章节的预告
 
 | 概念         | 第 6 章 PPO       | 第 7 章 DPO    | 第 8 章 GRPO     |
 | ------------ | ----------------- | -------------- | ---------------- |
@@ -184,13 +191,13 @@ print(f"有基线最终 P(B): {with_baseline_avg[-1]:.3f}")
 
 ## 练习
 
-1. **修改赢率差距**：把赌博机改为 A: 49%, B: 51%（差距极小）。REINFORCE 还能学会吗？有基线的版本呢？观察两者收敛速度的差异。
+1. **修改赢率差距**：把赌博机改为 A: 49%，B: 51%（差距极小）。REINFORCE 还能学会吗？有基线的版本呢？观察两者收敛速度的差异。
 
-2. **多臂赌博机**：把赌博机改为 3 个摇臂（A: 20%, B: 50%, C: 80%），修改策略网络为 3 输出。观察策略是否正确地学会了"最爱 C、最不爱 A"。
+2. **多臂赌博机**：把赌博机改为 3 个摇臂（A: 20%，B: 50%，C: 80%），策略网络改为 3 输出。观察策略是否正确地学会了"最爱 C、最不爱 A"。
 
-3. **基线的选择**：如果把基线改为固定值 0.5（而不是运行平均），效果如何？和运行平均基线相比有什么差异？这说明了什么？
+3. **基线的选择**：把基线改为固定值 0.5（而不是运行平均），效果如何？这说明了什么？
 
-4. **连续动作空间思考**：假设你要训练一个机器人学会走路。状态是关节角度和速度，动作是施加到每个关节的力矩（连续值）。策略网络应该输出什么？怎么从输出中采样动作？
+4. **连续动作空间**：假设你要训练一个机器人走路，状态是关节角度和速度，动作是每个关节的力矩（连续值）。策略网络应该输出什么？怎么从输出中采样动作？
 
 ---
 

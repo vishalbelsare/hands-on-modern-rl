@@ -1,6 +1,7 @@
 <div align="center">
-  <h1>Hands-on Modern Reinforcement Learning</h1>
-  <p><strong>现代强化学习：从代码实现到数学本质</strong></p>
+  <h1>Hands-On Modern RL</h1>
+  <p><strong>现代强化学习实战</strong></p>
+  <p><em>From Code to Theory — 从代码到原理</em></p>
 
   <p>
     <a href="https://github.com/walkinglabs/hands-on-modern-rl/stargazers"><img src="https://img.shields.io/badge/Stars-0-eab676?style=for-the-badge&logo=github" alt="Stars" /></a>
@@ -28,10 +29,10 @@
 
 具体而言，课程围绕以下四条线索展开：
 
-1. **代码先行**——从第一章起，学习者就动手训练一个智能体。不要求事先掌握全部理论，而是通过实验建立对问题的直觉。
-2. **算法拆解**——对 PPO、DPO、GRPO 等当前工业界广泛使用的算法，逐行分析其代码实现，理解每一步设计选择背后的动机。
-3. **理论回溯**——在具备了实践经验之后，系统地讲解 MDP、策略梯度定理等理论基础，完成从直觉到形式化的闭环。
-4. **前沿衔接**——课程涵盖强化学习在大语言模型对齐（RLHF）、视觉-语言模型（VLMs）以及自主智能体（Agent）中的应用，使学习者能够将基础知识与当前研究前沿对接。
+1. **代码先行**——第一章即动手训练 CartPole 智能体，第二章用 DPO 微调大语言模型，通过实验建立对状态、动作、奖励、策略的直觉。
+2. **算法拆解**——逐行精读 PPO、DPO、GRPO 等工业级算法的实现，追问每一步设计选择背后的动机，而非仅仅调用 API。
+3. **理论回溯**——在实践基础上系统讲授 MDP、贝尔曼方程、策略梯度定理、GAE 等理论，完成从直觉到形式化的闭环。
+4. **前沿衔接**——从 RLHF 三阶段流水线（SFT → RM → PPO）到 RLAIF 与 Self-Play 等替代方案，从 VLM 的视觉问答强化训练到 Agentic RL 的多轮工具调用与信用分配，使学习者理解从"实验室 CartPole"到"工业级 LLM 后训练"之间的完整路径。
 
 ## 课程目标
 
@@ -39,7 +40,7 @@
 
 - 理解强化学习的核心数学框架（MDP、价值函数、策略梯度），并能够用代码将其实现。
 - 阅读并理解 PPO、DPO、GRPO 等主流算法的原始论文及其工程实现。
-- 理解强化学习在大语言模型后训练（post-training）中所扮演的角色，包括 RLHF 的完整流水线。
+- 理解强化学习在大语言模型后训练（post-training）中的核心角色，涵盖 RLHF 三阶段流水线（SFT → Reward Model → PPO）、离线对齐方法族（DPO / KTO / SimPO / IPO）的理论等价性、可验证奖励范式（RLVR）以及 GRPO / DAPO 等无 Critic 算法的工程实践。
 - 针对给定的实际问题，合理选择并调试试用的强化学习算法。
 
 ## 课程大纲
@@ -65,24 +66,24 @@
 | 章节           | 课题                                                               | 核心内容                                                                                                                                                  |
 | :------------- | :----------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Chapter 07** | [对齐方法族：DPO / KTO / SimPO](docs/chapter07_alignment/intro.md) | 推导 Bradley-Terry 偏好模型到 DPO 损失函数的等价变换；对比 DPO、KTO、SimPO、IPO 等离线对齐方法的原理与适用场景。                                          |
-| **Chapter 08** | [GRPO、DAPO 与 RLVR](docs/chapter08_grpo_rlvr/intro.md)            | 理解 GRPO 用组内相对比较替代 Critic 网络的核心思路；延伸至 DAPO、SAPO 等改进；探讨可验证奖励范式 RLVR（Reinforcement Learning from Verifiable Rewards）。 |
+| **Chapter 08** | [GRPO、DAPO 与 RLVR](docs/chapter08_grpo_rlvr/intro.md)            | 理解 GRPO 用组内相对比较替代 Critic 网络的核心思路；延伸至 DAPO、SAPO 等改进；探讨可验证奖励范式 RLVR；RL Scaling 与 Test-time Scaling（Best-of-N、多数投票、MCTS）；过程监督奖励模型（PRM）与结果监督奖励模型（ORM）的原理、优劣与自动化 PRM 的探索。 |
 
 ### Part 4: 进阶与前沿
 
 | 章节           | 课题                                                                 | 核心内容                                                                                                                               |
 | :------------- | :------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------- |
 | **Chapter 09** | [连续动作控制 (SAC/TD3)](docs/chapter09_continuous_control/intro.md) | 在 MuJoCo 环境中对比高斯策略与确定性策略；实现 DDPG、TD3、SAC 等连续控制算法；介绍向量化环境与并行采样加速策略。                       |
-| **Chapter 10** | [RLHF 完整流水线](docs/chapter10_rlhf/intro.md)                      | 全景展示 LLM 后训练的 RLHF 三阶段流水线（SFT → RM → PPO）；涵盖奖励函数设计、奖励黑客防范、训练稳定性、RLAIF 与 Self-Play 等前沿扩展。 |
+| **Chapter 10** | [RLHF 完整流水线](docs/chapter10_rlhf/intro.md)                      | 全景展示 LLM 后训练的 RLHF 三阶段流水线（SFT → RM → PPO）；训练数据工程（SFT 指令数据构造、偏好数据生成与 AI 交叉打分、数据清洗与闭环迭代）；奖励模型深入（Bradley-Terry 损失、Token-level / Step-level / Sequence-level 细粒度奖励、规则奖励与模型奖励的组合）；奖励黑客防范、训练稳定性、RLAIF 与 Self-Play 等前沿扩展。 |
 | **Chapter 11** | [VLM 强化学习](docs/chapter11_vlm_rl/intro.md)                       | 用 GRPO 训练 VLM 回答视觉问题；讨论视觉 token 与文本 token 的奖励分配问题；介绍 VisPlay、VISTA-Gym 等代表性框架。                      |
 | **Chapter 12** | [Agentic RL](docs/chapter12_agentic_rl/intro.md)                     | 从单轮 RL 扩展到多轮工具调用与环境交互；理解动作空间扩展与信用分配；分析工具调用训练、多轮 MDP 建模与基础设施挑战。                    |
-| **Chapter 13** | [未来趋势](docs/chapter13_future_trends/intro.md)                    | 测试时计算扩展（inference-time search）、多模态与具身智能中的 RL 融合、多智能体系统（MARL）、模型基 RL 等前沿方向。                    |
+| **Chapter 13** | [未来趋势](docs/chapter13_future_trends/intro.md)                    | Self-Play RL 与自进化闭环（经验回放与提炼、失败驱动的课程生成）；测试时计算扩展（inference-time search）；多模态与具身智能中的 RL 融合；多智能体系统（MARL）；模型基 RL 等前沿方向。                    |
 
 ### 附录
 
 | 附录           | 课题                                                           | 说明                                                                                               |
 | :------------- | :------------------------------------------------------------- | :------------------------------------------------------------------------------------------------- |
 | **Appendix A** | [常见坑与解法](docs/appendix_common_pitfalls/intro.md)         | 策略崩溃、奖励黑客、显存溢出、训练不收敛四类常见故障的现象描述、理论解释与修复验证方法。           |
-| **Appendix B** | [工业级训练与评测](docs/appendix_industrial_training/intro.md) | 分布式训练架构（DeepSpeed、Megatron-LM、veRL、OpenRLHF）、评测体系（Benchmark 选择与自动化评测）。 |
+| **Appendix B** | [工业级训练与评测](docs/appendix_industrial_training/intro.md) | 分布式训练架构（DP/TP/PP/EP 四大并行策略、混合精度训练 FP16/BF16/FP8、veRL / LLaMA-Factory / DeepSpeed / Megatron-LM 实践指南）；评测体系（Benchmark 选择指南、Badcase 分析四步法、自动化评测闭环与回归测试）。 |
 | **Appendix C** | [算法速查](docs/appendix_algorithm_guide/intro.md)             | 算法选型决策矩阵与速查表，按任务场景给出推荐算法与理由。                                           |
 
 ## 本地运行环境

@@ -51,7 +51,7 @@ const siteUrl = process.env.SITE_URL || `https://${owner}.github.io/${repo}`
 const editLinkPattern = `https://github.com/${owner}/${repo}/edit/main/docs/:path`
 
 const zhNav = [
-  { text: '前言', link: '/preface/intro' },
+  { text: '写在开头', link: '/preface/intro' },
   { text: '极速入门', link: '/chapter01_cartpole/intro' },
   { text: '理论与方法', link: '/chapter03_mdp/intro' },
   { text: 'LLM时代', link: '/chapter07_alignment/intro' },
@@ -77,7 +77,8 @@ const zhSidebar = {
     {
       text: '前言',
       items: [
-        { text: '前言', link: '/preface/intro' },
+        { text: '环境与硬件要求', link: '/preface/hardware-requirements' },
+        { text: '写在开头', link: '/preface/intro' },
         { text: '强化学习简史', link: '/preface/brief-history' }
       ]
     },
@@ -184,10 +185,19 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter06_ppo/intro' },
-            { text: '动手：PPO 训练 LunarLander', link: '/chapter06_ppo/ppo-lunar-lander' },
+            {
+              text: '动手：PPO 训练 LunarLander',
+              link: '/chapter06_ppo/ppo-lunar-lander'
+            },
             { text: 'PPO 数学推导', link: '/chapter06_ppo/ppo-math' },
-            { text: '信任域与裁剪机制', link: '/chapter06_ppo/trust-region-clipping' },
-            { text: 'GAE、奖励模型与 LLM 对齐', link: '/chapter06_ppo/gae-reward-model' }
+            {
+              text: '信任域与裁剪机制',
+              link: '/chapter06_ppo/trust-region-clipping'
+            },
+            {
+              text: 'GAE、奖励模型与 LLM 对齐',
+              link: '/chapter06_ppo/gae-reward-model'
+            }
           ]
         },
         { text: 'Part 2 总结', link: '/summaries/part2-summary' }
@@ -201,9 +211,18 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter07_alignment/intro' },
-            { text: '动手：DPO 对齐实验', link: '/chapter07_alignment/dpo-hands-on' },
-            { text: 'DPO 数学推导与隐式奖励', link: '/chapter07_alignment/dpo-math' },
-            { text: 'DPO 家族与选型指南', link: '/chapter07_alignment/dpo-family' }
+            {
+              text: '动手：DPO 对齐实验',
+              link: '/chapter07_alignment/dpo-hands-on'
+            },
+            {
+              text: 'DPO 数学推导与隐式奖励',
+              link: '/chapter07_alignment/dpo-math'
+            },
+            {
+              text: 'DPO 家族与选型指南',
+              link: '/chapter07_alignment/dpo-family'
+            }
           ]
         },
         {
@@ -211,10 +230,22 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter08_grpo_rlvr/intro' },
-            { text: '动手：GRPO 训练数学推理', link: '/chapter08_grpo_rlvr/grpo-hands-on' },
-            { text: 'GRPO 核心机制', link: '/chapter08_grpo_rlvr/grpo-mechanism' },
-            { text: 'DeepSeek、DAPO 与 RLVR', link: '/chapter08_grpo_rlvr/deepseek-dapo-rlvr' },
-            { text: 'RL Scaling 与前沿展望', link: '/chapter08_grpo_rlvr/rl-scaling-outlook' }
+            {
+              text: '动手：GRPO 训练数学推理',
+              link: '/chapter08_grpo_rlvr/grpo-hands-on'
+            },
+            {
+              text: 'GRPO 核心机制',
+              link: '/chapter08_grpo_rlvr/grpo-mechanism'
+            },
+            {
+              text: 'DeepSeek、DAPO 与 RLVR',
+              link: '/chapter08_grpo_rlvr/deepseek-dapo-rlvr'
+            },
+            {
+              text: 'RL Scaling 与前沿展望',
+              link: '/chapter08_grpo_rlvr/rl-scaling-outlook'
+            }
           ]
         },
         { text: 'Part 3 总结', link: '/summaries/part3-summary' }
@@ -312,6 +343,10 @@ const zhSidebar = {
             {
               text: 'Agentic RL 工程实战与总结',
               link: '/chapter12_agentic_rl/agentic-engineering'
+            },
+            {
+              text: '深度研究智能体：Deep Research Agent',
+              link: '/chapter12_agentic_rl/deep-research-agent'
             }
           ]
         },
@@ -357,8 +392,14 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/appendix_common_pitfalls/intro' },
-            { text: '策略崩溃与奖励投机', link: '/appendix_common_pitfalls/policy-collapse-reward-hacking' },
-            { text: '资源溢出与收敛失效', link: '/appendix_common_pitfalls/oom-nonconvergence' }
+            {
+              text: '策略崩溃与奖励投机',
+              link: '/appendix_common_pitfalls/policy-collapse-reward-hacking'
+            },
+            {
+              text: '资源溢出与收敛失效',
+              link: '/appendix_common_pitfalls/oom-nonconvergence'
+            }
           ]
         },
         {
@@ -366,11 +407,38 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/appendix_industrial_training/intro' },
-            { text: 'RL 基础设施纵览', link: '/appendix_industrial_training/rl-infrastructure' },
-            { text: '异步 RL 训练架构深潜', link: '/appendix_industrial_training/rl-infrastructure-async' },
-            { text: '分布式训练架构', link: '/appendix_industrial_training/distributed-training' },
-            { text: '评测体系与 Badcase 分析', link: '/appendix_industrial_training/evaluation-badcase' },
-            { text: '训练监控与工业实战', link: '/appendix_industrial_training/monitoring-practice' }
+            {
+              text: 'B.1 RL 采样基础设施',
+              link: '/appendix_industrial_training/rl-infrastructure'
+            },
+            {
+              text: 'B.2 异步训练架构',
+              link: '/appendix_industrial_training/async-training'
+            },
+            {
+              text: 'B.3 分布式并行策略',
+              link: '/appendix_industrial_training/parallelism'
+            },
+            {
+              text: 'B.4 Agentic RL 基础设施',
+              link: '/appendix_industrial_training/agentic-rl-infra'
+            },
+            {
+              text: 'B.5 评测体系与 Badcase 分析',
+              link: '/appendix_industrial_training/evaluation-badcase'
+            },
+            {
+              text: 'B.6 训练监控与故障排查',
+              link: '/appendix_industrial_training/monitoring'
+            },
+            {
+              text: 'B.7 工业实战练习',
+              link: '/appendix_industrial_training/industrial-exercises'
+            },
+            {
+              text: 'B.8 大模型 RL 训练指标词典',
+              link: '/appendix_industrial_training/metrics-glossary'
+            }
           ]
         },
         {
@@ -378,11 +446,20 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '章节导览', link: '/appendix_algorithm_guide/intro' },
-            { text: '算法选型决策', link: '/appendix_algorithm_guide/algorithm-selection' },
-            { text: '训练框架与模型基方法', link: '/appendix_algorithm_guide/framework-mbrl' }
+            {
+              text: '算法选型决策',
+              link: '/appendix_algorithm_guide/algorithm-selection'
+            },
+            {
+              text: '训练框架与模型基方法',
+              link: '/appendix_algorithm_guide/framework-mbrl'
+            }
           ]
         },
-        { text: '附录D：强化学习经典项目', link: '/appendix_game_projects/intro' },
+        {
+          text: '附录D：强化学习经典项目',
+          link: '/appendix_game_projects/intro'
+        },
         { text: '附录E：数学基础', link: '/appendix_math/intro' },
         { text: '附录F：参考文献', link: '/appendix_papers/intro' },
         { text: '附录G：术语对照表', link: '/appendix_terminology/intro' }

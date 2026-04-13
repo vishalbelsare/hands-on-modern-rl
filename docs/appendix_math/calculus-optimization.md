@@ -34,6 +34,8 @@ $$\nabla f(\mathbf{x}) = \begin{bmatrix} \frac{\partial f}{\partial x_1} \\ \fra
 
 梯度的核心性质是：**梯度方向是函数局部增长最快的方向**。因此，**负梯度方向是函数局部下降最快的方向**。这一结论可由 Cauchy-Schwarz 不等式严格证明。
 
+![梯度下降沿负梯度方向移动，逐步逼近最小值](./images/gradient-descent.svg)
+
 由此直接得到梯度下降的基本形式：
 
 $$\theta \leftarrow \theta - \alpha \nabla f(\theta)$$

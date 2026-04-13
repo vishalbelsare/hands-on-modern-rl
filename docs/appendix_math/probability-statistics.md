@@ -86,6 +86,8 @@ $$\mathcal{N}(x \mid \mu, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\
 
 高斯分布由均值 $\mu$ 和方差 $\sigma^2$ 两个参数确定，呈钟形曲线。
 
+![不同参数的高斯分布：改变 μ 平移曲线，改变 σ 改变宽窄](./images/gaussian.svg)
+
 高斯分布是**连续动作空间 RL 中最基本的分布**。连续策略通常参数化为 $\pi_\theta(a \mid s) = \mathcal{N}(a \mid \mu_\theta(s), \sigma_\theta(s)^2)$，即网络输出均值和标准差，动作从该高斯分布中采样。SAC、PPO 在连续控制任务中均采用高斯策略。
 
 多元高斯分布的形式为

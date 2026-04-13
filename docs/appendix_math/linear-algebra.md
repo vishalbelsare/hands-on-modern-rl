@@ -8,6 +8,8 @@
 
 设 $\mathbf{x} = [x_1, x_2, \ldots, x_n]^\top$ 为 $\mathbb{R}^n$ 中的向量。对向量的理解可以有两种等价的几何视角。
 
+![向量既可以理解为空间中的点，也可以理解为空间中的方向](./images/vec-point-direction.svg)
+
 **空间中的点。** 在二维情形下，$[3, 2]^\top$ 表示平面上横坐标为 3、纵坐标为 2 的点。在强化学习中，状态向量 $\mathbf{s} = [s_1, s_2, \ldots, s_n]^\top$ 就是状态空间中的一个点，每个分量编码了环境的一个特征（位置、速度、角度等）。将状态视为空间中的点，有助于理解"两个状态之间的距离"等概念。
 
 **空间中的方向。** 同一个 $[3, 2]^\top$ 也可以理解为"向右走 3 步、向上走 2 步"这一方向。这一视角在理解梯度时尤为关键——策略梯度 $\nabla_\theta J$ 本身就是一个方向向量，指示参数应在参数空间中朝哪个方向移动才能提升期望回报。
@@ -16,7 +18,9 @@
 
 ## 向量加法与标量乘法
 
-**向量加法** $\mathbf{u} + \mathbf{v}$ 的几何含义是：先沿 $\mathbf{u}$ 的方向移动，再沿 $\mathbf{v}$ 的方向移动，最终到达的位置。这一运算在理解残差连接（ResNet 中的 skip connection）时很直观——网络学习的增量 $\Delta \mathbf{y}$ 被叠加到原始输入 $\mathbf{x}$ 上：$\mathbf{y} = \mathbf{x} + \Delta \mathbf{y}$。
+**向量加法** $\mathbf{u} + \mathbf{v}$ 的几何含义遵循平行四边形法则：先沿 $\mathbf{u}$ 的方向移动，再沿 $\mathbf{v}$ 的方向移动，最终到达的位置即为 $\mathbf{u} + \mathbf{v}$。
+
+![向量加法的平行四边形法则](./images/vec-addition.svg)这一运算在理解残差连接（ResNet 中的 skip connection）时很直观——网络学习的增量 $\Delta \mathbf{y}$ 被叠加到原始输入 $\mathbf{x}$ 上：$\mathbf{y} = \mathbf{x} + \Delta \mathbf{y}$。
 
 **标量乘法** $c \cdot \mathbf{v}$ 的几何含义是：将向量 $\mathbf{v}$ 沿其方向拉伸（$c > 1$）或压缩（$0 < c < 1$），$c < 0$ 时方向反转。在 SAC 算法中，熵系数 $\alpha$ 的作用正是对探索方向的"力度"进行标量缩放。
 
@@ -31,6 +35,8 @@ $$\mathbf{u} \cdot \mathbf{v} = \mathbf{u}^\top \mathbf{v} = \sum_{i=1}^{n} u_i 
 $$\mathbf{u} \cdot \mathbf{v} = \|\mathbf{u}\| \cdot \|\mathbf{v}\| \cdot \cos \theta$$
 
 其中 $\|\mathbf{u}\| = \sqrt{\sum u_i^2}$ 是向量的 L2 范数（长度）。
+
+![点积与夹角的关系](./images/vec-angle.svg)
 
 由此可得三个重要的特殊情况：
 

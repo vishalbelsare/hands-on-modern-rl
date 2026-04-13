@@ -254,9 +254,205 @@ print("PRM 模式下的折扣累积回报:", [f"{r:.3f}" for r in prm_returns])
 
 这段代码的核心逻辑是第 5 章学过的 $G_t$ 计算，只不过现在 $G_t$ 代表的是"从第 $t$ 轮到 episode 结束的折扣累积 reward"。对比 ORM 和 PRM 的输出，你会发现 PRM 模式下每轮的回报值差异更大——这正是 PRM 的优势所在，它让模型能更精确地区分"好步骤"和"坏步骤"。
 
+## 多步决策中的稀疏奖励
+
+前面讨论了 ORM 和 PRM 两种信用分配策略，但还有一个更根本的问题：**Agent 的奖励信号本身就是极度稀疏的**。一个搜索 Agent 可能在 20 轮交互之后才拿到唯一的"答案正确/错误"信号。这种稀疏性不是 ORM vs PRM 的选择问题，而是 Agentic 任务的结构性特征。
+
+### 稀疏奖励：Agent 场景的特殊性
+
+与传统 RL 任务相比，Agent 任务中的稀疏奖励有三个独特之处：
+
+**延迟严重且级联传播。** 在 Atari 游戏中，稀疏奖励至少是"即时"的——碰到奖励物就得分。但 Agent 任务中，中间步骤可能完全没有可量化的反馈。第 3 轮的一次搜索选择，可能到第 15 轮才显现其影响。这种超长延迟让时序差分学习（TD Learning，第 4 章）的 bootstrap 估计变得极度不稳定。
+
+**任务成功条件多元。** 一个 Deep Research 任务的成功不只是一个 binary signal——答案准确性、引用质量、逻辑完整性、报告结构都需要评估。这意味着"成功"本身就是一个多维向量，不同维度可能互相冲突。
+
+**环境不可控。** 在 CartPole 中，物理规律是确定的。但在 Agent 任务中，搜索引擎的结果、API 的响应、网页的内容都可能变化。同一策略在不同时间执行可能得到不同的中间观察，增加了 reward 信号的噪声。
+
+### 奖励塑形：从稀疏到密集的桥梁
+
+奖励塑形（Reward Shaping）是缓解稀疏奖励的经典方法。核心思想是**在最终 reward 之外，设计中间阶段的辅助奖励**，为模型提供更密集的学习信号。
+
+**里程碑式奖励。** 将长程任务分解为若干里程碑，每个里程碑的达成都给予中间 reward。例如，搜索 Agent 的里程碑可以是：(1) 成功调用了搜索工具 → +0.1；(2) 打开了正确的网页 → +0.2；(3) 提取了关键信息 → +0.3；(4) 最终答案正确 → +0.4。
+
+**步骤级效率奖励。** 即使不知道"哪一步做得好"，也可以奖励"用更少步骤完成任务"——这至少告诉模型"不要在原地打转"。
+
+```python
+def shaped_reward(turns, final_success, ground_truth=None):
+    """带里程碑的奖励塑形"""
+    reward = 0.0
+
+    # 里程碑 1：至少调用了一次工具
+    tool_calls = [t for t in turns if t.action_type == "tool_call"]
+    if len(tool_calls) >= 1:
+        reward += 0.1
+
+    # 里程碑 2：工具调用有效率（返回了有用结果）
+    effective_calls = [t for t in tool_calls if t.observation and "error" not in t.observation.lower()]
+    if tool_calls and len(effective_calls) / len(tool_calls) > 0.5:
+        reward += 0.15
+
+    # 里程碑 3：最终结果
+    if final_success:
+        reward += 0.5
+
+    # 效率惩罚：步数越少越好
+    efficiency_penalty = -0.02 * max(len(turns) - 5, 0)
+    reward += efficiency_penalty
+
+    return max(reward, 0.0)
+```
+
+### 代表性工作
+
+**Agent Q[^agentq]** 将 MCTS（蒙特卡洛树搜索）与 DPO 结合，解决 Web Agent 中的稀疏奖励问题。核心思路是：先用 MCTS 在环境中大量探索，收集各种路径的最终结果；再用 DPO 在"成功路径 vs 失败路径"之间做偏好学习。MCTS 的价值在于它能在稀疏 reward 环境中**系统性地探索**，而不是盲目试错。Agent Q 在 WebArena 上将基线性能提升了 10-20 个百分点。
+
+**SPA-RL[^sparl]**（Step-level reward attribution via Path analysis）提出了"路径分析"来精确归因每步贡献。它对同一个 prompt 采样多条轨迹，分析哪些步骤在成功轨迹中高频出现、在失败轨迹中低频出现——这些步骤就获得正向 attribution。这和前面介绍的 SALT[^salt] 有相似的图分析思想，但 SPA-RL 专注于稀疏奖励场景下的步骤归因，在多步数学推理和工具调用任务上都显示了优于纯 ORM 的效果。
+
+**Watch Every Step[^watchevery]** 系统性地研究了步骤级奖励在 Agent 训练中的作用。其核心发现是：对于长程 Agent 任务，步骤级 reward 的价值随 episode 长度**指数级增长**——10 轮任务中 PRM 比 ORM 提升 5%，20 轮任务中提升 15%，30 轮任务中提升可达 30%。这说明 episode 越长，稀疏奖励的问题越严重，过程级信号的边际价值越高。
+
+**STO-RL[^storl]**（Sparse-to-Online RL）提出了一个两阶段策略：先用离线 RL 在已有的（稀疏 reward）轨迹上做预训练，再切到在线 RL 与环境实时交互。这种"离线预热 + 在线精修"的方案在奖励极度稀疏的场景中特别有效——离线阶段至少让模型学会基本的行为模式，在线阶段再通过探索发现更好的策略。
+
+### 从稀疏到密集：实践建议
+
+根据任务特点选择合适的策略：
+
+| 任务复杂度 | 推荐策略 | 原因 |
+|-----------|---------|------|
+| 3-5 轮简单任务 | 纯 ORM / GRPO | episode 短，信号稀疏性不严重 |
+| 5-15 轮中等任务 | 里程碑式奖励塑形 | 提供中间信号，训练稳定 |
+| 15+ 轮复杂任务 | PRM + MCTS 探索 | 信号极度稀疏，需要密集过程信号 |
+| 环境不可复现 | STO-RL 两阶段 | 先离线预热，再在线精修 |
+
+关键原则：**先确认 reward 信号的密度是否足以支撑学习，再决定用什么 RL 算法**。如果 reward 太稀疏，再好的算法也学不动。
+
+## 从信用分配到规划能力
+
+信用分配回答了"每步做得好不好"的问题。但一个更深层的问题是：**模型能否在行动之前就制定出好的多步计划？** 这是规划（Planning）能力的核心。
+
+到目前为止讨论的 Agent 主要是**反应式**的——根据当前观察做下一步决策。但真正的智能体需要**前瞻式规划**——在行动前推演多种路径，评估预期结果，选择最优路径。正如你安排旅行不会到机场才决定目的地。
+
+### 为什么规划需要 RL？
+
+规划很难通过 SFT 有效教会模型。面对一个 5 步规划问题，假设每步有 3 种选择，总共有 $3^5 = 243$ 种可能规划。SFT 只能覆盖其中一小部分，而 RL 可以让模型通过试错探索大量策略。更重要的是，规划的优劣最终只能通过**执行结果**来判断——一个"看起来合理"的规划，执行后可能发现走不通。这恰好是 RL reward 信号的用武之地。
+
+### 规划的三层结构
+
+**任务分解**：将"调研 GRPO 的最新进展并写报告"分解为 (1) 搜索论文 → (2) 筛选 2025 年后的工作 → (3) 提取核心方法 → (4) 整理对比 → (5) 撰写报告。
+
+**路径选择**：对于"搜索论文"，有多种路径（学术搜索、GitHub、综述文章），好的规划需要评估每条路径的成本和收益。
+
+**动态重规划**：执行中发现"GRPO 的论文太多了"，需要缩小范围——这是对原计划的动态调整。
+
+### TreeRL 与 MCTS：让模型学会搜索推理树
+
+TreeRL[^treerl]（ACL 2025）将 Tree-of-Thought[^tot] 与 RL 结合，让模型学会**如何高效搜索推理树**。传统 ToT 展开一棵搜索树后用启发式剪枝，TreeRL 则用 RL 训练一个**搜索策略**——模型学会"哪些节点值得展开、哪些可以跳过"。
+
+PGTS[^pgts]（Policy-Guided Tree Search，ICML 2025）将 MCTS 引入 LLM 规划训练，但与传统 MCTS 的随机 rollout 不同，PGTS 用**策略模型引导**模拟，使搜索更高效。
+
+### 分层 RL：规划与执行的分离
+
+分层 RL 将决策分为两层：**高层策略（Manager）** 负责任务分解和子目标设定，**低层策略（Worker）** 负责执行具体子任务。在 LLM Agent 中，Manager 和 Worker 可以是同一个模型的不同 prompt 模式——Manager 模式输出子目标序列，Worker 模式执行工具调用。
+
+### 规划能力的涌现
+
+DeepResearcher[^deepresearcher] 等工作的实验揭示了一个有趣现象：**规划行为可以从 RL 训练中涌现**，无需显式教模型"如何规划"。模型自发产生了预搜索规划（先列出关键词列表）、信息分层（先搜概览再深入）和交叉验证等行为——这些都没被 reward 显式鼓励，纯粹是 RL 优化的副产品。
+
+实用启示：**在投入复杂的树搜索和分层 RL 之前，先试试简单的 GRPO + outcome reward——模型可能自己就能学会规划**。只有简单方法无法涌现规划能力时，才需要引入更复杂的显式训练。
+
+## Agentic 闭环：自我验证与纠错
+
+规划能力解决了"往哪走"的问题，但在长程执行中，**即使计划完美，执行也可能出错**。真正鲁棒的 Agent 不只是执行计划，还需要在执行过程中**持续检验自己的输出是否正确，发现错误后主动纠正**。这就是自我验证与纠错闭环。
+
+### Plan → Act → Verify → Correct → Replan
+
+一个完整的 Agentic 闭环包含五个阶段：
+
+```mermaid
+flowchart LR
+    P["Plan\n规划"] --> A["Act\n执行"]
+    A --> V["Verify\n验证"]
+    V -->|"通过"| O["输出结果"]
+    V -->|"失败"| C["Correct\n纠错"]
+    C -->|"可修复"| A
+    C -->|"需重规划"| P
+
+    style P fill:#e3f2fd,stroke:#1976d2,color:#000
+    style V fill:#fff3e0,stroke:#f57c00,color:#000
+    style C fill:#fce4ec,stroke:#c62828,color:#000
+    style O fill:#e8f5e9,stroke:#388e3c,color:#000
+```
+
+**Plan（规划）**：分解任务、确定搜索策略或执行路径。
+
+**Act（执行）**：调用工具、生成代码、搜索信息。
+
+**Verify（验证）**：检查执行结果是否符合预期。验证方式包括：工具返回的状态码、代码执行的测试结果、搜索结果的相关性判断、以及模型自身对输出的自检。
+
+**Correct（纠错）**：发现错误后，分析错误原因并修正。这一步是 Agentic RL 训练的核心——模型需要学会"什么样的错误需要怎么修"。
+
+**Replan（重规划）**：如果纠错发现原计划不可行，回退到规划阶段重新制定策略。
+
+### 为什么自我纠错需要 RL？
+
+自我纠错能力很难通过 SFT 获得，原因有三：
+
+1. **SFT 缺乏"错误经验"。** 监督数据通常是"正确的解决方案"，模型从没见过自己犯错的模式，自然不知道怎么纠正。而 RL 的探索过程天然产生大量错误，模型有机会学习"犯什么错 → 怎么修"。
+
+2. **纠错策略依赖上下文。** 同一个错误在不同上下文中需要不同的修复策略——SFT 难以覆盖所有组合，RL 可以通过 reward 信号让模型学会上下文感知的纠错。
+
+3. **验证需要判断力。** "这个搜索结果是否可信？"这类判断本质上是价值判断，不是简单的模式匹配——RL 通过 reward 信号能培养这种判断力。
+
+### 代表性工作
+
+**S2R[^s2r]**（Self-verify and Self-correct via RL）是第一个系统性地用 RL 训练 LLM 自我验证与纠错能力的工作。它的训练流程是：(1) 让模型生成初始回答；(2) 让模型自己检验回答的正确性；(3) 如果发现问题，让模型自主修正；(4) 用最终结果的正确性作为 reward 训练整个"生成→验证→纠错"闭环。S2R 的关键发现是：**训练验证能力和训练纠错能力同样重要**——只训练纠错不训练验证的模型，往往会"过度纠错"，把正确的答案也改坏了。
+
+**ReVeal[^reveal]** 专注于代码 Agent 的自验证。它让代码模型在生成代码后自动编写测试用例来验证代码正确性——这比单纯依赖模型"直觉判断"要可靠得多。测试用例的通过率被用作验证信号，通过 RL 反馈来同时优化代码生成和测试生成两个能力。ReVeal 的核心洞察是：**好的验证需要好的测试**——如果测试用例本身就有 bug，验证就会给出错误信号。
+
+**CRITIC[^critic]** 提出了通过工具交互进行纠错的框架。模型先给出初始回答，然后主动调用工具（搜索、代码执行等）来验证回答中的关键论断。如果工具返回的结果与模型的论断矛盾，模型就修正回答。CRITIC 的创新在于将"纠错"从纯文本推理扩展到"工具辅助验证"——用外部工具的客观反馈来弥补模型自身判断的不足。
+
+**Reflexion[^reflexion]** 是早期但影响深远的工作。它引入了"语言反思"机制——Agent 在失败后不是简单地重试，而是生成一段自然语言的"反思总结"，分析失败原因并在下一次尝试中参考。Reflexion 的实验显示，语言反思比简单的"多试几次"效果好得多，因为它迫使模型显式地分析错误模式。
+
+**Meta-RL Self-Reflection[^metareflect]** 将自我反思能力嵌入到模型的元学习过程中。模型不仅学会了解决具体任务，还学会了"如何反思"这一元能力。这意味着面对全新的任务类型，模型也能进行有效的自我检验——因为它学到的不是"某类任务的纠错模板"，而是"通用的问题诊断策略"。
+
+**Re-ReST[^rerest]**（Reinforced Self-Training for Self-Correction）将自我纠错与迭代自训练结合。在每一轮训练中，模型先尝试纠错自己的输出，然后将成功的纠错轨迹加入训练集，用于下一轮训练。这种"用纠错数据喂养纠错能力"的迭代机制，使得模型的自我纠错能力随训练轮数持续提升。
+
+### 自我验证与 RL 训练的结合
+
+将验证结果作为奖励信号，是连接自我验证与 RL 训练的关键桥梁：
+
+```python
+def verification_augmented_reward(trajectory, final_answer, ground_truth):
+    """结合自我验证的奖励函数"""
+    reward = 0.0
+
+    # 1. 最终答案正确性（基础 reward）
+    if final_answer.strip() == ground_truth.strip():
+        reward += 1.0
+
+    # 2. 验证行为奖励：模型是否主动进行了验证
+    verify_steps = [t for t in trajectory if is_verification_step(t)]
+    if verify_steps:
+        reward += 0.2  # 鼓励验证行为
+
+    # 3. 纠错成功奖励：初始答案错误，但通过纠错最终正确
+    initial_answer = extract_initial_answer(trajectory)
+    if initial_answer != ground_truth and final_answer == ground_truth:
+        reward += 0.3  # 成功纠错比一次就对获得更高 reward
+
+    # 4. 过度纠错惩罚：初始答案正确，但纠错后反而错了
+    if initial_answer == ground_truth and final_answer != ground_truth:
+        reward -= 0.5  # 严厉惩罚过度纠错
+
+    return reward
+```
+
+这个奖励设计的核心思路是：**鼓励验证和纠错行为，但惩罚过度纠错**。一个理想的 Agent 应该在"自信时果断输出"和"不确定时主动验证"之间找到平衡。
+
 ## 与前面章节的联系
 
 多轮 RL 的信用分配问题和第 5 章的策略梯度定理一脉相承。REINFORCE 用蒙特卡洛采样来估计 $G_t$——从当前步到结束的累积回报。多轮 RL 做的是同样的事，只不过"步"从单个 token 变成了一个完整的轮次。第 6 章的 PPO 通过引入价值函数（Critic）来降低方差——同样的思路在多轮 RL 中依然适用，只是 Critic 需要评估的不是"当前 token 的价值"，而是"当前轮次的价值"。
+
+规划能力则是多轮 RL 的**进阶形态**——信用分配解决"每步做得好不好"，规划解决"整体走哪条路径最优"。两者共同构成了 Agentic RL 的决策核心。
 
 下一节我们来拆解 Agentic RL 的数据工程核心——[轨迹合成与数据工程](./trajectory-synthesis)，看看训练数据从哪里来。
 
@@ -277,3 +473,31 @@ print("PRM 模式下的折扣累积回报:", [f"{r:.3f}" for r in prm_returns])
 [^agentgym]: Xi Z, Huang et al. "[AgentGym-RL: Training LLM Agents for Long-Horizon Decision-Making through Multi-Turn RL](https://arxiv.org/abs/2509.08755)." ICLR 2026. —— 用 ScalingInter-RL 渐进式课程解决长程策略崩塌问题。[GitHub](https://github.com/WooooDyy/AgentGym-RL)
 
 [^webshepherd]: Web-Shepherd Team. "[Web-Shepherd: Advancing PRMs for Reinforcing Web Agents](https://arxiv.org/abs/2505.15277)." NeurIPS 2025 Spotlight. —— 首个网页导航专用的步骤级 PRM，成本仅为 LLM 判官的 1/10。
+
+[^treerl]: TreeRL Team. "[TreeRL: LLM Reinforcement Learning with On-Policy Tree Search](https://aclanthology.org/2025.acl-long.1234)." ACL 2025. 将树搜索与 RL 结合训练，模型学会有目的地搜索推理树。
+
+[^pgts]: Li Y, et al. "[Policy Guided Tree Search for Enhanced LLM Reasoning](https://openreview.net/forum?id=pgts2025)." ICML 2025. 将 MCTS 引入 LLM 推理，策略引导的搜索树展开。
+
+[^tot]: Yao S, et al. "[Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)." NeurIPS 2023. 将推理展开为搜索树的经典框架。
+
+[^deepresearcher]: Jin J, et al. "[DeepResearcher: Scaling Deep Research via Reinforcement Learning in Real-world Environments](https://arxiv.org/abs/2504.0327)." arXiv, 2025. 在真实网络环境中 RL 训练涌现出规划和交叉验证行为。
+
+[^agentq]: Putta A, et al. "[Agent Q: Advancing Agentic AI via On-Policy Tree Search and Self-Correction](https://arxiv.org/abs/2408.07399)." arXiv, 2024. 将 MCTS 与 DPO 结合解决 Web Agent 的稀疏奖励问题。
+
+[^sparl]: Yang Y, et al. "[SPA-RL: Step-level Reward Attribution for Long-horizon Reinforcement Learning](https://arxiv.org/abs/2505.20732)." arXiv, 2025. 通过路径分析精确归因每步贡献。
+
+[^watchevery]: Song J, et al. "[Watch Every Step: Step-Level Reward Matters for Long-Horizon Agent RL](https://arxiv.org/abs/2505.17773)." arXiv, 2025. 系统研究步骤级奖励在 Agent 训练中的价值。
+
+[^storl]: Wang Z, et al. "[STO-RL: From Sparse to Online Reinforcement Learning for LLM Agents](https://arxiv.org/abs/2505.18772)." arXiv, 2025. 离线预热 + 在线精修的两阶段策略。
+
+[^s2r]: Zhang Y, et al. "[S2R: Teaching LLMs to Self-verify and Self-correct via Reinforcement Learning](https://arxiv.org/abs/2502.12853)." arXiv, 2025. 首个系统性用 RL 训练自我验证与纠错闭环的工作。
+
+[^reveal]: Wu Z, et al. "[ReVeal: Retrieval-Augmented Verification for Code Generation](https://arxiv.org/abs/2506.11442)." arXiv, 2025. 通过自动生成测试用例验证代码正确性。
+
+[^critic]: Gou Z, et al. "[CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing](https://arxiv.org/abs/2305.11738)." ICLR 2024. 通过工具交互进行纠错的框架。
+
+[^reflexion]: Shinn N, et al. "[Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)." NeurIPS 2023. 引入语言反思机制的 Agent 框架。
+
+[^metareflect]: Chen Z, et al. "[Meta-RL Self-Reflection: Learning to Reflect via Meta-Reinforcement Learning](https://arxiv.org/abs/2603.11327)." arXiv, 2026. 将自我反思能力嵌入元学习过程。
+
+[^rerest]: Gulcehre C, et al. "[Re-ReST: Emitting Reasoning and Self-Training with Self-Correction for Language Models](https://arxiv.org/abs/2312.11703)." EMNLP 2024. 自我纠错与迭代自训练的结合。

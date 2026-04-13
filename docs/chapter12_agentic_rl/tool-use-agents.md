@@ -211,6 +211,73 @@ Code Agent 的 reward 是**可分的**——10 个单元测试过了 7 个，rew
 
 </details>
 
+## 搜索工具 RL：SearchR1 与搜索增强推理
+
+前面讨论的 Web Agent 和 Code Agent 各有侧重，但有一个工具场景特别重要、也特别有挑战性：**搜索引擎**。搜索和计算器、数据库等工具不同——搜索返回的结果是开放式的、非结构化的，而且"好"的搜索策略极度依赖上下文。问"GRPO 和 PPO 的区别"时，模型不需要搜索；但问"2025 年诺贝尔物理学奖得主是谁"时，模型必须搜索——内部知识可能已经过时。
+
+2025 年，SearchR1[^searchr1]（Jin et al., 819 次引用）开创性地将 RL 引入搜索工具训练，让模型**自主学习何时搜索、搜什么、怎么用搜索结果**。随后 ReSearch[^research]、ToRL[^torl] 等工作从不同角度推进了这一方向。
+
+### 为什么 prompting 不够？
+
+在 SearchR1 之前，主流做法是通过 prompting 教模型"你可以在推理过程中调用搜索引擎"。ReAct[^react]、Self-RAG[^selfrag] 等方法都走这条路。但 prompting 有三个根本局限：
+
+**搜索时机判断无法穷举。** 你可以在 prompt 里写"当知识不确定时搜索"，但什么是"不确定"？模型可能对过时信息充满信心（不知道自己不知道），也可能对显而易见的常识过度搜索。
+
+**搜索 query 的策略性无法模仿。** 面对"比较三个量子计算平台的最新性能数据"这种任务，搜索策略需要根据前一次搜索的结果动态调整——第一次搜"quantum computing benchmark 2025"发现太宽泛，第二次改为"IBM quantum advantage vs Google Sycamore 2025"。这种**自适应查询生成**是策略学习问题，不是语言建模问题。
+
+**多轮搜索的长期优化。** 一个复杂任务可能需要 5-10 次搜索。过早停止 = 信息不足，过晚停止 = 资源浪费。这个 trade-off 恰恰是 RL 的用武之地。
+
+### SearchR1 的 MDP 建模
+
+SearchR1 将搜索增强推理建模为一个特殊的 MDP：
+
+- **状态 $s_t$**：当前推理上下文（已生成文本 + 之前的搜索结果）
+- **动作 $a_t$**：两类——(1) 继续生成 token，(2) 生成搜索 query 并触发搜索（通过 `<search>...</search>` 标记）
+- **转移**：搜索动作触发搜索引擎，结果被追加到上下文中
+- **奖励**：基于最终答案正确性（RLVR）+ 搜索效率惩罚
+
+```
+推理 + 搜索的交互过程：
+
+用户: "2025 年图灵奖颁给了谁？"
+
+模型推理: "这个问题涉及 2025 年的最新信息，我需要搜索一下。"
+模型动作: <search>2025 Turing Award winner</search>
+搜索返回: "The 2025 ACM Turing Award was given to..."
+模型推理: "现在信息充足了。"
+最终答案: [完整答案]
+
+Reward: 答案正确性 - λ × 搜索次数
+```
+
+训练使用 GRPO 的组采样 + 组内比较。关键设计：搜索返回的文本在 loss 中被 **mask 掉**——模型不应因为搜索引擎返回了好结果而被强化。搜索行为从 RL 训练中**自发涌现**——即使 SFT 没有教过搜索，模型也会逐渐学会在合适时机触发搜索。
+
+### SearchR1 的关键发现
+
+- **搜索行为从 RL 中涌现**。RL 不仅能优化已知策略，还能发现新策略
+- **搜索频率的 Scaling Law**。训练步数越多，模型在需要搜索的问题上搜索频率上升，在不需要搜索的问题上搜索频率下降——模型学会了区分两种场景
+- **泛化到未见过的搜索场景**。在数学问题上训练的搜索策略能泛化到历史、科学问题
+
+### 技术谱系：SearchR1 之后
+
+| 工作 | 核心创新 | 引用 |
+|------|---------|------|
+| **SearchR1**[^searchr1] | RL 训练模型自主搜索，GRPO + RLVR | 819 |
+| **ReSearch**[^research] | 推理与搜索深度融合，每步推理可包含搜索策略反思 | — |
+| **ToRL**[^torl] | 扩展到计算工具（代码执行器），发现工具使用的 Scaling Law | 131 |
+| **ReTool**[^retool] | 区分推理型 vs 计算型任务，RL 让模型策略性选择工具 | 247 |
+| **ZeroTIR**[^zeroscaling] | 无监督示例下模型自发学会代码执行，幂律 Scaling Law | NeurIPS 2025 |
+
+ToRL[^torl] 训练的 32B 模型在数学推理上超越了不使用工具的 70B 模型，证明了"小模型 + 工具 > 大模型纯推理"。ReTool[^retool] 进一步让模型学会策略性的工具选择——不是所有问题都需要工具，而是根据问题特征动态决定。
+
+```python
+def search_reward(answer, ground_truth, num_searches, max_searches=5):
+    """搜索 RL 的 reward 函数"""
+    correctness = 1.0 if verify_answer(answer, ground_truth) else 0.0
+    efficiency_penalty = -0.05 * num_searches  # 搜索成本惩罚
+    return correctness + efficiency_penalty
+```
+
 ## 工具调用策略的训练流程
 
 把上面的概念串起来，一个完整的工具调用 RL 训练流程通常包含三个阶段：
@@ -298,3 +365,15 @@ def tool_rl_training_loop(
 [^awm]: Wang Z, Mao J, et al. "[Agent Workflow Memory](https://arxiv.org/abs/2409.07429)." ICML 2025. —— 从 Agent 过去经验中抽取可复用工作流，增强 Web 导航的泛化能力。[GitHub](https://github.com/zorazrw/agent-workflow-memory)
 
 [^webshepherd2]: Web-Shepherd Team. "[Web-Shepherd: Advancing PRMs for Reinforcing Web Agents](https://arxiv.org/abs/2505.15277)." NeurIPS 2025 Spotlight. —— 首个网页导航专用步骤级 PRM，成本降至 LLM 判官的 1/10。
+
+[^searchr1]: Jin B, et al. "[Search-R1: Training LLMs to Reason and Leverage Search Engines with Reinforcement Learning](https://arxiv.org/abs/2503.09516)." arXiv:2503.09516, 2025. 819 次引用。首次将搜索工具使用建模为 RL 问题。[GitHub](https://github.com/PeterGriffinJin/Search-R1)
+
+[^torl]: Li X, et al. "[ToRL: Scaling Tool-Integrated RL](https://arxiv.org/abs/2503.23383)." arXiv:2503.23383, 2025. 131 次引用。将工具使用 RL 扩展到计算工具，发现工具使用的 Scaling Law。
+
+[^retool]: Feng J, et al. "[ReTool: Reinforcement Learning for Strategic Tool Use in LLMs](https://arxiv.org/abs/2504.11536)." arXiv:2504.11536, 2025. 247 次引用。策略性工具调用的 RL 框架。
+
+[^research]: He J, et al. "[ReSearch: Learning to Reason with Search for LLMs via Reinforcement Learning](https://arxiv.org/abs/2503.19470)." arXiv:2503.19470, 2025. 推理与搜索深度融合框架。
+
+[^react]: Yao S, et al. "[ReAct: Synergizing Reasoning and Acting in Language Models](https://arxiv.org/abs/2210.03629)." ICLR 2023. 推理与行动协同的经典 prompting 方法。
+
+[^selfrag]: Asai A, et al. "[Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection](https://arxiv.org/abs/2310.09518)." ICLR 2024. 通过自我反思进行检索增强生成。

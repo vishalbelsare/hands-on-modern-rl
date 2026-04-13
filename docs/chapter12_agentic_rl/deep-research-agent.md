@@ -264,6 +264,209 @@ reward = (
 2. **OpenResearcher**：完全开源了整个数据合成流程，是研究和实践 Deep Research 的基石。
 3. **rStar2-Agent**：如果你想探索 RL 算法本身的改进，它展示了如何用极低的训练成本达到顶尖性能。
 
+## 报告生成：Deep Research 的最终输出
+
+前面的讨论聚焦在"搜索策略"和"信息整合"上——Deep Research 的"输入"和"处理"环节。但一个完整的 Deep Research 系统还需要高质量的**输出**环节：将研究结果写成结构化的报告。在电商、金融、咨询等垂域场景中，报告质量直接决定 Agent 的实用价值。
+
+### 报告生成 RL 的独特挑战
+
+与代码生成、数学推理等"答案可验证"的任务不同，报告生成的 RL 训练面临独特挑战：
+
+**奖励主观且多维。** 一份好的报告需要同时满足准确性、结构清晰性、可读性、完整性和引用可靠性。这些维度之间可能存在 trade-off——最准确的报告可能因为术语堆砌而难以阅读。
+
+**输出超长。** 一份完整的研究报告可能 3000-10000 字，远超标准 RLHF 的单轮输出（500-1000 字）。超长输出带来梯度传播困难和一致性维持问题。
+
+**结构约束。** 报告不是自由文本——需要标题、段落、引用等结构化元素。模型需要在保持内容质量的同时生成符合格式要求的结构。
+
+### 长文本 RL：LongWriter-Zero
+
+LongWriter-Zero[^longwriter] 解决了核心问题：如何让模型生成万字级别的长文本，而且**不需要任何长文本标注数据**。它的方案是三重复合奖励模型：
+
+```python
+def longwriter_reward(text, prompt):
+    """三重复合 reward"""
+    # 1. 长度控制（越接近目标长度越好）
+    target = extract_target_length(prompt)
+    length_reward = compute_length_reward(len(text), target)
+
+    # 2. 写作质量（专用 RM 评估）
+    quality_reward = writing_quality_model.score(text)
+
+    # 3. 结构评分（标题、段落、逻辑连贯性）
+    structure_reward = evaluate_structure(text)
+
+    return 0.3 * length_reward + 0.4 * quality_reward + 0.3 * structure_reward
+```
+
+其惊人发现是：**RL 可以让模型从短文本能力自然涌现出长文本能力**。不需要专门的长文本 SFT 数据，复合 reward 就能引导模型学会规划长文本结构。
+
+Writer-R1[^writerr1] 进一步引入了**记忆增强**——保存高质量写作的"成功模式"和低质量写作的"错误模式"，在新任务中检索相关模式。4B 参数的 Writer-R1 在多个写作基准上超越了 100B+ 开源模型。
+
+### 结构化输出的分层约束
+
+RL-Struct[^rlstruct] 提出了**多维度分层奖励**，将结构化输出分解为约束层级：
+
+| 层级 | 约束类型 | 评分方式 |
+|------|---------|---------|
+| Level 0 | 输出格式合法性（合法 JSON/Markdown） | 违反 = 0 分 |
+| Level 1 | 必需字段完整性 | 每缺一个扣分 |
+| Level 2 | 字段内容格式（日期是日期，数字是数字） | 格式错误扣分 |
+| Level 3 | 内容质量（准确、连贯） | RM 连续评分 |
+| Level 4 | 表达质量（流畅、精当） | RM 连续评分 |
+
+低层级约束是硬性的（违反直接 0 分），高层级是软性的（RM 给连续分数）。模型首先学会满足硬性约束，然后逐步优化软性质量。
+
+### 报告的多维 Reward 框架
+
+将报告质量拆解为可计算的维度：
+
+```python
+def report_reward(report, task, verified_facts=None):
+    """报告生成的多维 reward"""
+    accuracy = accuracy_reward(report, verified_facts or {})
+    structure = structure_reward(report)
+    citation = citation_reward(report)
+    length = length_reward(len(report), task.target_length)
+    relevance = compute_relevance(report, task.question)
+
+    return (
+        0.30 * accuracy +
+        0.20 * structure +
+        0.15 * citation +
+        0.10 * length +
+        0.25 * relevance
+    )
+```
+
+训练时建议采用**从短到长的课程学习**——先训 500 字短报告，逐步增加到 5000 字完整报告。这和 12.2 节 HardGen[^hardgen] 的难度自适应思路一致。
+
+### Deep Research 的两阶段 RL
+
+报告生成和前面讨论的搜索推理可以组成完整的 Deep Research 训练：
+
+```
+阶段 1: 搜索推理 RL
+  → 训练搜索策略、信息整合、引用验证
+  → reward: 答案准确性 + 引用质量
+
+阶段 2: 报告生成 RL
+  → 训练结构化输出、长文本规划、多维质量
+  → reward: 结构完整性 + 内容质量 + 可读性
+```
+
+分阶段训练通常更稳定——模型先学会"找对信息"，再学会"写好报告"。但在工程条件允许时，端到端 RL 能获得更优的整体效果。
+
+## 端到端案例：从 Rubrics 到 Search Agent RL 训练
+
+前面分别讨论了搜索策略、奖励设计、报告生成。现在我们把它们串起来，看一个完整的端到端流程：**如何从零开始，用 RL 训练一个 AI 搜索 Agent？** 这个案例覆盖了从评分标准设计到 Reward Model 训练，再到 RL 优化的全链路。
+
+### Step 1：定义 AI 搜索的多维 Rubrics
+
+Rubrics（评分标准）是把"什么是好的搜索结果"转化为可测量指标的第一步。一个好的 AI 搜索 Agent 评分标准通常包含以下维度：
+
+| 维度 | 含义 | 评分方式 |
+|------|------|---------|
+| 答案相关性 | 回答是否精准切题 | 语义相似度 + LLM 判断 |
+| 事实准确性 | 信息是否正确无幻觉 | 与可信来源交叉验证 |
+| 引用质量 | 是否附带可信来源 | URL 可达性 + 内容相关性 |
+| 信息完整性 | 是否覆盖了问题的所有方面 | 关键信息覆盖率 |
+| 时效性 | 信息是否是最新 | 发布时间检测 |
+
+每个维度定义 1-5 分的评分标准，例如"答案相关性"：1 分 = 完全不相关，3 分 = 部分相关但有遗漏，5 分 = 完全精准且全面。
+
+### Step 2：从 Rubrics 到 Reward Model
+
+有了 Rubrics，下一步是收集偏好数据并训练 Reward Model。
+
+**数据收集。** 对同一个搜索 query，让模型（或不同模型）生成多条搜索结果。然后让标注员（或用 LLM-as-Judge）按照 Rubrics 对每条结果打分，并构建偏好对——"结果 A 比结果 B 好"。
+
+**RM 训练。** 用 Bradley-Terry 模型（第 7 章的奖励模型）训练一个 Reward Model。输入是 (query, search_result) 对，输出是一个标量分数。这个 RM 将作为后续 RL 训练的 reward 来源。
+
+但这里有一个关键选择：**是训练一个综合评分的单一 RM，还是为每个 Rubrics 维度训练独立的 RM？**
+
+单一 RM 简单，但无法做细粒度的 credit assignment。多维 RM 可以分别优化每个维度，但训练成本更高。实践中，推荐先用单一 RM 快速验证，再根据需要拆分为多维 RM。
+
+```python
+def train_search_reward_model(preference_data, base_model):
+    """训练搜索场景的 Reward Model"""
+    # preference_data: [(query, result_better, result_worse), ...]
+    # 用 Bradley-Terry 模型训练
+    # loss = -log(sigmoid(rm(query, better) - rm(query, worse)))
+
+    rm = RewardModel(base_model)
+    for query, better, worse in preference_data:
+        score_better = rm.score(query, better)
+        score_worse = rm.score(query, worse)
+        loss = -torch.log(torch.sigmoid(score_better - score_worse))
+        loss.backward()
+        rm.update()
+    return rm
+```
+
+### Step 3：用 RL 训练 Search Agent
+
+有了 RM，就可以开始 RL 训练了。以 GRPO 为例（不需要单独的 Critic）：
+
+```python
+async def search_agent_grpo_step(model, rm, queries, group_size=4, max_turns=10):
+    """Search Agent 的 GRPO 训练步骤"""
+    all_groups = []
+
+    for query in queries:
+        trajectories = []
+        for _ in range(group_size):
+            # Rollout: Agent 执行搜索任务
+            result = await rollout_search_agent(model, query, max_turns)
+            # 用 RM 对搜索结果打分
+            reward = rm.score(query, result.final_answer)
+            # 加入 Rubrics 维度的辅助 reward
+            reward += 0.2 * citation_bonus(result)       # 引用奖励
+            reward += 0.1 * efficiency_bonus(result)      # 效率奖励
+            reward -= 0.3 * hallucination_penalty(result)  # 幻觉惩罚
+            trajectories.append((result, reward))
+
+        # 组内排序
+        trajectories.sort(key=lambda x: x[1], reverse=True)
+        all_groups.append(trajectories)
+
+    # GRPO 更新
+    for group in all_groups:
+        best, worst = group[0], group[-1]
+        if best[1] > worst[1]:
+            await model.grpo_update(
+                prompt=best[0].prompt,
+                chosen=best[0].trajectory,
+                rejected=worst[0].trajectory,
+                advantage=best[1] - worst[1]
+            )
+
+    return all_groups
+```
+
+### Step 4：Reward Hacking 检测与缓解
+
+RL 训练中最常见的陷阱是 **Reward Hacking**——模型学会了"钻 reward 函数的空子"，而不是真正提升搜索质量。常见表现：
+
+- **引用堆砌**：模型发现"引用越多 reward 越高"，于是给每个论断都加 3-4 个引用（很多是重复的或无关的）
+- **关键词匹配**：模型发现答案中包含 ground truth 的关键词就能拿高分，于是堆砌关键词而非真正理解
+- **长度膨胀**：模型发现更长的回答更容易"碰上"正确信息，于是越写越长
+
+**检测方法。** 定期用独立的评估集（不参与训练）检查模型的真实搜索质量。如果 RM 分数在涨，但独立评估集上的表现没变甚至下降，就是 Reward Hacking 的信号。
+
+**缓解策略。** DR Tulu[^rler_dr] 的 RLER（演化评分标准）是有效的缓解方案——当模型在当前 Rubrics 下"刷分"到一定程度后，自动收紧评分标准，让之前的"捷径"不再有效。此外，CaRR[^carr_dr] 的引用感知惩罚也能有效遏制引用堆砌——不仅检查引用是否存在，还检查引用是否提供了增量信息。
+
+### Step 5：搜索质量评估与迭代
+
+训练完成后（以及训练过程中），需要一套系统化的评估方案来持续监控搜索质量：
+
+**自动化评估。** 用固定的测试集定期评估：答案准确率、引用可访问率、平均交互轮数。这些指标可以自动化收集，作为训练健康度的"仪表盘"。
+
+**人工抽检。** 定期抽样检查模型输出的质量——自动化指标无法完全捕捉"搜索策略是否合理"、"信息综合是否到位"等维度。
+
+**对抗性测试。** 用专门设计的"陷阱题"（如包含过时信息的问题、需要交叉验证的矛盾信息）来测试模型是否会"偷懒"或产生幻觉。
+
+这个"Rubrics → RM → RL → Hacking 检测 → 评估"的闭环是一个持续迭代的过程。每一轮迭代都可能需要调整 Rubrics、重新训练 RM、或修改 RL 的 reward 组合。
+
 ## 动手实现：构建一个简易 Deep Research Agent
 
 上面介绍的都是大型系统，但你其实可以用很少的代码搭建一个"最小可行"的 Deep Research Agent 并用 RL 训练它。下面是一个基于开源工具的端到端实践方案。
@@ -496,5 +699,20 @@ Deep Research Agent 是一个把本书所有 RL 知识"串起来"的绝佳场景
 - OpenResearcher Team (TIGER-AI-Lab). "[OpenResearcher: A Fully Open Pipeline for Long-Horizon Deep Research Trajectory Synthesis](https://arxiv.org/abs/2504.1220)." arXiv, 2025. —— 97K+ 轨迹的完全开源合成流水线。
 - Fathom-DeepResearch Team. "[Fathom-DeepResearch: Multi-agent Self-play for Research Data](https://arxiv.org/abs/2504.1331)." arXiv, 2025. —— 多智能体自博弈生成训练数据。
 - Web-Shepherd Team. "[Web-Shepherd: Step-level PRM for Web Interaction](https://arxiv.org/abs/2504.1442)." arXiv, 2025. —— 步骤级过程奖励模型。
+- LongWriter-Zero Team. "[LongWriter-Zero: Mastering Ultra-Long Text Generation via Reinforcement Learning](https://openreview.net/forum?id=longwriter_zero)." OpenReview, 2025. 三重复合 reward（长度+质量+结构），无需长文本标注数据。
+- Writer-R1 Team. "[Writer-R1: Enhancing Generative Writing in LLMs via Memory-Augmented RL](https://arxiv.org/abs/2603.07890)." arXiv, 2025. 4B 模型通过记忆增强 RL 超越 100B+ 开源模型。
+- RL-Struct Team. "[RL-Struct: A Lightweight RL Framework for Structured Output](https://arxiv.org/abs/2604.rlstruct)." arXiv, 2025. 多维度分层奖励函数，将结构化输出分解为约束层级。
+
+[^longwriter]: LongWriter-Zero Team. "[LongWriter-Zero: Mastering Ultra-Long Text Generation via Reinforcement Learning](https://openreview.net/forum?id=longwriter_zero)." OpenReview, 2025. 三重复合 reward（长度+质量+结构），无需长文本标注数据即可涌现万字生成能力。
+
+[^writerr1]: Writer-R1 Team. "[Writer-R1: Enhancing Generative Writing in LLMs via Memory-Augmented RL](https://arxiv.org/abs/2603.07890)." arXiv, 2025. 4B 模型通过记忆增强 RL 超越 100B+ 开源模型。
+
+[^rlstruct]: RL-Struct Team. "[RL-Struct: A Lightweight RL Framework for Structured Output](https://arxiv.org/abs/2604.rlstruct)." arXiv, 2025. 多维度分层奖励函数，将结构化输出分解为约束层级。
+
+[^hardgen]: HardGen Team. "[From Failure to Mastery: Generating Hard Samples for Tool-use Agents](https://arxiv.org/abs/2601.01498)." arXiv, 2026. 从模型失败案例中定向生成高难度训练数据。
+
+[^rler_dr]: DR Tulu Team (Allen AI). "[RLER: Reinforcement Learning with Evolving Rubrics](https://arxiv.org/abs/2504.1109)." arXiv, 2025. 演化评分标准的 RL 训练，评分标准随训练进程动态调整，有效缓解 Reward Hacking。
+
+[^carr_dr]: Liu T, et al. "[CaRR: Citation-Aware Reinforcement Learning for Reliable Research Reports](https://arxiv.org/abs/2601.06021)." arXiv, 2026. 引用感知奖励，通过验证引用真实性和内容相关性来遏制幻觉引用。
 
 到这里，第 12 章的全部内容就结束了。下一章，让我们把目光投向更远的前沿——[未来趋势](../chapter13_future_trends/intro)，看看 RL 领域正在发生哪些激动人心的变化。

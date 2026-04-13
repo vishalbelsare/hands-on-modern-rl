@@ -207,6 +207,124 @@ Agentic RL 不是凭空出现的——它和前面章节学过的几乎所有概
 
 训练完之后，怎么知道你的 Agent 到底好不好？评测与 Benchmark 是 Agentic RL 中一个足够大的话题——从工具调用排行榜到端到端任务基准，从评测 Pipeline 搭建到评测驱动训练改进的闭环——我们把它独立成了一节：**[Agentic 评测体系与 Benchmark 全景](./evaluation-benchmarks)**。
 
+## Agent 奖励设计与评估体系
+
+前面的讨论假设你已经有了 reward 函数。但在实际项目中，**设计一个好的奖励函数往往是 Agentic RL 最难的环节**。这一节我们来拆解：如何从零开始设计 Agent 的多维奖励，以及如何把"人类直觉"转化为"可计算的 reward"。
+
+### Agent 奖励的三大维度
+
+一个好的 Agent 奖励函数通常需要覆盖三个正交维度：
+
+**任务完成度（Task Completion）。** Agent 最终是否完成了用户的目标？这是最基本的维度。对于可验证任务（代码执行、SQL 查询），这是 binary signal；对于开放式任务（写报告、搜索研究），这需要更细致的评估。
+
+**过程质量（Process Quality）。** Agent 的执行过程是否合理？即使最终结果正确，如果 Agent 用了 50 步去完成一个 5 步就能解决的任务，或者中间犯了多次不必要的错误，它的过程质量就不高。过程质量包括：工具使用效率、搜索策略合理性、错误恢复能力、信息综合质量。
+
+**执行效率（Efficiency）。** Agent 以多少资源完成了任务？包括交互轮数、工具调用次数、token 消耗量。效率维度的重要性随部署场景变化——对延迟敏感的场景（如客服）效率很重要，对质量敏感的场景（如研究报告）效率可以适当放宽。
+
+```python
+def comprehensive_agent_reward(trajectory, final_result, task):
+    """Agent 三维奖励框架"""
+    # 维度 1: 任务完成度
+    completion = task.evaluate_result(final_result)  # 0.0 ~ 1.0
+
+    # 维度 2: 过程质量
+    tool_calls = [t for t in trajectory if t.action_type == "tool_call"]
+    effective_calls = [t for t in tool_calls if is_effective(t)]
+    process_quality = (
+        0.4 * (len(effective_calls) / max(len(tool_calls), 1))  # 工具有效率
+        + 0.3 * reasoning_coherence_score(trajectory)            # 推理连贯性
+        + 0.3 * error_recovery_score(trajectory)                 # 错误恢复能力
+    )
+
+    # 维度 3: 执行效率
+    efficiency = compute_efficiency(
+        num_turns=len(trajectory),
+        num_tool_calls=len(tool_calls),
+        total_tokens=sum(t.token_count for t in trajectory),
+        baseline=task.expected_complexity  # 基准：任务预期复杂度
+    )
+
+    # 加权组合（权重可根据任务类型调整）
+    return (
+        0.50 * completion +
+        0.30 * process_quality +
+        0.20 * efficiency
+    )
+```
+
+### 从 Rubrics 到 Reward Model：方法论
+
+人类专家评估 Agent 输出时，通常会用一套评分标准（Rubrics）。把这些 Rubrics 转化为可计算的 reward，需要经过三步：
+
+**Step 1：定义评分维度。** 与领域专家一起确定"好 Agent 输出"的关键维度。例如，对搜索 Agent：答案准确性、引用质量、搜索策略、信息覆盖度。
+
+**Step 2：收集偏好数据。** 让人类标注员（或用 LLM-as-Judge）对成对的 Agent 输出进行偏好比较。"A 和 B 哪个更好？为什么？" 这一步的核心挑战是**标注一致性**——不同标注员可能对"过程质量"有不同标准。解决方法是先在小样本上对齐标注标准，再大规模标注。
+
+**Step 3：训练 Reward Model。** 用偏好数据训练 RM——这和第 7 章 DPO 的 Bradley-Terry 模型一致。关键区别在于：Agent RM 可能需要多个维度的独立评分（而不是单一分数），以便在 RL 训练中做细粒度的 credit assignment。
+
+### 演化评分标准：RLER
+
+Allen AI 的 DR Tulu 提出了 **RLER[^rler_eng]**（Reinforcement Learning with Evolving Rubrics）——一个让评分标准随训练动态演化的框架。核心洞察是：
+
+- **训练初期**：模型能力弱，用宽松的标准鼓励探索。只要答案大致方向对了就给 reward。
+- **训练中期**：模型开始靠谱了，收紧标准。现在要求答案基本正确、引用至少部分可验证。
+- **训练后期**：模型已经很强了，用严格的标准精修。要求答案精确正确、所有引用可验证、过程高效。
+
+RLER 的实现方式是：维护一个评分标准版本库，每隔 $N$ 步训练就根据模型的当前表现调整评分标准的严格程度。这和课程学习（12.2 节）有相似的思想——但 RLER 是"评分标准在演化"，而不是"任务难度在增加"。
+
+### 工具感知的奖励设计：ToolRL
+
+**ToolRL[^toolrl_eng]**（NeurIPS 2025）专门研究了工具调用场景下的奖励设计。它发现了一个反直觉的结论：**在工具调用 RL 中，一个"粗糙但正确"的 reward 函数，往往比一个"精细但带偏差"的 reward 函数效果更好。**
+
+原因在于：精细的 reward 设计通常包含很多人为假设（比如"3 步以内完成是好的"），这些假设可能对某些任务不成立。而简单的"任务是否完成 + 基本格式检查"虽然信号粗糙，但至少不会误导模型。
+
+ToolRL 的实践建议：
+
+1. **从最简单的 reward 开始**：只看任务是否完成
+2. **观察模型的失败模式**：是格式错误？工具选择错误？还是效率太低？
+3. **针对失败模式添加具体惩罚**：模型过度调用工具 → 加效率惩罚；模型输出格式错误 → 加格式奖励
+4. **逐步迭代**：不要一次性设计复杂的 reward，而是观察训练曲线逐步调整
+
+### LLM-as-Judge：自动化的奖励评估
+
+在无法定义精确 reward 函数的场景中（如报告质量、对话自然度），可以用 LLM 作为"自动评审"：
+
+```python
+def llm_judge_reward(agent_output, task_description, judge_model):
+    """用 LLM 做 Judge 的奖励函数"""
+    prompt = f"""请评估以下 Agent 输出的质量。
+
+任务: {task_description}
+
+Agent 输出:
+{agent_output}
+
+请从以下维度打分（0-10）：
+1. 任务完成度: 是否充分回答了用户的问题？
+2. 准确性: 信息是否准确、有无幻觉？
+3. 结构清晰度: 回答是否逻辑清晰、层次分明？
+4. 引用可靠性: 引用来源是否真实可信？
+
+输出 JSON 格式: {{"completion": X, "accuracy": X, "structure": X, "citation": X}}"""
+
+    scores = judge_model.generate(prompt)
+    return weighted_average(scores, weights=[0.4, 0.3, 0.15, 0.15])
+```
+
+LLM-as-Judge 的优势是灵活、低成本；劣势是**可能存在系统性偏差**（比如偏好更长或更"礼貌"的回答）。实践中，通常用 LLM-as-Judge 做**初步筛选**，再用人类标注做**质量校准**。
+
+### 实践路线图
+
+根据项目阶段选择合适的奖励设计策略：
+
+| 项目阶段 | 推荐策略 | 原因 |
+|---------|---------|------|
+| 早期验证 | 简单 binary reward（成功/失败） | 快速验证训练流程是否通畅 |
+| 中期优化 | 多维 Rubrics + 手工 reward | 针对具体失败模式优化 |
+| 后期精修 | RLER 演化标准 + LLM-as-Judge | 复杂任务的细粒度优化 |
+
+核心原则：**reward 设计遵循"先简后繁、观察驱动"的迭代原则**。不要在训练开始前就设计复杂的 reward——先跑起来，观察模型的失败模式，再有针对性地添加奖励维度。
+
 ## 本章总结
 
 让我们回顾第 12 章的核心收获：
@@ -256,3 +374,7 @@ Agentic RL 不是凭空出现的——它和前面章节学过的几乎所有概
 - Tongyi DeepResearch Team. "[Tongyi DeepResearch: From Chatbot to Autonomous Agent](https://tongyi-agent.github.io/blog/introducing-tongyi-deep-research/)." 2025. —— 三阶段 Agentic CPT → SFT → RL 管线，30B MoE 模型的 Deep Research Agent。[GitHub](https://github.com/Alibaba-NLP/DeepResearch)
 - Salesforce AI Research. "[Building Efficient RL Training for the Agentic Era](https://www.salesforce.com/blog/efficient-rl-training-agentic-era/)." 2026. —— SFR-RL 的流水线同步架构和 MoE Expert Parallelism 优化。
 - Subramanian S, Xu P, Wang Y. "[Customizing Multiturn AI Agents with Reinforcement Learning](https://www.amazon.science/blog/customizing-multiturn-ai-agents-with-reinforcement-learning)." Amazon Science Blog, 2026. —— 小数据（72 题）RL 定制 Agent 的实践，证明数据质量 > 数量。
+
+[^rler_eng]: DR Tulu Team (Allen AI). "[RLER: Reinforcement Learning with Evolving Rubrics](https://arxiv.org/abs/2504.1109)." arXiv, 2025. 演化评分标准的 RL 训练，评分标准随训练进程动态调整。
+
+[^toolrl_eng]: Huang Z, et al. "[ToolRL: Reward Design for Tool-Augmented LLMs](https://openreview.net/forum?id=toolrl2025)." NeurIPS 2025. 工具调用场景下的奖励设计研究，发现简单正确的 reward 优于精细但带偏差的 reward。

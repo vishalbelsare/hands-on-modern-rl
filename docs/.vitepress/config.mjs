@@ -485,8 +485,8 @@ const zhSidebar = {
           link: '/appendix_game_projects/intro'
         },
         { text: '附录E：数学基础', link: '/appendix_math/intro' },
-        { text: '附录F：参考文献', link: '/appendix_papers/intro' },
-        { text: '附录G：术语对照表', link: '/appendix_terminology/intro' }
+        { text: '附录G：术语对照表', link: '/appendix_terminology/intro' },
+        { text: '附录H：环境安装指南', link: '/appendix_env_install/intro' }
       ]
     }
   ]

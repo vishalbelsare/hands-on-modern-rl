@@ -55,11 +55,42 @@ $$\text{Margin} = r(x, y_w) - r(x, y_l) = \beta \log \frac{\pi_\theta(y_w | x)}{
 
 ### **Reward Accuracy（偏好准确率）**
 
-这是模型在训练批次（Batch）中，成功给 `chosen` 文本打出比 `rejected` 文本更高奖励的比例。具体来说，对批次中的每条数据计算隐式奖励 $r(x, y_w)$ 和 $r(x, y_l)$，如果前者大于后者就算"判对"，Accuracy 就是判对的比例。
+Reward Accuracy 衡量的是：在一个训练批次中，模型给好回答的隐式奖励高于坏回答隐式奖励的样本占比。用公式表示：
+
+$$\text{Accuracy} = \frac{\#\{i \in B : r(x_i, y_w^{(i)}) > r(x_i, y_l^{(i)})\}}{|B|}$$
+
+其中 $\#\{\cdot\}$ 表示满足条件的样本数量，$|B|$ 是批次大小。这个指标不需要梯度，只需要逐条比较两个奖励值的大小关系即可。
 
 ![Reward Accuracy 曲线](./images/dpo-reward-accuracy.svg)
 
-训练开始时 Accuracy 在 0.5 附近（随机猜测），一个健康的训练过程，Accuracy 应该稳步上升，并最终收敛在 0.8 ~ 0.95 之间。
+训练开始时，模型对好坏回答给出的隐式奖励差不多，Accuracy 在 0.5 附近（相当于随机猜测）。随着训练推进，模型学会区分好坏，Accuracy 应该稳步上升，最终收敛在 0.8 ~ 0.95 之间。如果 Accuracy 长期停留在 0.5 附近，说明模型完全没有学到偏好关系。
+
+### **Chosen Reward 与 Rejected Reward（拆开看 Margin）**
+
+Reward Margin 是两个奖励的差值，但只看差值会丢失信息。比如 Margin 从 0 增长到 2.0，可能是因为：
+
+- 好回答的奖励上升了 2.0（模型变得更偏好"好的"），坏回答的奖励没变——这是健康的。
+- 好回答的奖励没变，坏回答的奖励下降了 2.0（模型变得更排斥"坏的"）——这也是健康的。
+- 好回答上升了 3.0，坏回答也上升了 1.0——模型对两种回答的概率都在升高，但 Margin 也在涨。
+
+因此，将 Chosen Reward 和 Rejected Reward 拆开来看，能帮助判断模型到底在"偏好什么"还是在"排斥什么"。它们的定义分别是：
+
+$$r_{\text{chosen}} = \beta \log \frac{\pi_\theta(y_w | x)}{\pi_{ref}(y_w | x)}, \quad r_{\text{rejected}} = \beta \log \frac{\pi_\theta(y_l | x)}{\pi_{ref}(y_l | x)}$$
+
+一个健康的训练过程中，$r_{\text{chosen}}$ 应该逐步上升（模型越来越偏好好回答），$r_{\text{rejected}}$ 应该逐步下降（模型越来越排斥坏回答）。
+
+<details>
+<summary><strong>补充：如果把 log 概率比拆开看，还能观察到什么？</strong></summary>
+
+上面的隐式奖励 $r_{\text{chosen}}$ 是 $\beta \log(\pi_\theta / \pi_{ref})$ 的简化形式。把它进一步拆开：
+
+$$\beta \log \frac{\pi_\theta(y_w | x)}{\pi_{ref}(y_w | x)} = \beta \log \pi_\theta(y_w | x) - \beta \log \pi_{ref}(y_w | x)$$
+
+其中 $\log \pi_{ref}(y_w | x)$ 是常数（参考模型不更新），所以 $r_{\text{chosen}}$ 的变化完全由 $\log \pi_\theta(y_w | x)$ 驱动。如果你在训练日志中同时监控 $\log \pi_\theta(y_w)$ 和 $\log \pi_\theta(y_l)$ 的原始值，可以更直接地看到模型对每种回答的概率在如何变化。
+
+TRL 的 DPOTrainer 默认会记录 `logps/chosen` 和 `logps/rejected` 两个指标，对应的就是 $\log \pi_\theta(y_w)$ 和 $\log \pi_\theta(y_l)$ 的批次均值。
+
+</details>
 
 ## 本章小结
 
@@ -67,7 +98,7 @@ $$\text{Margin} = r(x, y_w) - r(x, y_l) = \beta \log \frac{\pi_\theta(y_w | x)}{
 
 1. **运行了现代 RL 微调**：在 5 分钟内用 DPO 算法让一个 5 亿参数的大模型学会了“礼貌回复”。
 2. **理解了数据的作用**：认识到在偏好对齐中，高质量的 `(prompt, chosen, rejected)` 数据对是如何驱动模型演化的。
-3. **掌握了评估指标**：读懂了 Training Loss、Reward Margin 和 Accuracy 的含义、数学定义及异常表现。
+3. **掌握了评估指标**：读懂了 Training Loss、Reward Margin、Reward Accuracy、Chosen/Rejected Reward 的含义、数学定义及异常表现。
 4. **梳理了训练全景**：将 DPO 放置在了 Pre-training -> SFT -> RL 的宏观大模型生命周期中。
 5. **拆开了 DPO 黑盒**：了解了 DPO 如何通过对比损失绕过 PPO 的奖励模型训练。
 

@@ -176,7 +176,7 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/bandit/</loc>
-    <lastmod>2026-04-11T14:57:35.084Z</lastmod>
+    <lastmod>2026-04-18T16:33:48.497Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -200,7 +200,37 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/intro/</loc>
-    <lastmod>2026-04-13T09:32:37.066Z</lastmod>
+    <lastmod>2026-04-18T16:37:12.742Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/mdp/</loc>
+    <lastmod>2026-04-18T16:34:43.365Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/panorama/</loc>
+    <lastmod>2026-04-18T16:36:53.670Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/policy-objective/</loc>
+    <lastmod>2026-04-18T16:32:51.045Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/value-q/</loc>
+    <lastmod>2026-04-18T16:32:10.627Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter03_mdp/value-v/</loc>
+    <lastmod>2026-04-18T16:36:05.290Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -236,7 +266,13 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/intro/</loc>
-    <lastmod>2026-04-11T15:28:41.200Z</lastmod>
+    <lastmod>2026-04-18T17:02:52.088Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter04_dqn/q-learning/</loc>
+    <lastmod>2026-04-18T17:02:39.648Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -272,7 +308,7 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/baseline-experiment/</loc>
-    <lastmod>2026-04-13T07:33:16.560Z</lastmod>
+    <lastmod>2026-04-18T16:42:54.402Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -284,13 +320,37 @@
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/intro/</loc>
-    <lastmod>2026-04-12T07:31:11.944Z</lastmod>
+    <lastmod>2026-04-18T17:02:56.434Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter05_policy_gradient/policy-gradient/</loc>
     <lastmod>2026-04-11T14:57:35.398Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter06_actor_critic/actor-critic/</loc>
+    <lastmod>2026-04-18T16:44:33.751Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter06_actor_critic/advantage-critic/</loc>
+    <lastmod>2026-04-18T16:44:03.970Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter06_actor_critic/alphago/</loc>
+    <lastmod>2026-04-18T16:43:09.583Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/chapter06_actor_critic/intro/</loc>
+    <lastmod>2026-04-18T16:44:03.938Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -603,6 +663,12 @@
   <url>
     <loc>https://walkinglabs.github.io/hands-on-modern-rl/preface/intro/</loc>
     <lastmod>2026-04-18T15:29:05.712Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://walkinglabs.github.io/hands-on-modern-rl/restructure-plan/</loc>
+    <lastmod>2026-04-18T16:25:06.169Z</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

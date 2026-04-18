@@ -112,24 +112,27 @@ const zhSidebar = {
       text: '第二篇：核心理论与方法',
       items: [
         {
-          text: '第3章：RL 理论基石：状态、动作与价值',
+          text: '第3章：RL 通识——理论地图与全局视野',
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter03_mdp/intro' },
             { text: '动手：两台老虎机', link: '/chapter03_mdp/bandit' },
-            { text: 'MDP 形式化与价值函数', link: '/chapter03_mdp/formalism' },
-            {
-              text: '贝尔曼方程与 TD Error',
-              link: '/chapter03_mdp/bellman-equation'
-            },
-            { text: '经典方法与路线图', link: '/chapter03_mdp/classic-methods' }
+            { text: 'MDP 五元组、折扣回报与策略', link: '/chapter03_mdp/mdp' },
+            { text: 'V(s) 与贝尔曼方程', link: '/chapter03_mdp/value-v' },
+            { text: '路线一：Q(s,a)', link: '/chapter03_mdp/value-q' },
+            { text: '路线二：J(θ)', link: '/chapter03_mdp/policy-objective' },
+            { text: '全景地图', link: '/chapter03_mdp/panorama' }
           ]
         },
         {
-          text: '第4章：深度强化学习 DQN',
+          text: '第4章：Value-Based 方法：Q-Learning 与深度 Q 网络',
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter04_dqn/intro' },
+            {
+              text: 'Q-Learning：TD 方法 for Q',
+              link: '/chapter04_dqn/q-learning'
+            },
             {
               text: '从 Q-Learning 到 DQN',
               link: '/chapter04_dqn/from-q-to-dqn'
@@ -156,7 +159,7 @@ const zhSidebar = {
           ]
         },
         {
-          text: '第5章：策略梯度与 Actor-Critic',
+          text: '第5章：Policy-Based 方法：策略梯度与 REINFORCE',
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter05_policy_gradient/intro' },
@@ -169,21 +172,32 @@ const zhSidebar = {
               link: '/chapter05_policy_gradient/policy-gradient'
             },
             {
-              text: 'Actor-Critic 架构',
-              link: '/chapter05_policy_gradient/actor-critic'
-            },
-            {
-              text: '基线实验与总结',
+              text: '基线实验',
               link: '/chapter05_policy_gradient/baseline-experiment'
-            },
-            {
-              text: '动手：AlphaGo 简单复现',
-              link: '/chapter05_policy_gradient/alphago'
             }
           ]
         },
         {
-          text: '第6章：PPO 与奖励模型',
+          text: '第6章：Actor-Critic 架构',
+          collapsed: false,
+          items: [
+            { text: '章节导览', link: '/chapter06_actor_critic/intro' },
+            {
+              text: '优势函数与 Critic 训练',
+              link: '/chapter06_actor_critic/advantage-critic'
+            },
+            {
+              text: 'Actor-Critic 架构',
+              link: '/chapter06_actor_critic/actor-critic'
+            },
+            {
+              text: '动手：AlphaGo 简单复现',
+              link: '/chapter06_actor_critic/alphago'
+            }
+          ]
+        },
+        {
+          text: '第7章：PPO——稳定训练的艺术',
           collapsed: false,
           items: [
             { text: '章节导览', link: '/chapter06_ppo/intro' },

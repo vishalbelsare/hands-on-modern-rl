@@ -352,15 +352,15 @@ def tool_rl_training_loop(
 
 [^verltool]: verl-tool Team. "[verl-tool](https://github.com/volcengine/verl-tool)." GitHub, 2025. —— VeRL 的工具调用增强版，跨领域工具调用 RL 训练框架。
 
-[^rstar2]: Microsoft rStar2 Team. "[rStar2-Agent: Agentic Reasoning Technical Report](https://arxiv.org/abs/2508.20722)." arXiv:2508.20722, 2025. —— 14B 模型用 GRPO-RoC 算法在 AIME24 上达 80.6%，超越 671B DeepSeek-R1。
+[^rstar2]: Shang N, Liu Y, Zhu Y, et al. "[rStar2-Agent: Agentic Reasoning Technical Report](https://arxiv.org/abs/2508.20722)." arXiv:2508.20722, 2025. —— 14B 模型用 GRPO-RoC 算法在 AIME24 上达 80.6%，超越 671B DeepSeek-R1。
 
 [^agnostics]: Boruch-Gruszecki A, et al. "[Agnostics: Learning to Code in Any Programming Language](https://arxiv.org/abs/2508.04865)." arXiv:2508.04865, 2025. —— 语言无关的代码 RL 训练管线，通过通用执行验证器支持任何编程语言。[项目主页](https://abgru.me/project/agnostics/)
 
-[^agcodereason]: Meta Research. "[Agentic Code Reasoning](https://arxiv.org/abs/2603.01896)." arXiv:2603.01896, 2026. —— 通过半形式化推理在不执行代码的情况下进行 93% 准确率的补丁验证。
+[^agcodereason]: Ugare S, Chandra S. "[Agentic Code Reasoning](https://arxiv.org/abs/2603.01896)." arXiv:2603.01896, 2026. —— 通过半形式化推理在不执行代码的情况下进行 93% 准确率的补丁验证。
 
-[^zeroscaling]: Agent RL Scaling Team. "[Agent RL Scaling Law: Agent RL with Spontaneous Code Execution for Mathematical Problem Solving](https://arxiv.org/abs/2505.07773)." NeurIPS 2025. —— ZeroTIR 方法：无监督示例下自发学会代码执行，发现训练步数与性能的幂律关系。
+[^zeroscaling]: Mai X, Xu H, Wang X, et al. "[Agent RL Scaling Law: Agent RL with Spontaneous Code Execution for Mathematical Problem Solving](https://arxiv.org/abs/2505.07773)." NeurIPS 2025. —— ZeroTIR 方法：无监督示例下自发学会代码执行，发现训练步数与性能的幂律关系。
 
-[^relook]: ReLook Team. "[ReLook: Vision-Grounded RL with a Multimodal LLM Critic for Agentic Web Coding](https://arxiv.org/abs/2510.11498)." arXiv:2510.11498, 2025. —— 用多模态 LLM 对网页渲染截图进行视觉评分作为 RL reward。
+[^relook]: Li Y, Zhang C, Lv R, et al. "[ReLook: Vision-Grounded RL with a Multimodal LLM Critic for Agentic Web Coding](https://arxiv.org/abs/2510.11498)." arXiv:2510.11498, 2025. —— 用多模态 LLM 对网页渲染截图进行视觉评分作为 RL reward。
 
 [^awm]: Wang Z, Mao J, et al. "[Agent Workflow Memory](https://arxiv.org/abs/2409.07429)." ICML 2025. —— 从 Agent 过去经验中抽取可复用工作流，增强 Web 导航的泛化能力。[GitHub](https://github.com/zorazrw/agent-workflow-memory)
 

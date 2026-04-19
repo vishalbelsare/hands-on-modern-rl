@@ -50,7 +50,7 @@ $$\nabla_\theta J = \mathbb{E}\left[\sum_{t=1}^{T} \nabla_\theta \log p_\theta(a
 
 这个公式和第 5 章的策略梯度公式在形式上完全一致——只是把"生成 token"换成了"预测去噪"。最终的 reward（图像质量）通过整条去噪链路回传到每一步。
 
-**DDPO 的挑战**：去噪步数通常有 20-50 步，episode 很长，reward 信号要经过很多步才能回传。这和第 12 章 Agentic RL 中的"长 horizon 信用分配"问题类似——reward 信号在长链路中被稀释。实践中需要配合 reward shaping 或者过程奖励来缓解。
+**DDPO 的挑战**：去噪步数通常有 20-50 步，episode 很长，reward 信号要经过很多步才能回传。这和第 9 章 Agentic RL 中的"长 horizon 信用分配"问题类似——reward 信号在长链路中被稀释。实践中需要配合 reward shaping 或者过程奖励来缓解。
 
 ### Reward-Guided Sampling：不改模型，改采样
 
@@ -83,7 +83,7 @@ RL 训练的质量直接取决于 reward model 的质量。视觉生成的 rewar
 
 用户可能给出复杂的多约束指令："画一只猫，戴着红色帽子，坐在蓝色沙发上，背景是窗外下雨的城市夜景"。模型需要同时满足所有约束。
 
-这和第 12 章 Agentic RL 中的"多轮指令遵循"有相似之处——都是多约束下的策略学习。区别在于 Agentic RL 的动作是文本/工具调用（离散），视觉生成的动作是像素/latent（连续）。
+这和第 9 章 Agentic RL 中的"多轮指令遵循"有相似之处——都是多约束下的策略学习。区别在于 Agentic RL 的动作是文本/工具调用（离散），视觉生成的动作是像素/latent（连续）。
 
 ### 多维度 Reward 的融合
 
@@ -91,7 +91,7 @@ RL 训练的质量直接取决于 reward model 的质量。视觉生成的 rewar
 
 $$R_{\text{total}} = w_1 \cdot R_{\text{align}} + w_2 \cdot R_{\text{quality}} + w_3 \cdot R_{\text{instruction}}$$
 
-但第 10 章和第 12 章都讨论过：**多组件 reward 容易导致 reward hacking**。Bespoke Labs 的经验（12.5 节）是"reward 越简单越好"。视觉生成也有类似问题——模型可能学会"讨好"美学评分但牺牲文本对齐（生成很好看但和描述无关的图），或者反过来。
+但第 7 章和第 9 章都讨论过：**多组件 reward 容易导致 reward hacking**。Bespoke Labs 的经验（9.4 节）是"reward 越简单越好"。视觉生成也有类似问题——模型可能学会"讨好"美学评分但牺牲文本对齐（生成很好看但和描述无关的图），或者反过来。
 
 实践中一个有效的策略是：**用最简单的二值信号作为主 reward，用其他维度做过滤**。例如主 reward 是"生成的图是否通过了所有属性检查"（二值），美学评分只用作负样本过滤（低于阈值的直接丢弃，不给负 reward）。
 
@@ -128,20 +128,20 @@ RL 训练后的生成模型通常比原始模型更"聪明"（更懂用户意图
 2. **Student**：更小的模型（如 1B 参数）
 3. Student 从 Teacher 的输出中学习——不是简单地模仿 Teacher 的去噪过程，而是学习 Teacher 在 RL 后获得的"好品味"
 
-这和第 10 章讨论的蒸馏思想一致——用强模型的输出作为弱模型的训练信号。区别在于视觉生成的蒸馏需要在 latent 空间进行，而不是 token 空间。
+这和第 8 章讨论的蒸馏思想一致——用强模型的输出作为弱模型的训练信号。区别在于视觉生成的蒸馏需要在 latent 空间进行，而不是 token 空间。
 
 ## 与前面章节的联系
 
 | 前面章节                         | 在视觉生成 RL 中的对应                               |
 | -------------------------------- | ---------------------------------------------------- |
 | REINFORCE 策略梯度（第 5 章）    | DDPO 的核心算法——把去噪过程当作策略                  |
-| Reward Hacking（第 10 章）       | 生成侧的 hacking：讨好美学但牺牲对齐                 |
-| 多组件 reward 的教训（12.5 节）  | 视觉生成的多维度 reward 同样容易导致 hacking         |
+| Reward Hacking（第 7 章）       | 生成侧的 hacking：讨好美学但牺牲对齐                 |
+| 多组件 reward 的教训（9.5 节）  | 视觉生成的多维度 reward 同样容易导致 hacking         |
 | RLVR（第 8 章）                  | 生成侧的"可验证性"：细粒度属性可以逐项检查           |
-| VLM 理解 RL（11.1-11.3 节）      | 理解和生成是视觉 AI 的两面——一个学"看"，一个学"画"   |
-| Agentic RL 长 horizon（12.1 节） | Diffusion 的 20-50 步去噪也是长 horizon 信用分配问题 |
+| VLM 理解 RL（10.1-10.3 节）      | 理解和生成是视觉 AI 的两面——一个学"看"，一个学"画"   |
+| Agentic RL 长 horizon（9.1 节） | Diffusion 的 20-50 步去噪也是长 horizon 信用分配问题 |
 
-一个值得注意的联系是：**VLM 理解 RL 和视觉生成 RL 可以形成闭环**。VLM 理解模型（第 11.1-11.3 节）可以作为视觉生成的 reward model——它已经学会了"看懂图片"，自然能判断"生成的图和描述是否匹配"。反过来，视觉生成模型生成的数据也可以用来增强 VLM 的训练——形成类似于 VisPlay（11.3 节）的协同进化循环。
+一个值得注意的联系是：**VLM 理解 RL 和视觉生成 RL 可以形成闭环**。VLM 理解模型（第 10.1-10.3 节）可以作为视觉生成的 reward model——它已经学会了"看懂图片"，自然能判断"生成的图和描述是否匹配"。反过来，视觉生成模型生成的数据也可以用来增强 VLM 的训练——形成类似于 VisPlay（11.3 节）的协同进化循环。
 
 ## 小结
 
@@ -161,7 +161,7 @@ RL 训练后的生成模型通常比原始模型更"聪明"（更懂用户意图
 - Black K, Janner M, Du Y, et al. "[Training Diffusion Models with Reinforcement Learning](https://arxiv.org/abs/2305.13301)." ICLR 2024. —— DDPO，把 Diffusion 去噪过程建模为 MDP，用策略梯度优化。首次证明 RL 可以显著提升 Diffusion 模型的指令遵循能力。
 - Fan Y, Watkins O, Du Y, et al. "[DPOK: Reinforcement Learning for Fine-tuning Text-to-Image Diffusion Models](https://arxiv.org/abs/2305.16381)." NeurIPS 2023. —— 将策略优化与 KL 正则化结合，在线 RL 微调文本到图像扩散模型。
 - Clark K, et al. "[Directly Fine-Tuning Diffusion Models on Differentiable Rewards](https://arxiv.org/abs/2309.17400)." ICLR 2024. —— 用可微 reward 直接微调 Diffusion 模型，无需 RL。
-- Prabhudesai M, et al. "[Aligning Text-to-Image Diffusion Models with Reward Backpropagation](https://arxiv.org/abs/2310.03739)." 2023. —— 通过 reward 反向传播来对齐 Diffusion 模型。
+- Prabhudesai M, et al. "[Aligning Text-to-Image Diffusion Models with Reward Backpropagation](https://arxiv.org/abs/2407.08737)." 2024. —— 通过 reward 反向传播来对齐 Diffusion 模型。（注：初版 arXiv:2310.03739 已被作者撤回，此处引用更新版。）
 - Wu X, et al. "[Human Preference Score v2: A Benchmark for Evaluating Human Preferences of Text-to-Image Synthesis](https://arxiv.org/abs/2306.09341)." NeurIPS 2023. —— HPS v2，大规模人类偏好评分数据集和 reward model。
 - Kirstain S, et al. "[Pick-a-Pic: Open Dataset of Human Preferences for Text-to-Image Generation](https://arxiv.org/abs/2305.01569)." NeurIPS 2023. —— 人类对生成图像的偏好数据集，用于训练 reward model。
 - Girdhar R, et al. "[Emu Video: Factorizing Text-to-Video Generation by Explicit Image Conditioning](https://arxiv.org/abs/2311.10709)." ECCV 2024. —— 视频生成模型，涉及视频质量的多维度评估。

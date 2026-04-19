@@ -199,7 +199,7 @@ def vlm_grpo_train(model, tokenizer, dataset, num_epochs=3, group_size=4, lr=1e-
             log_probs_tensor = torch.stack([torch.stack(lp) for lp in all_log_probs])
             loss = -(log_probs_tensor * advantages.detach()).mean()
 
-            # 加入 KL 惩罚（回顾第 10 章）
+            # 加入 KL 惩罚（回顾第 8 章）
             kl_penalty = compute_kl_penalty(model, ref_model, batch)
             loss = loss + 0.05 * kl_penalty
 
@@ -221,7 +221,7 @@ def vlm_grpo_train(model, tokenizer, dataset, num_epochs=3, group_size=4, lr=1e-
 
 ## 11.1.4 训练指标分析
 
-训练 VLM 时，除了第 10 章提到的标准指标（奖励、KL 散度、响应长度）之外，还有几个多模态特有的指标值得关注：
+训练 VLM 时，除了第 8 章提到的标准指标（奖励、KL 散度、响应长度）之外，还有几个多模态特有的指标值得关注：
 
 **注意力热力图变化。** VLM 的注意力机制决定了模型在"看"图片的哪些区域。训练前，注意力可能分散在整个图片上；训练后，注意力应该集中在与问题相关的图形上。你可以通过可视化注意力热力图来验证这一点——如果问"有几个圆形"，注意力应该集中在蓝色圆形区域。
 

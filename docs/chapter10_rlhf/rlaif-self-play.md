@@ -276,7 +276,7 @@ flowchart TD
     style T fill:#e8f5e9,stroke:#2e7d32
 ```
 
-这个循环的关键在于**每一轮都能产出比上一轮更好的数据**。Meta 的 Self-Rewarding LMs 实验验证了这个可行性：经过 3 轮迭代后，Llama 2 70B 在 AlpacaEval 上的胜率从 10% 跃升至 73%。SPPO（Self-Play Preference Optimization）进一步将 Self-Play 机制融入其中，让模型与自己的历史版本竞争。（这两个方法在[第 7 章的 DPO 家族](../chapter07_alignment/dpo-family)中有更详细的介绍。）
+这个循环的关键在于**每一轮都能产出比上一轮更好的数据**。Meta 的 Self-Rewarding LMs 实验验证了这个可行性：经过 3 轮迭代后，Llama 2 70B 在 AlpacaEval 上的胜率从 10% 跃升至 73%。SPPO（Self-Play Preference Optimization）进一步将 Self-Play 机制融入其中，让模型与自己的历史版本竞争。（这两个方法在第 8 章的 DPO 家族中有介绍。）
 
 ### 工程实践：防止自我进化变成自我退化
 
@@ -361,7 +361,7 @@ def self_evolution_loop(model, prompts, external_rm, num_iterations=3):
 
 两者的核心区别在于**奖励信号的来源**：
 
-- **[GRPO](../chapter08_grpo_rlvr/grpo-mechanism) + [RLVR](../chapter08_grpo_rlvr/deepseek-dapo-rlvr)** 的奖励来自**外部验证器**（数学答案是否正确、代码是否通过测试）。这个信号是客观的、可验证的，不依赖模型自己的判断。它的天花板取决于验证器的设计质量。
+- **[GRPO](../chapter08_grpo_rlvr/grpo-practice-and-mechanism) + [RLVR](../chapter08_grpo_rlvr/deepseek-dapo-rlvr)** 的奖励来自**外部验证器**（数学答案是否正确、代码是否通过测试）。这个信号是客观的、可验证的，不依赖模型自己的判断。它的天花板取决于验证器的设计质量。
 
 - **Self-Rewarding** 的奖励来自**模型自身**。这个信号是主观的，模型既是"选手"又是"裁判"。它的上限取决于模型的"元认知"能力——能否准确评估自己输出的质量。
 
@@ -369,4 +369,4 @@ def self_evolution_loop(model, prompts, external_rm, num_iterations=3):
 
 </details>
 
-到这里，我们从理论基础到数据工程、从奖励函数到训练稳定性、从奖励黑客到 RLAIF，完整走遍了 RLHF 的工程全景。下一章，我们将视角从纯文本拓展到多模态——看看当输入不只是文字还包括图像时，RL 会面临什么新的挑战。让我们进入第 11 章——[VLM 强化学习](../chapter11_vlm_rl/intro)。
+到这里，我们从理论基础到数据工程、从奖励函数到训练稳定性、从奖励黑客到 RLAIF，完整走遍了 RLHF 的工程全景。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——看看如何训练能在环境中连续行动、调用工具的智能体。让我们进入第 9 章——[Agentic RL](../chapter12_agentic_rl/intro)。

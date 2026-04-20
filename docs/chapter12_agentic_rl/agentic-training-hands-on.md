@@ -164,51 +164,30 @@ baseline_metrics = batch_evaluate(baseline_tasks, baseline_completions)
 print(f"Baseline pass@1: {baseline_metrics['pass@1']:.1%} ({baseline_metrics['passed']}/{baseline_metrics['total']})")
 ```
 
-## 第三步：构建 Agent Loop——模型生成代码，沙箱执行，观察结果，继续生成
+## 第三步：Agent Rollout——模型生成代码，沙箱执行，观察结果，继续生成
 
-这是核心。参考 SimpleTIR 的做法：模型在推理过程中生成 ```` ```python ``` ````  代码块，沙箱执行后返回结果（stdout 或报错），结果追加到上下文，模型继续生成。**整条轨迹就是训练数据。**
+### 3.1 Rollout 的核心问题
 
-### 3.1 Agent Prompt
+从 Search-R1 和 ReTool 的源码中提取的关键 insight：
 
-```python
-# ==========================================
-# 3.1 Agent System Prompt
-#     参考 SimpleTIR：模型自由生成代码块，不预设工具调用格式
-# ==========================================
-AGENT_PROMPT = """\
-You are a Python coding agent. Given a function signature, implement it.
+**问题 1：每轮重新 encode 整个对话。** 我们之前的实现在每轮都调用 `apply_chat_template` 重新编码整个对话历史。Search-R1 的 `run_llm_loop` 不是这样做的——它维护一个 `rolling_state`，每轮只**增量拼接**新的 token（response + observation），不重新编码。重新编码会导致 tokenization drift。
 
-You can write Python code blocks to test your implementation. Format:
-```python
-# your code here
-```
-The code will be executed and you'll see the result. If tests fail, fix the code and try again.
+**问题 2：生成不截断。** 之前模型每轮生成完整 `max_new_tokens`，然后事后从中提取代码块。Search-R1 在 `</search>` 处截断，ReTool 在 ` ``` ` 处截断。截断让 action 边界更干净。
 
-When confident, output your final implementation in a code block. You have at most 3 execution rounds."""
-```
+**问题 3：info_mask 事后构建。** 之前用 diff 文本的方式事后构建 mask，脆弱且不精确。Search-R1 在 rollout 过程中**增量构建**两个平行张量——真实 token 和 masked token。
 
-### 3.2 Agent Rollout——真实的多轮交互
-
-参考 Search-R1 的 `LLMGenerationManager.run_llm_loop()` 和 ReTool 的 `CustomSandboxFusionTool`。
-
-**Search-R1 的做法**：维护一个 rolling state，每轮模型生成到 `</search>` 截断，搜索引擎返回结果后追加到 rolling state，下一轮模型看到完整历史继续生成。同时维护两个平行张量：`responses`（真实 token）和 `responses_with_info_mask`（工具 token 替换为 pad_id）。
-
-**ReTool 的做法**：模型生成 ```` ```python ``` ```` 代码块，正则 `r"```python(.*?)```"` 提取代码，沙箱执行后 stdout/stderr 作为 `tool` role 消息注入。如果最后一行没有 `print()`，自动补上。
+### 3.2 修正后的实现
 
 ```python
 # ==========================================
-# 3.2 Agent Rollout
-#     参考 Search-R1 generation.py + ReTool retool.py
+# 3.2 Agent Rollout：token 级增量拼接
 # ==========================================
 
-# ★ 和 ReTool 完全一样的代码块提取正则
-CODE_PATTERN = re.compile(r"```(?:python|py)?\n(.*?)\n```", re.DOTALL)
+CODE_PATTERN = re.compile(r'```(?:python|py)?\n(.*?)\n```', re.DOTALL)
+PAD_ID = tokenizer.pad_token_id
 
 def ensure_print(code: str) -> str:
-    """
-    ReTool 的做法：如果最后一行不是 print()，自动补上。
-    这样沙箱执行时最后一行的结果会被输出到 stdout。
-    """
+    """自动给最后一行补 print()，确保沙箱输出结果"""
     lines = code.strip().split("\n")
     for i in range(len(lines) - 1, -1, -1):
         if lines[i].strip() and not lines[i].strip().startswith("print"):
@@ -219,81 +198,105 @@ def ensure_print(code: str) -> str:
 def run_agent_rollout(task, temperature=0.7, max_turns=3, verbose=False):
     """
     多轮 Agent Rollout。
-    流程参考 Search-R1 的 run_llm_loop + ReTool 的 code_interpreter：
 
-    1. 模型生成（可能包含 ```python``` 代码块）
-    2. 提取代码块（ReTool 的 CODE_PATTERN 正则）
-    3. 沙箱执行（ReTool 的 SandboxFusion / 我们的 subprocess）
-    4. 执行结果作为 observation 追加（Search-R1 的 next_obs）
-    5. 下一轮模型看到完整历史（Search-R1 的 rolling state）
-    6. 收集完整轨迹（用于后续 finetune）
+    关键修正（基于 Search-R1/ReTool 源码 insight）：
+    1. token 级增量拼接，不每轮重新 encode 整个对话
+    2. 在 ``` 代码块边界截断生成
+    3. rollout 过程中增量构建 input_ids 和 info_mask
     """
-    conversation = [
+    # 初始 prompt → token
+    init_messages = [
         {"role": "system", "content": AGENT_PROMPT},
         {"role": "user", "content": f"Implement this function:\n\n{task['prompt']}"},
     ]
+    prompt_text = tokenizer.apply_chat_template(init_messages, tokenize=False, add_generation_prompt=True)
+    prompt_ids = tokenizer.encode(prompt_text, add_special_tokens=False)
+
+    # 增量构建：real = 真实 token, masked = 工具 token 替换为 pad
+    real_ids = list(prompt_ids)
+    masked_ids = list(prompt_ids)  # prompt 部分：两个张量相同
 
     current_code = ""
     passed = False
-    is_valid = True  # ★ SimpleTIR 的 void turn 检测：这轮是否产出了有效代码
+    is_valid = True
 
     for turn_idx in range(max_turns):
-        # --- Step 1: 模型生成（Search-R1 的 generate_sequences） ---
-        text = tokenizer.apply_chat_template(conversation, tokenize=False, add_generation_prompt=True)
-        inputs = tokenizer(text, return_tensors="pt").to(device)
+        # --- 模型生成（从 rolling state） ---
+        input_t = torch.tensor([real_ids], dtype=torch.long).to(device)
+        attn_t = torch.ones_like(input_t)
 
         with torch.no_grad():
-            out = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS,
+            out = model.generate(input_ids=input_t, attention_mask=attn_t,
+                                 max_new_tokens=MAX_NEW_TOKENS,
                                  temperature=temperature, do_sample=temperature>0,
-                                 top_p=0.95, pad_token_id=tokenizer.pad_token_id)
+                                 top_p=0.95, pad_token_id=PAD_ID)
 
-        response = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+        gen_ids = out[0][input_t.shape[1]:].tolist()
+        response_text = tokenizer.decode(gen_ids, skip_special_tokens=True)
 
-        # ★ Search-R1 的 postprocess：追加 assistant 回复到轨迹
-        conversation.append({"role": "assistant", "content": response})
+        # --- 截断：在第一个代码块结尾处截断 ---
+        # 模型可能生成 ```python ... ``` 之后再生成更多文本，
+        # 我们只取到代码块结束，让 observation 更干净
+        truncated_text = response_text
+        code_end = response_text.find('```\n')
+        if code_end != -1 and '```python' in response_text[:code_end]:
+            # 找到代码块结束位置，截取到那里 + ```
+            end_pos = code_end + 4  # len('```\n')
+            truncated_text = response_text[:end_pos]
+            gen_ids = tokenizer.encode(truncated_text, add_special_tokens=False)
 
-        # --- Step 2: 提取代码块（ReTool 的 CODE_PATTERN） ---
-        code_blocks = CODE_PATTERN.findall(response)
+        # 追加 assistant 生成的 token（real 和 masked 相同——都是 LLM 生成的）
+        real_ids.extend(gen_ids)
+        masked_ids.extend(gen_ids)
+
+        # --- 提取代码块并执行 ---
+        code_blocks = CODE_PATTERN.findall(truncated_text)
 
         if not code_blocks:
-            # ★ SimpleTIR 的 void turn：这轮没有产出有效代码块
             is_valid = False
-            current_code = response
+            current_code = response_text
             break
 
-        # ★ ReTool 的做法：取最后一个代码块，确保有 print()
         current_code = ensure_print(code_blocks[-1].strip())
-
-        # --- Step 3: 沙箱执行（ReTool 的 SandboxFusion / Search-R1 的 search） ---
         exec_result = sandbox_execute(current_code, task["prompt"], task["test"], task["entry_point"])
 
         if verbose:
             status = "PASS" if exec_result["passed"] else f"FAIL: {exec_result['error'][:50]}"
             print(f"  Turn {turn_idx+1}: {status}")
 
-        # --- Step 4: 执行结果作为 observation（Search-R1 的 next_obs） ---
+        # --- 构造 observation token ---
         if exec_result["passed"]:
-            # ★ Search-R1 的 info 追加方式
-            conversation.append({"role": "user",
-                "content": f"<output>\nALL TESTS PASSED\n</output>\nOutput your final implementation."})
+            obs_text = f"\n<output>\nALL TESTS PASSED\n</output>\nOutput your final implementation.\n"
+        else:
+            obs_text = f"\n<output>\nFAILED: {exec_result['error']}\n</output>\nFix the code and try again.\n"
+
+        obs_ids = tokenizer.encode(obs_text, add_special_tokens=False)
+
+        # 追加 observation token：
+        # real_ids: 真实的 observation token（训练时模型看到）
+        # masked_ids: 全部替换为 PAD_ID（训练时不算 loss）
+        real_ids.extend(obs_ids)
+        masked_ids.extend([PAD_ID] * len(obs_ids))
+
+        if exec_result["passed"]:
             passed = True
-            # 再让模型生成最终代码
-            text = tokenizer.apply_chat_template(conversation, tokenize=False, add_generation_prompt=True)
-            inputs = tokenizer(text, return_tensors="pt").to(device)
+            # 再生成一轮最终代码
+            input_t = torch.tensor([real_ids], dtype=torch.long).to(device)
+            attn_t = torch.ones_like(input_t)
             with torch.no_grad():
-                out = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS,
+                out = model.generate(input_ids=input_t, attention_mask=attn_t,
+                                     max_new_tokens=MAX_NEW_TOKENS,
                                      temperature=temperature, do_sample=temperature>0,
-                                     pad_token_id=tokenizer.pad_token_id)
-            final_resp = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-            conversation.append({"role": "assistant", "content": final_resp})
-            final_blocks = CODE_PATTERN.findall(final_resp)
+                                     pad_token_id=PAD_ID)
+            final_gen = out[0][input_t.shape[1]:].tolist()
+            real_ids.extend(final_gen)
+            masked_ids.extend(final_gen)
+
+            final_text = tokenizer.decode(final_gen, skip_special_tokens=True)
+            final_blocks = CODE_PATTERN.findall(final_text)
             if final_blocks:
                 current_code = final_blocks[-1].strip()
             break
-        else:
-            # ★ Search-R1：报错信息作为 observation
-            conversation.append({"role": "user",
-                "content": f"<output>\nFAILED: {exec_result['error']}\n</output>\nFix the code and try again."})
 
     # 最终验证
     if current_code:
@@ -302,104 +305,39 @@ def run_agent_rollout(task, temperature=0.7, max_turns=3, verbose=False):
     else:
         passed = False
 
+    # 构建 info_mask（和 Search-R1 的 create_attention_mask(masked_ids) 一样）
+    ids_tensor = torch.tensor([real_ids], dtype=torch.long)
+    masked_tensor = torch.tensor([masked_ids], dtype=torch.long)
+    info_mask = (masked_tensor != PAD_ID).long()
+    labels = ids_tensor.clone()
+    labels[info_mask == 0] = -100
+
     return {
-        "conversation": conversation,   # ★ 完整轨迹——训练用
-        "completion": current_code,      # 最终代码——评测用
-        "passed": passed,                # 是否通过——reward 用
-        "is_valid": is_valid,            # ★ SimpleTIR 的 void turn 过滤标记
-        "turns": len([m for m in conversation if m["role"] == "assistant"]),
+        "input_ids": ids_tensor,
+        "attention_mask": torch.ones_like(ids_tensor),
+        "labels": labels,
+        "info_mask": info_mask,
+        "completion": current_code,
+        "passed": passed,
+        "is_valid": is_valid,
+        "turns": turn_idx + 1 if current_code else 0,
     }
 ```
 
 ### 3.3 验证 Rollout
 
 ```python
-# 快速验证 rollout 是否正常工作
+# 快速验证
 print("Sanity check — Agent Rollout:")
 print("-" * 60)
 for i in [0, 5, 10]:
     task = problems[i]
     result = run_agent_rollout(task, temperature=0.3, verbose=True)
+    n_assist = result["info_mask"].sum().item()
+    n_tool = (result["info_mask"] == 0).sum().item()
     print(f"  {task['task_id']}: {'PASS' if result['passed'] else 'FAIL'} "
-          f"(turns: {result['turns']}, conversation: {len(result['conversation'])} messages)")
+          f"(turns: {result['turns']}, LLM tokens: {n_assist}, tool tokens: {n_tool})")
 print("-" * 60)
-```
-
-## 第四步：收集 Rollout 轨迹 → 构建 Finetune 数据
-
-Rollout 出来的轨迹是原始对话。要变成 finetune 数据，需要 tokenize 并构建 **info_mask**——Search-R1 证明了这个 mask 对训练效果至关重要（有 mask: 0.431 vs 无 mask: 0.343）。
-
-### Search-R1 的 info_mask 机制
-
-Search-R1 维护**两个平行张量**：
-- `responses`：真实的 token 序列（包含 LLM 生成的 + 工具返回的）
-- `responses_with_info_mask`：工具返回的 token 被替换为 `pad_token_id`
-
-最终 `info_mask = create_attention_mask(responses_with_info_mask)`，pad → 0, 其余 → 1。这个 mask 同时用于 loss 和 KL 计算。
-
-```python
-# ==========================================
-# 4. Tokenize 轨迹 + 构建 info_mask
-#    参考 Search-R1 的 _info_masked_concatenate_with_padding
-#    和 veRL 的 response_mask 机制
-# ==========================================
-
-def tokenize_with_info_mask(conversation, max_length=2048):
-    """
-    将多轮对话 tokenize，构建两个输出：
-    - input_ids: 完整 token 序列（包含工具结果）
-    - info_mask: 1=LLM 生成的 token, 0=工具返回的 token
-
-    ★ 这就是 Search-R1 的 responses + responses_with_info_mask 模式。
-    """
-    pad_id = tokenizer.pad_token_id
-
-    # 逐段 tokenize，记录哪些 token 是 assistant 生成的
-    all_tokens = []          # 真实 token（用于 input_ids）
-    all_tokens_masked = []   # mask 版本（工具 token 替换为 pad_id，用于 info_mask）
-    prev_text = ""
-
-    for msg in conversation:
-        is_assistant = (msg["role"] == "assistant")
-
-        partial = conversation[:conversation.index(msg) + 1]
-        if is_assistant:
-            full_text = tokenizer.apply_chat_template(partial, tokenize=False, add_generation_prompt=False)
-        else:
-            full_text = tokenizer.apply_chat_template(partial, tokenize=False, add_generation_prompt=True)
-
-        new_text = full_text[len(prev_text):] if len(full_text) > len(prev_text) else ""
-        if new_text:
-            new_tokens = tokenizer.encode(new_text, add_special_tokens=False)
-            all_tokens.extend(new_tokens)
-            # ★ Search-R1 的核心：assistant token 保留原 id，其余替换为 pad_id
-            if is_assistant:
-                all_tokens_masked.extend(new_tokens)   # LLM 生成的 → 保留
-            else:
-                all_tokens_masked.extend([pad_id] * len(new_tokens))  # 工具/系统 → pad_id
-        prev_text = full_text
-
-    # 截断
-    if len(all_tokens) > max_length:
-        all_tokens = all_tokens[:max_length]
-        all_tokens_masked = all_tokens_masked[:max_length]
-
-    input_ids = torch.tensor([all_tokens], dtype=torch.long)
-    # ★ info_mask: 从 masked 版本创建（和 Search-R1 的 create_attention_mask 一样）
-    masked_ids = torch.tensor([all_tokens_masked], dtype=torch.long)
-    info_mask = (masked_ids != pad_id).long()  # 非 pad → 1, pad → 0
-
-    # labels 也构建：只有 assistant token 参与 loss
-    labels = input_ids.clone()
-    labels[info_mask == 0] = -100
-
-    return {
-        "input_ids": input_ids,
-        "attention_mask": torch.ones_like(input_ids),
-        "labels": labels,
-        "info_mask": info_mask,  # ★ Search-R1 的 info_mask：LLM token=1, tool token=0
-        "num_assistant_tokens": info_mask.sum().item(),
-    }
 ```
 
 ### 4.1 批量 Rollout 收集轨迹
@@ -482,10 +420,10 @@ else:
         total_loss = 0
 
         for traj in valid_trajs:
-            enc = tokenize_with_info_mask(traj["conversation"])
-            input_ids = enc["input_ids"].to(device)
-            attention_mask = enc["attention_mask"].to(device)
-            labels = enc["labels"].to(device)
+            # rollout 已经构建好了 input_ids / labels / info_mask，直接用
+            input_ids = traj["input_ids"].to(device)
+            attention_mask = traj["attention_mask"].to(device)
+            labels = traj["labels"].to(device)
 
             if (labels != -100).sum() == 0:
                 continue  # 跳过没有 assistant token 的轨迹
@@ -571,20 +509,20 @@ for epoch in range(MAX_EPOCHS):
         mean_r, std_r = rewards.mean(), rewards.std() + 1e-8
         advantages = (rewards - mean_r) / std_r
 
-        # ---- Phase 3: 策略梯度更新（在完整轨迹上） ----
+        # ---- Phase 3: 策略梯度更新 ----
         for traj, advantage in zip(trajectories, advantages):
             if not traj["completion"]:
                 continue
 
-            enc = tokenize_with_info_mask(traj["conversation"])
-            input_ids = enc["input_ids"].to(device)
-            attention_mask = enc["attention_mask"].to(device)
-            labels = enc["labels"].to(device)
+            input_ids = traj["input_ids"].to(device)
+            attention_mask = traj["attention_mask"].to(device)
+            labels = traj["labels"].to(device)
+            info_mask = traj["info_mask"].to(device)
 
-            if (labels != -100).sum() == 0:
+            if (info_mask == 1).sum() == 0:
                 continue
 
-            # Policy log prob（只在 assistant token 上）
+            # Policy log prob（用 info_mask 而不是 labels=-100）
             outputs = model_rl(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
             policy_lp = -outputs.loss
 

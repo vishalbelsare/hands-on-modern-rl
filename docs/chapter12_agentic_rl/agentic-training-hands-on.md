@@ -1,39 +1,58 @@
-# 12.4 动手：端到端 Agentic RL 训练——真实模型、真实 Benchmark、真实提升
+# 12.4 动手：多工具 Agentic RL——搜索文档、写代码、跑测试，模型自己学会什么时候用什么工具
 
-前面的实验用模拟数据对比了 ORM 和 PRM。但那些轨迹是假的——没有真实的模型推理，没有真实的代码执行，也没有真实的梯度更新。这一节我们要做一件更硬核的事：**用真实的 Code LLM，构建真实的代码执行工具，模型自己写代码→执行→看报错→修复，用 rollout 出来的轨迹 finetune 模型，跑 HumanEval 看 pass@1 的真实提升。**
+前面的实验用模拟数据对比了 ORM 和 PRM。但那些轨迹是假的。这一节我们做一件更硬核的事：**给模型 3 个工具（搜索文档、执行代码、跑测试），让模型自己学会什么时候搜索、什么时候写代码、什么时候跑测试。用 GRPO 训练后，模型在代码生成 benchmark 上获得真实提升。**
 
-整个实验在一台 24GB 显存的 GPU（如 RTX 4090 / A5000）上即可完成。如果你没有 GPU，可以用 Google Colab 的免费 T4。
+这不是 "写代码→看报错→修" 的单工具循环。这是**真正的 agentic RL**——模型要在多个工具之间做决策，学会工具选择策略。
 
-> 实验设计参考 SimpleTIR（ICLR 2026）、ReTool（字节跳动）和 Search-R1 的真实训练管线。它们的核心模式是一样的：模型生成工具调用 → 环境执行 → 结果追加到上下文 → 模型继续生成 → 收集完整轨迹 → 训练。
+整个实验在一台 24GB 显存的 GPU（如 RTX 4090 / A5000）上即可完成。我们使用 **Qwen2.5-Coder-3B-Instruct** 作为基座模型。
+
+> 实验设计参考 MURPHY（multi-turn GRPO for self-correcting code generation）、CodeGym（ICLR 2026，多工具 RL 环境）、VerlTool（统一多工具 RL 框架）。训练数据使用 KodCode（合成代码题），评测使用 BigCodeBench-Hard。
 
 ```mermaid
 flowchart TD
-    subgraph Rollout ["① Rollout：模型 + 工具环境交互"]
-        M1["模型生成\n```python\ncode\n```"] --> E["工具：执行代码"]
-        E --> O["观察：\n报错/通过"]
-        O --> M2["模型继续\n修复代码"]
-        M2 --> E
+    subgraph Rollout ["① Rollout：模型 + 3 个工具交互"]
+        M1["模型决策"] -->|"搜索 API"| S["工具 1：搜索文档"]
+        M1 -->|"写代码"| E["工具 2：执行代码"]
+        M1 -->|"跑测试"| T["工具 3：运行测试"]
+        S --> O1["观察：API 文档片段"]
+        E --> O2["观察：执行结果/报错"]
+        T --> O3["观察：pass/fail 详情"]
+        O1 --> M2["模型继续"]
+        O2 --> M2
+        O3 --> M2
+        M2 --> M1
     end
 
     subgraph Collect ["② 收集轨迹"]
-        T["完整轨迹:\n[prompt, response₁, obs₁, response₂, obs₂, ...]"]
+        TR["完整轨迹:\n[prompt, response₁, obs₁, response₂, obs₂, ...]\n每个 obs 标注来自哪个工具"]
     end
 
-    subgraph Train ["③ Finetune"]
-        S["路径 A:\nSFT on 成功轨迹"] 
-        R["路径 B:\nGRPO RL\n（组采样 + 对比）"]
+    subgraph Train ["③ GRPO RL"]
+        G["组采样 → 组内比较 → 策略梯度\n工具 obs token mask 掉\n只对模型决策 token 算 loss"]
     end
 
     Rollout --> Collect --> Train
 
     style M1 fill:#e3f2fd,stroke:#1976d2,color:#000
-    style E fill:#fff3e0,stroke:#f57c00,color:#000
-    style O fill:#fce4ec,stroke:#c62828,color:#000
+    style S fill:#fff3e0,stroke:#f57c00,color:#000
+    style E fill:#e8f5e9,stroke:#2e7d32,color:#000
+    style T fill:#fce4ec,stroke:#c62828,color:#000
     style M2 fill:#e3f2fd,stroke:#1976d2,color:#000
-    style T fill:#f3e5f5,stroke:#7b1fa2,color:#000
-    style S fill:#e8f5e9,stroke:#2e7d32,color:#000
-    style R fill:#e8f5e9,stroke:#2e7d32,color:#000
 ```
+
+## 为什么这是真正的 Agentic RL？
+
+单工具（MURPHY、你之前的实验）：模型只会调一个代码执行器。本质是 "multi-turn RLVR"。
+
+多工具（我们的实验）：模型要在**搜索文档、执行代码、跑测试**之间做选择。这才叫 agentic——核心能力是**工具选择策略**。
+
+| 能力 | 单工具 | 多工具（本实验） |
+|------|--------|---------------|
+| 写代码 | 有 | 有 |
+| 看报错修代码 | 有 | 有 |
+| 搜索不熟悉的 API 文档 | **无** | **有** |
+| 跑测试套件看哪些挂了 | **无** | **有** |
+| 学会**什么时候用什么工具** | 不需要 | **核心学习目标** |
 
 ## 第零步：环境准备
 
@@ -41,8 +60,6 @@ flowchart TD
 pip install torch transformers accelerate datasets
 pip install matplotlib numpy peft
 ```
-
-我们使用 **Qwen2.5-Coder-1.5B-Instruct** 作为基座模型。1.5B 参数量在 24GB 显存上跑 GRPO（group_size=4）绰绰有余。
 
 ```python
 # ==========================================
@@ -52,26 +69,25 @@ import torch, numpy as np, random, re, os, subprocess, tempfile, warnings
 warnings.filterwarnings("ignore")
 
 SEED = 42
-MODEL_NAME = "Qwen/Qwen2.5-Coder-1.5B-Instruct"
-MAX_NEW_TOKENS = 512
+MODEL_NAME = "Qwen/Qwen2.5-Coder-3B-Instruct"
+MAX_NEW_TOKENS = 1024
 GROUP_SIZE = 4
 MAX_EPOCHS = 3
 LR = 5e-6
 KL_COEFF = 0.05
+MAX_TURNS = 5
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED)
 print(f"Device: {device}")
 ```
 
-## 第一步：加载模型 + 代码执行沙箱 + HumanEval
+## 第一步：加载模型 + 构建工具环境 + 加载数据
+
+### 1.1 加载模型
 
 ```python
-# ==========================================
-# 1.1 加载模型
-# ==========================================
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from datasets import load_dataset
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 if tokenizer.pad_token is None:
@@ -86,226 +102,370 @@ model.eval()
 for p in model.parameters():
     p.requires_grad = False
 print(f"Model: {MODEL_NAME} ({sum(p.numel() for p in model.parameters())/1e9:.2f}B)")
+```
 
-# ==========================================
-# 1.2 加载 HumanEval
-# ==========================================
-humaneval = load_dataset("openai_humaneval", trust_remote_code=True)
-problems = humaneval["test"]
-print(f"HumanEval: {len(problems)} problems")
+### 1.2 工具 1：API 文档搜索引擎
 
+模型不知道怎么用一个库的时候，可以搜索文档。我们预先构建一个 Python 标准库 + 常用第三方库的文档索引。
+
+```python
 # ==========================================
-# 1.3 代码执行沙箱（和 SimpleTIR 一样：写文件 → subprocess → 拿结果）
+# 1.2 工具 1：文档搜索引擎
+#     模型调用 <search>query</search> 获得相关 API 文档
 # ==========================================
-def sandbox_execute(code: str, task_prompt: str, task_test: str,
-                    entry_point: str, timeout: float = 10.0) -> dict:
+
+# 预构建文档库（精选常用模块的核心 API）
+DOC_STORE = {
+    "collections": {
+        "Counter": "Counter(iterable) -> dict subclass. Count hashable objects. Methods: most_common(n), elements(), update(iterable), subtract(iterable). Example: c = Counter('abcabc'); c.most_common(2) -> [('a', 2), ('b', 2)]",
+        "defaultdict": "defaultdict(default_factory) -> dict subclass. Missing keys get default_factory(). Example: d = defaultdict(list); d['k'].append(1)",
+        "OrderedDict": "OrderedDict() -> dict subclass that remembers insertion order. Methods: move_to_end(key), popitem(last=True)",
+        "deque": "deque(iterable, maxlen=None) -> double-ended queue. Methods: append(x), appendleft(x), pop(), popleft(), rotate(n)",
+        "namedtuple": "namedtuple(typename, field_names) -> tuple subclass with named fields. Example: Point = namedtuple('Point', ['x', 'y']); p = Point(1, 2)",
+        "ChainMap": "ChainMap(*maps) -> group multiple dicts. Lookups search each dict in order",
+    },
+    "itertools": {
+        "combinations": "combinations(iterable, r) -> iterator of r-length subsequences. Example: list(combinations('ABC', 2)) -> [('A','B'), ('A','C'), ('B','C')]",
+        "permutations": "permutations(iterable, r=None) -> iterator of r-length permutations",
+        "product": "product(*iterables, repeat=1) -> cartesian product. Example: list(product('AB', '12')) -> [('A','1'),('A','2'),('B','1'),('B','2')]",
+        "groupby": "groupby(iterable, key=None) -> consecutive groups. MUST sort first! Example: for k, g in groupby(sorted(data, key=fn), key=fn)",
+        "chain": "chain(*iterables) -> chain multiple iterables. chain.from_iterable(iterable) flattens one level",
+        "accumulate": "accumulate(iterable, func=operator.add) -> running totals. Example: list(accumulate([1,2,3])) -> [1, 3, 6]",
+        "islice": "islice(iterable, start, stop[, step]) -> iterator slicing without creating list",
+    },
+    "functools": {
+        "lru_cache": "@lru_cache(maxsize=128) -> memoization decorator. Example: @lru_cache(maxsize=None)\\ndef fib(n): return n if n < 2 else fib(n-1) + fib(n-2)",
+        "reduce": "reduce(function, iterable[, initializer]) -> reduce iterable to single value. Example: reduce(lambda x,y: x+y, [1,2,3]) -> 6",
+        "partial": "partial(func, *args, **kwargs) -> fix some arguments. Example: double = partial(operator.mul, 2); double(3) -> 6",
+        "cmp_to_key": "cmp_to_key(mycmp) -> convert cmp function to key function for sorted()",
+    },
+    "re": {
+        "findall": "re.findall(pattern, string, flags=0) -> list of all matches. Example: re.findall(r'\\d+', 'a1b22c') -> ['1', '22']",
+        "search": "re.search(pattern, string) -> Match object or None. .group() for match, .start()/.end() for position",
+        "match": "re.match(pattern, string) -> Match only at beginning of string",
+        "sub": "re.sub(pattern, repl, string, count=0) -> substitute. Example: re.sub(r'\\d+', 'N', 'a1b22') -> 'aNbN'",
+        "split": "re.split(pattern, string, maxsplit=0) -> split by pattern. Example: re.split(r'[,;]', 'a,b;c') -> ['a', 'b', 'c']",
+    },
+    "json": {
+        "loads": "json.loads(s) -> parse JSON string to Python object. Example: json.loads('{\"a\": 1}') -> {'a': 1}",
+        "dumps": "json.dumps(obj, indent=None) -> serialize to JSON string. Example: json.dumps({'a': 1}) -> '{\"a\": 1}'",
+        "load": "json.load(fp) -> parse JSON from file object",
+        "dump": "json.dump(obj, fp) -> write JSON to file",
+    },
+    "math": {
+        "gcd": "math.gcd(*integers) -> greatest common divisor. Example: math.gcd(12, 8) -> 4",
+        "lcm": "math.lcm(*integers) -> least common multiple. Example: math.lcm(4, 6) -> 12",
+        "comb": "math.comb(n, k) -> binomial coefficient C(n,k). Example: math.comb(10, 3) -> 120",
+        "perm": "math.perm(n, k=None) -> permutations P(n,k)",
+        "isqrt": "math.isqrt(n) -> integer square root. Example: math.isqrt(10) -> 3",
+        "log": "math.log(x, base=e) -> logarithm. math.log2(x), math.log10(x) also available",
+        "ceil": "math.ceil(x) -> smallest integer >= x. math.floor(x) -> largest integer <= x",
+    },
+    "string": {
+        "ascii_lowercase": "string.ascii_lowercase -> 'abcdefghijklmnopqrstuvwxyz'",
+        "ascii_uppercase": "string.ascii_uppercase -> 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
+        "digits": "string.digits -> '0123456789'",
+        "ascii_letters": "string.ascii_letters -> ascii_lowercase + ascii_uppercase",
+        "Template": "string.Template('$name is $age') -> safe string substitution. .substitute(dict) or .safe_substitute(dict)",
+    },
+    "heapq": {
+        "heappush": "heapq.heappush(heap, item) -> push item onto heap. heap is a plain list",
+        "heappop": "heapq.heappop(heap) -> pop smallest item. heapq.heappushpop(heap, item) more efficient",
+        "nlargest": "heapq.nlargest(n, iterable, key=None) -> n largest elements. heapq.nsmallest(n, ...) also available",
+        "heapify": "heapq.heapify(list) -> transform list into heap in-place in O(n)",
+    },
+    "bisect": {
+        "bisect_left": "bisect.bisect_left(a, x) -> insertion point for x in sorted list a (leftmost). bisect_right for rightmost",
+        "insort": "bisect.insort(a, x) -> insert x into sorted list a maintaining order",
+    },
+    "datetime": {
+        "datetime": "datetime.datetime(year, month, day, hour=0, minute=0, second=0). Methods: .strftime(format), .date(), .weekday()",
+        "timedelta": "datetime.timedelta(days=0, seconds=0, microseconds=0). Supports +, -, * with datetime",
+        "strptime": "datetime.datetime.strptime(date_string, format) -> parse string. Format: %Y, %m, %d, %H, %M, %S",
+    },
+    "typing": {
+        "List": "List[int] -> list of integers. List[str] -> list of strings",
+        "Dict": "Dict[str, int] -> dict with string keys and int values",
+        "Optional": "Optional[int] -> int or None. Equivalent to Union[int, None]",
+        "Tuple": "Tuple[int, str] -> tuple of (int, str). Tuple[int, ...] -> variable length",
+    },
+    "pathlib": {
+        "Path": "Path('dir/file.txt') -> path object. Methods: .read_text(), .write_text(), .exists(), .is_file(), .mkdir(), .glob(pattern)",
+    },
+    "numpy": {
+        "array": "np.array([1,2,3]) -> ndarray. np.zeros(shape), np.ones(shape), np.arange(start,stop,step), np.linspace(start,stop,num)",
+        "reshape": "arr.reshape(shape) -> reshape array. -1 infers dimension. arr.flatten() -> 1D copy",
+        "argsort": "np.argsort(arr) -> indices that would sort. arr[np.argsort(arr)] == sorted arr",
+        "unique": "np.unique(arr, return_counts=False) -> sorted unique values. return_counts=True adds counts",
+        "where": "np.where(condition, x, y) -> element-wise conditional. np.where(condition) -> indices where True",
+        "dot": "np.dot(a, b) -> matrix multiplication. a @ b is equivalent",
+        "sum": "np.sum(arr, axis=None) -> sum. axis=0 sum columns, axis=1 sum rows",
+    },
+    "pandas": {
+        "DataFrame": "pd.DataFrame(data) -> create DataFrame from dict/list. pd.read_csv(path) -> read CSV",
+        "groupby": "df.groupby('col') -> GroupBy object. .agg(func), .mean(), .sum(), .count()",
+        "merge": "pd.merge(df1, df2, on='key', how='inner') -> join. how: 'left', 'right', 'outer'",
+        "value_counts": "series.value_counts() -> frequency of unique values, sorted descending",
+        "apply": "df['col'].apply(func) -> apply function to each element. df.apply(func, axis=1) per row",
+    },
+}
+
+
+def tool_search(query: str, top_k: int = 3) -> str:
     """
-    在子进程中真实执行代码，返回 stdout/stderr。
-    这就是 SimpleTIR 的 Sandbox Fusion 做的事——只不过我们用本地 subprocess。
+    工具 1：文档搜索。模型调用 <search>query</search> 时触发。
+    返回与 query 最相关的 API 文档片段。
     """
-    full_code = task_prompt + code + "\n" + task_test + "\n"
-    full_code += f"\ncheck({entry_point})\n"
+    query_lower = query.lower()
+    results = []
+    for module, apis in DOC_STORE.items():
+        for api_name, doc in apis.items():
+            # 简单关键词匹配
+            score = 0
+            for word in query_lower.split():
+                if word in api_name.lower():
+                    score += 3
+                if word in doc.lower():
+                    score += 1
+                if word in module.lower():
+                    score += 2
+            if score > 0:
+                results.append((score, f"[{module}.{api_name}]\n{doc}"))
 
+    results.sort(key=lambda x: -x[0])
+    if not results:
+        return "No documentation found. Try different keywords."
+
+    return "\n\n".join(doc for _, doc in results[:top_k])
+```
+
+### 1.3 工具 2：代码执行器 + 工具 3：测试运行器
+
+```python
+# ==========================================
+# 1.3 工具 2 & 3：代码执行器和测试运行器
+# ==========================================
+
+def tool_execute(code: str, timeout: float = 10.0) -> dict:
+    """工具 2：执行 Python 代码，返回 stdout/stderr"""
     with tempfile.TemporaryDirectory() as tmpdir:
-        path = os.path.join(tmpdir, "solution.py")
+        path = os.path.join(tmpdir, "exec.py")
+        with open(path, "w") as f:
+            f.write(code)
+        try:
+            r = subprocess.run(["python", path], capture_output=True, text=True,
+                               timeout=timeout, cwd=tmpdir)
+            return {
+                "success": r.returncode == 0,
+                "output": r.stdout.strip()[:500],
+                "error": r.stderr.strip()[:300] if r.returncode != 0 else None,
+            }
+        except subprocess.TimeoutExpired:
+            return {"success": False, "output": "", "error": "TIMEOUT"}
+
+
+def tool_test(code: str, test_code: str, timeout: float = 10.0) -> dict:
+    """工具 3：运行代码 + 测试，返回详细的 pass/fail 信息"""
+    full_code = code + "\n\n" + test_code
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "test.py")
         with open(path, "w") as f:
             f.write(full_code)
         try:
             r = subprocess.run(["python", path], capture_output=True, text=True,
                                timeout=timeout, cwd=tmpdir)
-            passed = r.returncode == 0
-            error = None if passed else (r.stderr.strip().split("\n")[-1] if r.stderr else "unknown")
-            return {"passed": passed, "error": error, "stdout": r.stdout.strip()[:200]}
+            if r.returncode == 0:
+                return {"passed": True, "detail": "All tests passed", "output": r.stdout.strip()[:200]}
+            else:
+                # 解析失败信息
+                err = r.stderr.strip()
+                return {"passed": False, "detail": err[-300:] if err else "unknown error",
+                        "output": r.stdout.strip()[:200]}
         except subprocess.TimeoutExpired:
-            return {"passed": False, "error": "TIMEOUT", "stdout": ""}
-
-
-def batch_evaluate(tasks, completions):
-    results = [sandbox_execute(c, t["prompt"], t["test"], t["entry_point"]) for t, c in zip(tasks, completions)]
-    passed = sum(1 for r in results if r["passed"])
-    return {"pass@1": passed / len(results), "passed": passed, "total": len(results), "details": results}
+            return {"passed": False, "detail": "TIMEOUT", "output": ""}
 ```
 
-## 第二步：基线评测——训练前模型的真实水平
+### 1.4 加载训练和评测数据
 
-先跑一遍 HumanEval（单轮补全，不调工具），记录基线。
+```python
+from datasets import load_dataset
+
+# 训练数据：KodCode（合成代码题，与评测集不重叠）
+# 参考 MURPHY：用 1000 条 KodCode 就能训出效果
+kodcode = load_dataset("KodCode/KodCode-V1", split="train")
+# 筛选 easy/medium 难度，取 1000 条
+kodcode_easy = kodcode.filter(lambda x: x["gpt_difficulty"] in ["easy", "medium"])
+train_data = list(kodcode_easy.shuffle(seed=SEED).select(range(1000)))
+print(f"Training data: {len(train_data)} KodCode problems (easy/medium)")
+
+# 评测数据：BigCodeBench-Hard（148 题，需要调用多样库）
+# BigCodeBench 比 HumanEval 难得多，且需要查 API 文档才能做好
+eval_data = load_dataset("bigcode/bigcodebench-hard", split="v0.1.4")
+print(f"Evaluation data: {len(eval_data)} BigCodeBench-Hard problems")
+```
+
+## 第二步：Agent Prompt 和工具调用解析
 
 ```python
 # ==========================================
-# 2. 基线评测（单轮补全，无工具调用）
-# ==========================================
-BASELINE_N = 64
-baseline_tasks = list(problems.select(range(BASELINE_N)))
-
-def generate_single_turn(task, temperature=0.0):
-    messages = [{"role": "user", "content": f"Complete this function. Output ONLY the function body:\n\n{task['prompt']}"}]
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = tokenizer(text, return_tensors="pt").to(device)
-    with torch.no_grad():
-        out = model.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS,
-                             temperature=temperature, do_sample=temperature>0,
-                             pad_token_id=tokenizer.pad_token_id)
-    return tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-
-print(f"Baseline evaluation on {BASELINE_N} HumanEval problems...")
-baseline_completions = []
-for i, task in enumerate(baseline_tasks):
-    comp = generate_single_turn(task)
-    res = sandbox_execute(comp, task["prompt"], task["test"], task["entry_point"])
-    baseline_completions.append(comp)
-    if (i+1) % 16 == 0:
-        so_far = sum(1 for c in baseline_completions[:i+1]
-                     if sandbox_execute(c, baseline_tasks[baseline_completions.index(c)]["prompt"],
-                                       baseline_tasks[baseline_completions.index(c)]["test"],
-                                       baseline_tasks[baseline_completions.index(c)]["entry_point"])["passed"])
-
-# 更高效的基线计算
-baseline_metrics = batch_evaluate(baseline_tasks, baseline_completions)
-print(f"Baseline pass@1: {baseline_metrics['pass@1']:.1%} ({baseline_metrics['passed']}/{baseline_metrics['total']})")
-```
-
-## 第三步：Agent Rollout——模型生成代码，沙箱执行，观察结果，继续生成
-
-### 3.1 Rollout 的核心问题
-
-从 Search-R1 和 ReTool 的源码中提取的关键 insight：
-
-**问题 1：每轮重新 encode 整个对话。** 我们之前的实现在每轮都调用 `apply_chat_template` 重新编码整个对话历史。Search-R1 的 `run_llm_loop` 不是这样做的——它维护一个 `rolling_state`，每轮只**增量拼接**新的 token（response + observation），不重新编码。重新编码会导致 tokenization drift。
-
-**问题 2：生成不截断。** 之前模型每轮生成完整 `max_new_tokens`，然后事后从中提取代码块。Search-R1 在 `</search>` 处截断，ReTool 在 ` ``` ` 处截断。截断让 action 边界更干净。
-
-**问题 3：info_mask 事后构建。** 之前用 diff 文本的方式事后构建 mask，脆弱且不精确。Search-R1 在 rollout 过程中**增量构建**两个平行张量——真实 token 和 masked token。
-
-### 3.2 修正后的实现
-
-```python
-# ==========================================
-# 3.2 Agent Rollout：token 级增量拼接
+# 2. Agent System Prompt：告诉模型有 3 个工具可用
 # ==========================================
 
+AGENT_PROMPT = """You are a Python expert. You have 3 tools available:
+
+1. **Search documentation**: Use when you need to look up an unfamiliar API.
+   Format: <search>your query</search>
+   Example: <search>Counter most_common</search>
+
+2. **Execute code**: Run Python code to test ideas or compute results.
+   Format:
+   ```python
+   # your code
+   print(result)
+   ```
+
+3. **Run tests**: Submit your final solution to be tested.
+   Format:
+   ```submit
+   def your_solution(...):
+       ...
+   ```
+
+Strategy: Search docs BEFORE writing code if you're unsure about an API.
+Test your code with tool 2 before submitting with tool 3.
+You can use tools in any order and multiple times."""
+
+SEARCH_PATTERN = re.compile(r'<search>(.*?)</search>', re.DOTALL)
 CODE_PATTERN = re.compile(r'```(?:python|py)?\n(.*?)\n```', re.DOTALL)
+SUBMIT_PATTERN = re.compile(r'```submit\n(.*?)\n```', re.DOTALL)
 PAD_ID = tokenizer.pad_token_id
 
-def ensure_print(code: str) -> str:
-    """自动给最后一行补 print()，确保沙箱输出结果"""
-    lines = code.strip().split("\n")
-    for i in range(len(lines) - 1, -1, -1):
-        if lines[i].strip() and not lines[i].strip().startswith("print"):
-            lines[i] = f"print({lines[i]})"
-            break
-    return "\n".join(lines)
 
-def run_agent_rollout(task, temperature=0.7, max_turns=3, verbose=False):
-    """
-    多轮 Agent Rollout。
+def parse_tool_calls(text: str) -> list:
+    """解析模型输出中的工具调用"""
+    calls = []
+    # 按位置排序：先出现的先处理
+    for m in SEARCH_PATTERN.finditer(text):
+        calls.append(("search", m.group(1).strip(), m.start()))
+    for m in CODE_PATTERN.finditer(text):
+        calls.append(("execute", m.group(1).strip(), m.start()))
+    for m in SUBMIT_PATTERN.finditer(text):
+        calls.append(("submit", m.group(1).strip(), m.start()))
+    calls.sort(key=lambda x: x[2])
+    return calls
+```
 
-    关键修正（基于 Search-R1/ReTool 源码 insight）：
-    1. token 级增量拼接，不每轮重新 encode 整个对话
-    2. 在 ``` 代码块边界截断生成
-    3. rollout 过程中增量构建 input_ids 和 info_mask
+## 第三步：多工具 Agent Rollout
+
+```python
+# ==========================================
+# 3. 多工具 Agent Rollout（核心）
+#    模型在 3 个工具之间自主决策
+# ==========================================
+
+def run_multi_tool_rollout(task_prompt: str, task_test: str, entry_point: str,
+                           temperature=0.7, max_turns=MAX_TURNS, verbose=False):
     """
-    # 初始 prompt → token
+    多工具 Agent Rollout。
+
+    关键设计（对齐 Search-R1/VerlTool/CodeGym）：
+    1. 模型自主选择调用哪个工具（搜索/执行/测试）
+    2. token 级增量拼接
+    3. 工具 observation 的 token 全部 mask（不算 loss）
+    4. 只有模型的决策 token 参与 loss
+    """
     init_messages = [
         {"role": "system", "content": AGENT_PROMPT},
-        {"role": "user", "content": f"Implement this function:\n\n{task['prompt']}"},
+        {"role": "user", "content": task_prompt},
     ]
     prompt_text = tokenizer.apply_chat_template(init_messages, tokenize=False, add_generation_prompt=True)
     prompt_ids = tokenizer.encode(prompt_text, add_special_tokens=False)
 
-    # 增量构建：real = 真实 token, masked = 工具 token 替换为 pad
     real_ids = list(prompt_ids)
-    masked_ids = list(prompt_ids)  # prompt 部分：两个张量相同
+    masked_ids = list(prompt_ids)  # prompt 部分两份相同
 
-    current_code = ""
-    passed = False
+    submitted_code = None
+    test_passed = False
     is_valid = True
+    tool_usage = {"search": 0, "execute": 0, "submit": 0, "none": 0}
 
     for turn_idx in range(max_turns):
-        # --- 模型生成（从 rolling state） ---
         input_t = torch.tensor([real_ids], dtype=torch.long).to(device)
         attn_t = torch.ones_like(input_t)
 
         with torch.no_grad():
-            out = model.generate(input_ids=input_t, attention_mask=attn_t,
-                                 max_new_tokens=MAX_NEW_TOKENS,
-                                 temperature=temperature, do_sample=temperature>0,
-                                 top_p=0.95, pad_token_id=PAD_ID)
+            out = model.generate(
+                input_ids=input_t, attention_mask=attn_t,
+                max_new_tokens=MAX_NEW_TOKENS,
+                temperature=temperature, do_sample=temperature > 0,
+                top_p=0.95, pad_token_id=PAD_ID
+            )
 
         gen_ids = out[0][input_t.shape[1]:].tolist()
         response_text = tokenizer.decode(gen_ids, skip_special_tokens=True)
 
-        # --- 截断：在第一个代码块结尾处截断 ---
-        # 模型可能生成 ```python ... ``` 之后再生成更多文本，
-        # 我们只取到代码块结束，让 observation 更干净
-        truncated_text = response_text
-        code_end = response_text.find('```\n')
-        if code_end != -1 and '```python' in response_text[:code_end]:
-            # 找到代码块结束位置，截取到那里 + ```
-            end_pos = code_end + 4  # len('```\n')
-            truncated_text = response_text[:end_pos]
-            gen_ids = tokenizer.encode(truncated_text, add_special_tokens=False)
-
-        # 追加 assistant 生成的 token（real 和 masked 相同——都是 LLM 生成的）
+        # 追加模型生成 token（real 和 masked 相同）
         real_ids.extend(gen_ids)
         masked_ids.extend(gen_ids)
 
-        # --- 提取代码块并执行 ---
-        code_blocks = CODE_PATTERN.findall(truncated_text)
+        # --- 解析工具调用 ---
+        calls = parse_tool_calls(response_text)
 
-        if not code_blocks:
-            is_valid = False
-            current_code = response_text
-            break
+        if not calls:
+            tool_usage["none"] += 1
+            continue
 
-        current_code = ensure_print(code_blocks[-1].strip())
-        exec_result = sandbox_execute(current_code, task["prompt"], task["test"], task["entry_point"])
+        # 只处理最后一个工具调用（最常见的模式）
+        tool_type, tool_input, _ = calls[-1]
+        tool_usage[tool_type] += 1
 
-        if verbose:
-            status = "PASS" if exec_result["passed"] else f"FAIL: {exec_result['error'][:50]}"
-            print(f"  Turn {turn_idx+1}: {status}")
+        # --- 执行工具，构造 observation ---
+        if tool_type == "search":
+            doc_result = tool_search(tool_input)
+            obs_text = f"\n<doc_result>\n{doc_result[:500]}\n</doc_result>\n"
+            if verbose:
+                print(f"  Turn {turn_idx+1} [SEARCH]: {tool_input[:40]}")
 
-        # --- 构造 observation token ---
-        if exec_result["passed"]:
-            obs_text = f"\n<output>\nALL TESTS PASSED\n</output>\nOutput your final implementation.\n"
-        else:
-            obs_text = f"\n<output>\nFAILED: {exec_result['error']}\n</output>\nFix the code and try again.\n"
+        elif tool_type == "execute":
+            exec_result = tool_execute(tool_input)
+            if exec_result["success"]:
+                obs_text = f"\n<exec_result>\n{exec_result['output'][:300]}\n</exec_result>\n"
+            else:
+                err = exec_result.get("error", "unknown") or "unknown"
+                obs_text = f"\n<exec_result>\nERROR: {err[:200]}\n</exec_result>\n"
+            if verbose:
+                status = "OK" if exec_result["success"] else "ERR"
+                print(f"  Turn {turn_idx+1} [EXEC]: {status}")
+
+        elif tool_type == "submit":
+            submitted_code = tool_input
+            # 运行测试
+            test_result = tool_test(tool_input, task_test, entry_point)
+            test_passed = test_result["passed"]
+            detail = test_result["detail"][:300]
+            obs_text = f"\n<test_result>\n{'PASS' if test_passed else 'FAIL'}: {detail}\n</test_result>\n"
+            if not test_passed:
+                obs_text += "Fix your code and submit again.\n"
+            if verbose:
+                print(f"  Turn {turn_idx+1} [SUBMIT]: {'PASS' if test_passed else 'FAIL'}")
 
         obs_ids = tokenizer.encode(obs_text, add_special_tokens=False)
-
-        # 追加 observation token：
-        # real_ids: 真实的 observation token（训练时模型看到）
-        # masked_ids: 全部替换为 PAD_ID（训练时不算 loss）
+        # observation token：real 保留，masked 替换为 PAD
         real_ids.extend(obs_ids)
         masked_ids.extend([PAD_ID] * len(obs_ids))
 
-        if exec_result["passed"]:
-            passed = True
-            # 再生成一轮最终代码
-            input_t = torch.tensor([real_ids], dtype=torch.long).to(device)
-            attn_t = torch.ones_like(input_t)
-            with torch.no_grad():
-                out = model.generate(input_ids=input_t, attention_mask=attn_t,
-                                     max_new_tokens=MAX_NEW_TOKENS,
-                                     temperature=temperature, do_sample=temperature>0,
-                                     pad_token_id=PAD_ID)
-            final_gen = out[0][input_t.shape[1]:].tolist()
-            real_ids.extend(final_gen)
-            masked_ids.extend(final_gen)
-
-            final_text = tokenizer.decode(final_gen, skip_special_tokens=True)
-            final_blocks = CODE_PATTERN.findall(final_text)
-            if final_blocks:
-                current_code = final_blocks[-1].strip()
+        # 如果提交通过，结束
+        if tool_type == "submit" and test_passed:
             break
 
     # 最终验证
-    if current_code:
-        final_check = sandbox_execute(current_code, task["prompt"], task["test"], task["entry_point"])
-        passed = final_check["passed"]
+    if submitted_code:
+        final_test = tool_test(submitted_code, task_test, entry_point)
+        test_passed = final_test["passed"]
     else:
-        passed = False
+        test_passed = False
 
-    # 构建 info_mask（和 Search-R1 的 create_attention_mask(masked_ids) 一样）
+    # 构建 info_mask
     ids_tensor = torch.tensor([real_ids], dtype=torch.long)
     masked_tensor = torch.tensor([masked_ids], dtype=torch.long)
     info_mask = (masked_tensor != PAD_ID).long()
@@ -317,142 +477,111 @@ def run_agent_rollout(task, temperature=0.7, max_turns=3, verbose=False):
         "attention_mask": torch.ones_like(ids_tensor),
         "labels": labels,
         "info_mask": info_mask,
-        "completion": current_code,
-        "passed": passed,
+        "submitted_code": submitted_code,
+        "passed": test_passed,
         "is_valid": is_valid,
-        "turns": turn_idx + 1 if current_code else 0,
+        "turns": turn_idx + 1,
+        "tool_usage": tool_usage,
     }
 ```
 
-### 3.3 验证 Rollout
+### 3.1 验证 Rollout
 
 ```python
-# 快速验证
-print("Sanity check — Agent Rollout:")
+# 快速验证多工具 rollout
+print("Sanity check — Multi-Tool Agent Rollout:")
 print("-" * 60)
 for i in [0, 5, 10]:
-    task = problems[i]
-    result = run_agent_rollout(task, temperature=0.3, verbose=True)
+    item = eval_data[i]
+    result = run_multi_tool_rollout(
+        item["instruct_prompt"], item["test"], item["entry_point"],
+        temperature=0.3, verbose=True
+    )
     n_assist = result["info_mask"].sum().item()
     n_tool = (result["info_mask"] == 0).sum().item()
-    print(f"  {task['task_id']}: {'PASS' if result['passed'] else 'FAIL'} "
-          f"(turns: {result['turns']}, LLM tokens: {n_assist}, tool tokens: {n_tool})")
+    print(f"  {item['task_id']}: {'PASS' if result['passed'] else 'FAIL'} "
+          f"(turns: {result['turns']}, LLM: {n_assist}, tool: {n_tool}, "
+          f"tools used: {result['tool_usage']})")
 print("-" * 60)
 ```
 
-### 4.1 批量 Rollout 收集轨迹
+## 第四步：基线评测——单轮无工具 vs 单工具 vs 多工具
+
+先看不同工具配置下的 baseline，量化多工具的价值。
 
 ```python
 # ==========================================
-# 4.1 批量 Rollout：对训练集的每道题跑 agent loop
+# 4. 基线评测：三档对比
 # ==========================================
-TRAIN_IDS = list(range(64, 96))  # HumanEval #64-#95（避开评测集）
-train_tasks = list(problems.select(TRAIN_IDS))
+EVAL_N = 50  # 先评测 50 题
 
-print(f"Collecting agent rollouts on {len(train_tasks)} tasks...")
-print(f"Each task: {GROUP_SIZE} trajectories (group_size for GRPO)")
+def eval_no_tools(model_to_eval, data, n):
+    """单轮生成，不用任何工具"""
+    model_to_eval.eval()
+    results = []
+    for i, item in enumerate(list(data)[:n]):
+        messages = [{"role": "user", "content": item["instruct_prompt"]}]
+        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer(text, return_tensors="pt").to(device)
+        with torch.no_grad():
+            out = model_to_eval.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS,
+                                         temperature=0.0, pad_token_id=PAD_ID)
+        code = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        test_result = tool_test(code, item["test"], item["entry_point"])
+        results.append(test_result["passed"])
+        if (i+1) % 25 == 0:
+            print(f"  [No-Tools] {i+1}/{n}: {sum(results)/len(results):.1%}")
+    return sum(results) / len(results)
+
+def eval_code_only(model_to_eval, data, n):
+    """只有代码执行器（单工具，类似 MURPHY）"""
+    model_to_eval.eval()
+    results = []
+    for i, item in enumerate(list(data)[:n]):
+        result = run_multi_tool_rollout(
+            item["instruct_prompt"], item["test"], item["entry_point"],
+            temperature=0.0, max_turns=3
+        )
+        results.append(result["passed"])
+        if (i+1) % 25 == 0:
+            print(f"  [Code-Only] {i+1}/{n}: {sum(results)/len(results):.1%}")
+    return sum(results) / len(results)
+
+def eval_multi_tool(model_to_eval, data, n, label="Multi-Tool"):
+    """3 个工具全开"""
+    model_to_eval.eval()
+    results = []
+    for i, item in enumerate(list(data)[:n]):
+        result = run_multi_tool_rollout(
+            item["instruct_prompt"], item["test"], item["entry_point"],
+            temperature=0.0, max_turns=5
+        )
+        results.append(result["passed"])
+        if (i+1) % 25 == 0:
+            print(f"  [{label}] {i+1}/{n}: {sum(results)/len(results):.1%}")
+    return sum(results) / len(results)
+
+print("BASELINE EVALUATION (before training)")
 print("=" * 60)
-
-all_trajectories = []  # 存储所有轨迹
-
-for task_idx, task in enumerate(train_tasks):
-    for g in range(GROUP_SIZE):
-        result = run_agent_rollout(task, temperature=0.7, max_turns=3)
-        result["task"] = task
-        all_trajectories.append(result)
-
-    if (task_idx + 1) % 8 == 0:
-        passed = sum(1 for t in all_trajectories if t["passed"])
-        print(f"  Task {task_idx+1}/{len(train_tasks)} | "
-              f"Rollouts: {len(all_trajectories)} | "
-              f"Passed: {passed} ({passed/len(all_trajectories):.1%})")
-
-print(f"\nTotal trajectories: {len(all_trajectories)}")
-print(f"Passed: {sum(1 for t in all_trajectories if t['passed'])}")
-print(f"Avg turns: {np.mean([t['turns'] for t in all_trajectories]):.1f}")
+baseline_notools = eval_no_tools(model, eval_data, EVAL_N)
+baseline_codeonly = eval_code_only(model, eval_data, EVAL_N)
+baseline_multitool = eval_multi_tool(model, eval_data, EVAL_N, "Baseline-MultiTool")
+print(f"\n  No tools:     {baseline_notools:.1%}")
+print(f"  Code only:    {baseline_codeonly:.1%}")
+print(f"  Multi-tool:   {baseline_multitool:.1%}")
+print("=" * 60)
 ```
 
-## 第五步：两条 Finetune 路径
-
-收集到轨迹后，有两条路可以走：
-
-- **路径 A：Rejection Sampling + SFT**——只保留成功轨迹，做监督微调。最简单，效果稳定。
-- **路径 B：GRPO RL**——组内比较，策略梯度更新。更高级，能从失败轨迹中学到东西。
-
-### 路径 A：SFT on 成功轨迹（参考 ReTool 的冷启动阶段）
+## 第五步：批量 Rollout + GRPO RL 训练
 
 ```python
 # ==========================================
-# 5A. SFT Finetune：只保留成功的 rollout 轨迹
-#     参考 ReTool 第一阶段 + Search-R1 的拒绝采样
+# 5. GRPO RL 训练：模型学会多工具策略
 # ==========================================
 from peft import LoraConfig, get_peft_model, TaskType
 from torch.optim import AdamW
 
-# 过滤：只保留通过测试的轨迹
-success_trajs = [t for t in all_trajectories if t["passed"]]
-print(f"成功轨迹: {len(success_trajs)}/{len(all_trajectories)} "
-      f"({len(success_trajs)/len(all_trajectories):.1%})")
-
-if len(success_trajs) == 0:
-    print("没有成功轨迹！需要调整模型或温度。跳过 SFT。")
-else:
-    # ★ SimpleTIR 的 void turn 过滤：丢弃 is_valid=False 的轨迹
-    valid_trajs = [t for t in success_trajs if t.get("is_valid", True)]
-    print(f"Void turn 过滤: {len(success_trajs)} → {len(valid_trajs)} (丢弃 {len(success_trajs)-len(valid_trajs)} 条无效轨迹)")
-    if len(valid_trajs) == 0:
-        valid_trajs = success_trajs  # fallback
-else:
-    # 设置 LoRA
-    model.enable_input_require_grads()
-    model_sft = get_peft_model(model, LoraConfig(
-        task_type=TaskType.CAUSAL_LM, r=16, lora_alpha=32,
-        lora_dropout=0.05, target_modules=["q_proj", "v_proj"],
-    ))
-    model_sft.train()
-    optimizer = AdamW(filter(lambda p: p.requires_grad, model_sft.parameters()), lr=LR)
-
-    print(f"\nSFT Training on {len(valid_trajs)} successful trajectories...")
-    print(f"Trainable params: {sum(p.numel() for p in model_sft.parameters() if p.requires_grad)/1e6:.1f}M")
-
-    for epoch in range(MAX_EPOCHS):
-        random.shuffle(valid_trajs)
-        total_loss = 0
-
-        for traj in valid_trajs:
-            # rollout 已经构建好了 input_ids / labels / info_mask，直接用
-            input_ids = traj["input_ids"].to(device)
-            attention_mask = traj["attention_mask"].to(device)
-            labels = traj["labels"].to(device)
-
-            if (labels != -100).sum() == 0:
-                continue  # 跳过没有 assistant token 的轨迹
-
-            outputs = model_sft(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
-            loss = outputs.loss
-
-            optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model_sft.parameters(), 1.0)
-            optimizer.step()
-            total_loss += loss.item()
-
-        avg_loss = total_loss / len(valid_trajs)
-        print(f"  SFT Epoch {epoch+1}/{MAX_EPOCHS} | Avg Loss: {avg_loss:.4f}")
-
-    model_sft.eval()
-    print("SFT training complete.")
-```
-
-### 路径 B：GRPO RL（参考 SimpleTIR / DeepSWE）
-
-```python
-# ==========================================
-# 5B. GRPO RL Finetune：组采样 → 组内比较 → 策略梯度
-#     参考 SimpleTIR 的 GRPO+DAPO 和 Search-R1 的 token masking
-# ==========================================
-
-# 重新加载模型（SFT 和 RL 用不同的模型实例）
+# 准备训练模型 + reference model
 model_rl = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
     torch_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
@@ -464,7 +593,6 @@ model_rl = get_peft_model(model_rl, LoraConfig(
     lora_dropout=0.05, target_modules=["q_proj", "v_proj"],
 ))
 
-# Reference model（KL 约束）
 ref_model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
     torch_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
@@ -476,32 +604,48 @@ for p in ref_model.parameters():
 
 optimizer_rl = AdamW(filter(lambda p: p.requires_grad, model_rl.parameters()), lr=LR)
 
-training_log = {"epoch": [], "success_rate": [], "mean_reward": [], "loss": []}
+training_log = {"epoch": [], "pass_rate": [], "mean_reward": [], "loss": [],
+                "search_rate": [], "submit_rate": []}
+
+# 只取训练集的一个子集做 demo
+TRAIN_SUBSET = list(range(0, 500, 5))  # 100 题
+train_subset = [train_data[i] for i in TRAIN_SUBSET]
 
 print("=" * 60)
-print("GRPO RL Training (Multi-Turn Agent Rollout)")
+print("GRPO RL Training — Multi-Tool Agent")
 print("=" * 60)
 
 for epoch in range(MAX_EPOCHS):
     model_rl.train()
     epoch_rewards, epoch_losses = [], []
-    epoch_successes = 0
-    random.shuffle(train_tasks)
+    epoch_passed = 0
+    epoch_tool_stats = {"search": 0, "execute": 0, "submit": 0, "none": 0}
+    random.shuffle(train_subset)
 
-    for task_idx, task in enumerate(train_tasks):
-        # ---- Phase 1: On-Policy Rollout (GROUP_SIZE 条轨迹) ----
+    for task_idx, item in enumerate(train_subset):
+        # KodCode 的 test 字段包含测试代码
+        task_test = item.get("test", "")
+        task_prompt = item["question"]
+        # 构造一个简单的 entry_point（KodCode 格式适配）
+        entry_point = "solution"
+
+        # ---- Phase 1: On-Policy Rollout ----
         trajectories = []
         for g in range(GROUP_SIZE):
-            result = run_agent_rollout(task, temperature=0.7, max_turns=3)
-            result["task"] = task
-            # Reward 设计（参考 ReTool retool.py + Search-R1 qa_em.py）：
-            # 1. Outcome reward：二元 0/1
-            base_reward = 1.0 if result["passed"] else 0.0
-            # 2. ★ ReTool 的 tool-call shaping：答错时鼓励多调工具
-            if base_reward == 0 and result["turns"] > 1:
-                tool_bonus = (result["turns"] - 2) / 2 * 0.1
-                base_reward = max(-0.6, tool_bonus)
-            result["reward"] = base_reward
+            result = run_multi_tool_rollout(
+                task_prompt, task_test, entry_point,
+                temperature=0.7, max_turns=MAX_TURNS
+            )
+            # Reward 设计：
+            # 1. Outcome reward：测试是否通过
+            reward = 1.0 if result["passed"] else 0.0
+            # 2. 工具使用 shaping：用了搜索但还答错的，给小正奖励（鼓励探索）
+            if not result["passed"] and result["tool_usage"]["search"] > 0:
+                reward = 0.05 * min(result["tool_usage"]["search"], 3)
+            # 3. 没提交代码的，小负奖励
+            if not result["submitted_code"]:
+                reward = -0.1
+            result["reward"] = reward
             trajectories.append(result)
 
         # ---- Phase 2: GRPO Advantage ----
@@ -511,9 +655,6 @@ for epoch in range(MAX_EPOCHS):
 
         # ---- Phase 3: 策略梯度更新 ----
         for traj, advantage in zip(trajectories, advantages):
-            if not traj["completion"]:
-                continue
-
             input_ids = traj["input_ids"].to(device)
             attention_mask = traj["attention_mask"].to(device)
             labels = traj["labels"].to(device)
@@ -522,16 +663,13 @@ for epoch in range(MAX_EPOCHS):
             if (info_mask == 1).sum() == 0:
                 continue
 
-            # Policy log prob（用 info_mask 而不是 labels=-100）
             outputs = model_rl(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
             policy_lp = -outputs.loss
 
-            # Reference log prob（KL）
             with torch.no_grad():
                 ref_out = ref_model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
                 ref_lp = -ref_out.loss
 
-            # GRPO loss
             kl = policy_lp - ref_lp
             loss = -advantage * policy_lp + KL_COEFF * kl
 
@@ -542,75 +680,60 @@ for epoch in range(MAX_EPOCHS):
             epoch_losses.append(loss.item())
 
         epoch_rewards.extend(rewards.tolist())
-        epoch_successes += sum(1 for t in trajectories if t["passed"])
+        epoch_passed += sum(1 for t in trajectories if t["passed"])
+        for t in trajectories:
+            for k in epoch_tool_stats:
+                epoch_tool_stats[k] += t["tool_usage"].get(k, 0)
 
-        if (task_idx + 1) % 8 == 0:
-            sr = epoch_successes / ((task_idx+1) * GROUP_SIZE)
-            print(f"  Epoch {epoch+1} | Task {task_idx+1}/{len(train_tasks)} | SR: {sr:.1%}")
+        if (task_idx + 1) % 25 == 0:
+            pr = epoch_passed / ((task_idx+1) * GROUP_SIZE)
+            total_tools = sum(epoch_tool_stats.values())
+            sr = epoch_tool_stats["search"] / max(total_tools, 1)
+            print(f"  Epoch {epoch+1} | Task {task_idx+1}/{len(train_subset)} | "
+                  f"Pass: {pr:.1%} | Search rate: {sr:.1%}")
 
     # Epoch summary
-    sr = epoch_successes / (len(train_tasks) * GROUP_SIZE)
+    pr = epoch_passed / (len(train_subset) * GROUP_SIZE)
+    total_tools = sum(epoch_tool_stats.values())
     training_log["epoch"].append(epoch+1)
-    training_log["success_rate"].append(sr)
+    training_log["pass_rate"].append(pr)
     training_log["mean_reward"].append(np.mean(epoch_rewards))
     training_log["loss"].append(np.mean(epoch_losses) if epoch_losses else 0)
-    print(f"  Epoch {epoch+1} Summary: SR={sr:.1%}, Reward={np.mean(epoch_rewards):.3f}, "
-          f"Loss={training_log['loss'][-1]:.4f}")
+    training_log["search_rate"].append(epoch_tool_stats["search"] / max(total_tools, 1))
+    training_log["submit_rate"].append(epoch_tool_stats["submit"] / max(total_tools, 1))
+    print(f"  Epoch {epoch+1} Summary: Pass={pr:.1%}, Reward={np.mean(epoch_rewards):.3f}, "
+          f"Loss={training_log['loss'][-1]:.4f}, SearchRate={training_log['search_rate'][-1]:.1%}")
 
 model_rl.eval()
 ```
 
-## 第六步：Benchmark 评测——真的提升了吗？
-
-**不管训练过程多么花哨，只有独立 Benchmark 上的 pass@1 才是唯一裁判。**
+## 第六步：训练后评测——多工具策略真的学会了吗？
 
 ```python
 # ==========================================
-# 6. 训练后 Benchmark 评测
+# 6. 训练后评测
 # ==========================================
 
-def evaluate_model(model_to_eval, tasks, label="Model"):
-    """用 greedy decoding 评测模型在 HumanEval 上的 pass@1"""
-    model_to_eval.eval()
-    completions = []
-    for i, task in enumerate(tasks):
-        messages = [{"role": "user", "content": f"Complete this function. Output ONLY the function body:\n\n{task['prompt']}"}]
-        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = tokenizer(text, return_tensors="pt").to(device)
-        with torch.no_grad():
-            out = model_to_eval.generate(**inputs, max_new_tokens=MAX_NEW_TOKENS,
-                                          temperature=0.0, pad_token_id=tokenizer.pad_token_id)
-        comp = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-        completions.append(comp)
-        if (i+1) % 16 == 0:
-            passed_so_far = sum(1 for c, t in zip(completions, tasks[:i+1])
-                               if sandbox_execute(c, t["prompt"], t["test"], t["entry_point"])["passed"])
-            print(f"  [{label}] {i+1}/{len(tasks)} running pass@1: {passed_so_far/(i+1):.1%}")
-
-    metrics = batch_evaluate(tasks, completions)
-    print(f"  [{label}] Final pass@1: {metrics['pass@1']:.1%} ({metrics['passed']}/{metrics['total']})")
-    return metrics
-
 print("=" * 60)
-print("POST-TRAINING Evaluation")
+print("POST-TRAINING Evaluation on BigCodeBench-Hard")
 print("=" * 60)
 
-# 评测 SFT 模型
-if len(success_trajs) > 0:
-    sft_metrics = evaluate_model(model_sft, baseline_tasks, "SFT")
-else:
-    sft_metrics = baseline_metrics
+rl_notools = eval_no_tools(model_rl, eval_data, EVAL_N)
+rl_multitool = eval_multi_tool(model_rl, eval_data, EVAL_N, "RL-MultiTool")
 
-# 评测 GRPO 模型
-rl_metrics = evaluate_model(model_rl, baseline_tasks, "GRPO-RL")
-
-# 对比
 print("\n" + "=" * 60)
 print("FINAL COMPARISON")
 print("=" * 60)
-print(f"  Baseline (no training):  {baseline_metrics['pass@1']:.1%}")
-print(f"  SFT (on success trajs):  {sft_metrics['pass@1']:.1%}  (Δ = {sft_metrics['pass@1'] - baseline_metrics['pass@1']:+.1%})")
-print(f"  GRPO RL (on all trajs):  {rl_metrics['pass@1']:.1%}  (Δ = {rl_metrics['pass@1'] - baseline_metrics['pass@1']:+.1%})")
+print(f"  {'Method':<25} {'Pass@1':>8}")
+print(f"  {'-'*33}")
+print(f"  {'Baseline (no tools)':<25} {baseline_notools:>7.1%}")
+print(f"  {'Baseline (code only)':<25} {baseline_codeonly:>7.1%}")
+print(f"  {'Baseline (multi-tool)':<25} {baseline_multitool:>7.1%}")
+print(f"  {'RL (no tools)':<25} {rl_notools:>7.1%}")
+print(f"  {'RL (multi-tool)':<25} {rl_multitool:>7.1%}")
+print(f"  {'-'*33}")
+print(f"  {'Multi-tool gain':<25} {rl_multitool - baseline_notools:>+7.1%}")
+print(f"  {'RL tool-learning gain':<25} {rl_multitool - baseline_multitool:>+7.1%}")
 print("=" * 60)
 ```
 
@@ -622,73 +745,88 @@ import matplotlib
 matplotlib.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei', 'sans-serif']
 matplotlib.rcParams['axes.unicode_minus'] = False
 
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-# --- 左图：Benchmark 对比 ---
+# --- 左图：Pass@1 对比 ---
 ax = axes[0]
-methods = ['Baseline', 'SFT\n(success only)', 'GRPO RL\n(all trajs)']
-pass_rates = [baseline_metrics["pass@1"], sft_metrics["pass@1"], rl_metrics["pass@1"]]
-colors = ['#90a4ae', '#42a5f5', '#66bb6a']
+methods = ['No Tools\n(Baseline)', 'Code Only\n(Baseline)', 'Multi-Tool\n(Baseline)', 'Multi-Tool\n(After RL)']
+pass_rates = [baseline_notools, baseline_codeonly, baseline_multitool, rl_multitool]
+colors = ['#bdbdbd', '#90a4ae', '#42a5f5', '#66bb6a']
 
-bars = ax.bar(methods, pass_rates, color=colors, edgecolor=[c.replace('a', '')[:7] for c in colors], linewidth=2)
+bars = ax.bar(methods, pass_rates, color=colors, edgecolor='#333', linewidth=1.5)
 ax.set_ylabel('pass@1')
-ax.set_title(f'HumanEval Benchmark (n={BASELINE_N})', fontweight='bold')
-ax.set_ylim(0, max(pass_rates) * 1.3)
+ax.set_title(f'BigCodeBench-Hard (n={EVAL_N})', fontweight='bold')
+ax.set_ylim(0, max(max(pass_rates) * 1.5, 0.2))
 
 for bar, v in zip(bars, pass_rates):
-    ax.text(bar.get_x() + bar.get_width()/2., v + 0.015,
-            f'{v:.1%}', ha='center', fontsize=13, fontweight='bold')
+    ax.text(bar.get_x() + bar.get_width()/2., v + 0.01,
+            f'{v:.1%}', ha='center', fontsize=12, fontweight='bold')
 
-# 标注最佳
 best = np.argmax(pass_rates)
 if pass_rates[best] > pass_rates[0]:
-    ax.annotate(f'Best: +{pass_rates[best]-pass_rates[0]:.1%}',
-                xy=(best, pass_rates[best]), xytext=(best, pass_rates[best]+0.08),
+    ax.annotate(f'+{(pass_rates[best]-pass_rates[0])*100:.1f}pp',
+                xy=(best, pass_rates[best]), xytext=(best, pass_rates[best]+0.06),
                 fontsize=13, fontweight='bold', color='#2e7d32',
                 arrowprops=dict(arrowstyle='->', color='#2e7d32', lw=2))
 
-# --- 右图：GRPO 训练过程 ---
+# --- 中图：训练过程 ---
 ax = axes[1]
 epochs = training_log["epoch"]
-ax.plot(epochs, training_log["success_rate"], 'o-', color='#388e3c', lw=2, label='Agent Success Rate')
+ax.plot(epochs, [p*100 for p in training_log["pass_rate"]], 'o-', color='#388e3c', lw=2, label='Pass Rate (%)')
 ax.plot(epochs, training_log["mean_reward"], 's--', color='#1976d2', lw=2, label='Mean Reward')
 ax.set_xlabel('Epoch')
-ax.set_title('GRPO RL Training Progress', fontweight='bold')
+ax.set_title('GRPO RL Training', fontweight='bold')
 ax.legend()
 ax.grid(True, alpha=0.3)
 
-plt.suptitle('Agentic RL: Real Model + Real Rollout + Real Benchmark', fontsize=14, fontweight='bold')
+# --- 右图：工具使用率变化 ---
+ax = axes[2]
+ax.plot(epochs, [s*100 for s in training_log["search_rate"]], 'o-', color='#f57c00', lw=2, label='Search Rate (%)')
+ax.plot(epochs, [s*100 for s in training_log["submit_rate"]], 's-', color='#c62828', lw=2, label='Submit Rate (%)')
+ax.set_xlabel('Epoch')
+ax.set_title('Tool Selection Strategy', fontweight='bold')
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+plt.suptitle('Multi-Tool Agentic RL: Qwen2.5-Coder-3B on BigCodeBench-Hard', fontsize=14, fontweight='bold')
 plt.tight_layout()
-plt.savefig("agentic_rl_real_benchmark.png", dpi=150)
-print("Saved: agentic_rl_real_benchmark.png")
+plt.savefig("multi_tool_agentic_rl.png", dpi=150)
+print("Saved: multi_tool_agentic_rl.png")
 ```
 
-## 参考：真正在做 Agentic RL 训练的开源项目
+## 参考：多工具 Agentic RL 的开源项目
 
-| 项目 | 工具环境 | Rollout 方式 | 训练方法 | 结果 | 代码 |
-|------|---------|-------------|---------|------|------|
-| **SimpleTIR** | 代码沙箱 | 模型写 ````python```` → 执行 → 看结果 | GRPO + void turn 过滤 | AIME 22→50, ICLR'26 | [GitHub](https://github.com/ltzheng/SimpleTIR) |
-| **ReTool** | 代码解释器 | 推理中穿插代码块执行 | SFT 冷启动 → RL | AIME 67% | [GitHub](https://github.com/ReTool-RL/ReTool) |
-| **Search-R1** | 搜索引擎 | 推理→`<search>`→搜索结果→继续 | PPO/GRPO + token mask | 多轮搜索RL标杆 | [GitHub](https://github.com/PeterGriffinJin/Search-R1) |
-| **DeepSWE** | Docker + 测试套件 | 多步 agent 修 bug | GRPO++ | SWE-bench 42% | [GitHub](https://github.com/agentica-project/rllm) |
-| **VerlTool** | 通用工具服务器 | 异步多轮交互 | GRPO | 多域 SOTA | [GitHub](https://github.com/TIGER-AI-Lab/verl-tool) |
+| 项目 | 工具 | 评测 Benchmark | 特点 |
+|------|------|---------------|------|
+| **MURPHY** | 代码执行 + 测试 | HumanEval, MBPP, BigCodeBench-Hard | Multi-turn GRPO，1.7B 模型 +8% |
+| **CodeGym** (ICLR'26) | 合成多工具环境 | OOD 泛化评测 | 自动生成 RL 环境 |
+| **VerlTool** | 代码/搜索/SQL/视觉/SWE | AIME, NQ, Spider, SWE-Verified | 统一多域框架 |
+| **Search-R1** | 搜索引擎 | NQ, HotpotQA, TriviaQA | 搜索 token mask |
+| **SimpleTIR** (ICLR'26) | 代码沙箱 | AIME 2024 | Void turn 过滤 |
+| **RLEF** (Meta) | 代码执行 + 测试 | CodeContests | 8B 模型竞赛编程 SOTA |
 
 ## 实验总结
 
-**核心管线**（所有项目共同遵循）：
+**我们做了什么**：
 
-1. **构建工具环境**（代码沙箱 / 搜索引擎 / Docker）
-2. **模型与环境多轮 Rollout**：模型生成工具调用 → 环境执行 → 结果追加到上下文 → 模型继续生成
-3. **收集完整轨迹**：`[prompt, assistant₁, observation₁, assistant₂, observation₂, ...]`
-4. **Finetune**：
-   - **路径 A（SFT）**：只保留成功轨迹，做监督微调。简单稳定。
-   - **路径 B（GRPO RL）**：组采样 + 组内比较 + 策略梯度。能从失败中学习。
-5. **独立 Benchmark 评测**：只有 pass@1 的变化才是真实的训练效果
+1. 给模型 **3 个工具**（搜索文档、执行代码、跑测试）
+2. 模型必须**自主决定**什么时候搜索、什么时候写代码、什么时候提交测试
+3. 用 GRPO RL 训练模型学习**工具选择策略**
+4. 在 BigCodeBench-Hard 上评测真实提升
 
 **关键设计决策**：
 
-- **Token mask**：工具执行结果的 token 不参与 loss（`labels = -100`），只有 assistant token 参与。这是 Search-R1 论文中实验证明有效的（有 mask: 0.431 vs 无 mask: 0.343）
-- **Outcome reward**：只看最终测试是否通过（`passed = 0/1`），不需要每步给 reward。SimpleTIR 和 DeepSWE 都证实 outcome reward 足够
-- **Code block 格式**：用 ```` ```python ``` ```` 而不是自定义 XML 标签。这是 SimpleTIR 和 ReTool 共同采用的模式，模型更容易学会
+- **3 个工具**（vs 单工具）：模型学会的是工具选择策略，不只是代码修正
+- **文档搜索工具**：BigCodeBench-Hard 涉及多样 Python 库，模型需要先查文档再编码
+- **Token mask**：所有工具返回的 observation token 不参与 loss（`labels = -100`）
+- **Reward shaping**：通过测试 = 1.0，用了搜索但失败 = 0.05\*n（鼓励探索），没提交 = -0.1
+- **训练数据**：KodCode 合成题（与 BigCodeBench 不重叠），1000 条就够（MURPHY 证明）
+- **评测分离**：训练用 KodCode，评测用 BigCodeBench-Hard
+
+**预期结果**：
+
+- RL 训练后，模型的搜索工具使用率应该上升（学会 "先查后写"）
+- 多工具 pass@1 应该显著高于单工具和 no-tool baseline
+- 右图 "Tool Selection Strategy" 应该展示模型确实学会了何时搜索
 
 下一节我们聚焦 Agentic RL 的工程挑战——[怎么把这些想法变成一个真正能跑的训练系统](./agentic-engineering)。

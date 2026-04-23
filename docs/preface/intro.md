@@ -2,15 +2,38 @@
 
 ## 为什么需要强化学习？
 
-教一个小孩骑自行车，你会怎么做？
+2019 年，强化学习领域的奠基人之一理查德·萨顿（Richard Sutton）写了一篇不到两页的短文，题目叫《苦涩的教训》（[The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html)）。他回顾了人工智能 70 年的历史，得出了一个让许多研究者难以接受的结论：
 
-![Learning to ride a bike](./images/learning_bike.jpg)
+> The biggest lesson that can be read from 70 years of AI research is that general methods that leverage computation are ultimately the most effective, and by a large margin.
+>
+> 从 70 年的 AI 研究中可以得出的最大教训是：利用计算能力的通用方法终将是最有效的，而且会遥遥领先。
+>
+> —— Rich Sutton, 2019. 萨顿与导师安德鲁·巴托（Andrew Barto）因奠定了强化学习的理论基础，共同获得 2024 年 ACM 图灵奖。
 
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1：教小孩骑自行车的过程，正是一个典型的试错（Trial-and-Error）学习过程。来源：<a href="https://commons.wikimedia.org/wiki/File:Parent_helping_child_learning_to_ride_a_bike.jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
+<div style="text-align: center; margin: 1.5rem 0;">
+  <img src="./images/richard_sutton.jpg" alt="Richard S. Sutton" style="display: block; margin: 0 auto; border-radius: 8px; max-width: 200px;" />
+  <p style="font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 8px;">
+    <em>理查德·萨顿（Richard S. Sutton），强化学习奠基人之一，2024 年图灵奖得主。来源：<a href="https://commons.wikimedia.org/wiki/File:Rich_Sutton_on_Reinforcement_Learning-_Alpha_Go_Zero_to_60_(cropped).jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>（CC BY 2.0）</em>
+  </p>
 </div>
 
-你不会先递给他一本《自行车物理学与平衡方程》，也不会在他上车前规定"当车身向左倾斜 5 度时右脚施力 10 牛顿"。你只是扶着后座，鼓励他自己去蹬。摔了，擦伤的膝盖就是负面反馈；稳了，迎面吹来的风就是奖励。几次下来，他的大脑在试错中自动学会了调整重心。
+为什么说它"苦涩"？因为同样的故事在 AI 历史上一遍又一遍地上演。在计算机国际象棋中，研究者精心编码开局定式和残局策略，结果被暴力搜索的深蓝击败；在语音识别和计算机视觉中，人们手工设计特征提取器，结果被从数据中自己学特征的深度网络全面取代。围棋更是登峰造极——研究者投入巨大精力利用人类知识来减少搜索量，而 AlphaGo Zero 干脆去掉一切人类输入，从零自我对弈，反而下得更好。
+
+萨顿总结道：**研究者总是试图让系统按照他们认为人类心智运作的方式去工作，但最终这被证明是适得其反的。** 真正推动突破的两大元技术——搜索和学习——之所以有效，恰恰是因为它们能随算力的增长而无限扩展。
+
+而"学习"最自然、最原始的形态是什么？不是坐在教室里听课，不是阅读标注好的数据集，而是像所有生物一样：**在真实世界中行动、观察后果、调整行为——也就是试错。**
+
+想一想，你人生中最早学会的那些技能——走路、说话、骑自行车——有哪一个是靠"读教材"学会的？没有人给你列一张"左脚先迈、重心前移"的步骤清单。你只是不断地尝试，摔倒，再爬起来，直到某一天身体自己记住了该怎么做。
+
+以骑自行车为例。假设你要教一个小孩学会骑车，你会怎么做？
+
+![Learning to ride a bike](./images/dad_teaching_bike.jpg)
+
+<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
+  <em>图 1：教小孩骑自行车的过程，正是一个典型的试错（Trial-and-Error）学习过程。来源：<a href="https://commons.wikimedia.org/wiki/File:Dad_teaching_child_to_ride_a_bike.jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
+</div>
+
+你不会先递给他一本《自行车物理学与平衡方程》，也不会在他上车前规定"当车身向左倾斜 5 度时右脚施力 10 牛顿"——这些精确的知识对他的大脑毫无用处。你只是扶着后座，鼓励他自己去蹬。摔了，擦伤的膝盖就是负面反馈；稳了，迎面吹来的风就是奖励。几次下来，他的大脑在试错中自动学会了调整重心。
 
 这种能力——**在未知环境中通过试错来学习，以最终的回报为导向**——是所有生物最本能的学习方式。可奇怪的是，过去十年的人工智能恰恰绕开了它。我们教会了机器认猫认狗、翻译语言、生成图片，用的全是同一种方法：给它成千上万个标注好的正确答案，让它照着学。但当问题从"识别"变成"决策"——让机械臂抓取水杯，让 AI 在星际争霸中打败职业选手，或者让大语言模型学会得体地回答问题——你根本无法为每一步标注出标准答案。
 
@@ -68,10 +91,6 @@ graph LR
     S -->|"4 步<br/>r = +10"| C2["大奶酪 🧀🧀🧀"]
     C2 -.->|"猫在旁边 🐱"| CAT["危险"]
 
-    style S fill:#fff3e0,stroke:#f57c00,color:#000
-    style C1 fill:#e3f2fd,stroke:#1976d2,color:#000
-    style C2 fill:#fce4ec,stroke:#c62828,color:#000
-    style CAT fill:#fafafa,stroke:#9e9e9e,color:#000
 ```
 
 </div>
@@ -129,9 +148,6 @@ graph TD
     B -->|"动作 a"| A
     C -->|"TD 误差 (打分)"| B
 
-    style A fill:#fff3e0,stroke:#f57c00,color:#000
-    style B fill:#e3f2fd,stroke:#1976d2,color:#000
-    style C fill:#e8f5e9,stroke:#388e3c,color:#000
 ```
 
 </div>
@@ -166,10 +182,10 @@ graph TD
 
 2016 年，AlphaGo 击败李世石，强化学习第一次震撼公众。2022 年 ChatGPT 发布，人们发现 RL 正是让大语言模型从"能说话"变成"说好话"的关键技术。从 DeepSeek-R1 到各类开源对齐模型，RLHF、DPO、GRPO 等算法已经深刻地重塑了整个 AI 行业。
 
-![ChatGPT](./brief-history/images/chatgpt.png)
+![AlphaGo vs Lee Sedol](./brief-history/images/alphago-game5.svg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 5：ChatGPT 等大语言模型的崛起，标志着强化学习在人类偏好对齐和复杂推理上的成功。来源：<a href="https://commons.wikimedia.org/wiki/File:ChatGPT.png" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
+  <em>图 5：2016 年 AlphaGo 与李世石五番棋第五局棋谱。AlphaGo 以 4:1 获胜，标志着强化学习第一次震撼公众。来源：<a href="https://commons.wikimedia.org/wiki/File:Lee_Sedol_(B)_vs_AlphaGo_(W)_-_Game_5.svg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a>（CC BY-SA 4.0）</em>
 </div>
 
 然而，市面上的学习资源严重滞后于行业实践。主流教程对 RL 一笔带过，专门的 RL 教材又停留在传统框架，对 PPO、DPO、GRPO 只字不提。一个想要理解 RLHF 流程的工程师，不得不在经典教材和最新论文之间艰难地自行搭建桥梁。我们着手写这本书，就是为了填补这道鸿沟。
@@ -198,23 +214,13 @@ graph TD
     A --> C["Policy-Based<br/>直接学策略"]
     B --> D["Q-Learning → DQN<br/>（第 4 章）"]
     C --> E["REINFORCE<br/>（第 5 章）"]
-    D --> F["Actor-Critic 汇合"]
+    D --> F["Actor-Critic 汇合<br/>（第 6 章）"]
     E --> F
-    F --> G["PPO（第 6 章）"]
+    F --> G["PPO（第 7 章）"]
     G --> H["LLM 对齐"]
-    H --> I["DPO：绕过奖励模型<br/>（第 8 章）"]
-    H --> J["GRPO：绕过 Critic<br/>（第 8 章）"]
+    H --> I["DPO：绕过奖励模型<br/>（第 9 章）"]
+    H --> J["GRPO：绕过 Critic<br/>（第 9 章）"]
 
-    style A fill:#f8f9fa,stroke:#24292f,color:#24292f
-    style B fill:#e3f2fd,stroke:#1976d2,color:#000
-    style C fill:#fff3e0,stroke:#f57c00,color:#000
-    style D fill:#e3f2fd,stroke:#1976d2,color:#000
-    style E fill:#fff3e0,stroke:#f57c00,color:#000
-    style F fill:#e8f5e9,stroke:#388e3c,color:#000
-    style G fill:#e8f5e9,stroke:#388e3c,color:#000
-    style H fill:#f8f9fa,stroke:#24292f,color:#24292f
-    style I fill:#fce4ec,stroke:#c62828,color:#000
-    style J fill:#fce4ec,stroke:#c62828,color:#000
 ```
 
 </div>
@@ -226,24 +232,25 @@ graph TD
 - **第 1 章**带你零基础运行第一个 RL 训练脚本，在 CartPole 倒立摆上获得"AI 能自己学会一件事"的第一手感受。
 - **第 2 章**将场景从"游戏控制"切换到"语言对齐"，用一个完整的 DPO 微调流程让大语言模型从"毒舌"变成"礼貌"，体验现代 RL 如何直接作用于大模型。
 
-**接下来的四章集中构建强化学习的理论与方法体系。**
+**接下来的五章集中构建强化学习的理论与方法体系。**
 
 - **第 3 章**引入 RL 的数学基石——马尔可夫决策过程（MDP），从多臂老虎机问题出发，逐步建立状态、动作、奖励的形式化框架，并推导出贝尔曼方程。
 - **第 4 章**进入深度强化学习，展示 DQN 如何将 Q-Learning 从一张小表格搬进神经网络，通过经验回放和目标网络让智能体直接从 Atari 游戏像素中学会决策——这也是深度学习与强化学习融合的里程碑。
-- **第 5 章**转向另一条路线——策略梯度方法，从 REINFORCE 到带基线的策略梯度，再搭建 Actor-Critic 架构，让 Value-Based 和 Policy-Based 两条路线在此汇合。
-- **第 6 章**聚焦 PPO，深入裁剪（Clipping）和广义优势估计（GAE）两大核心机制，在月球着陆器上实践稳定训练的艺术——PPO 既是游戏控制时代的集大成者，也是后续所有 LLM 对齐算法的出发点。
+- **第 5 章**转向另一条路线——策略梯度方法，从 REINFORCE 到带基线的策略梯度，理解策略优化的基本范式。
+- **第 6 章**搭建 Actor-Critic 架构，引入优势函数和 Critic 训练方法，让 Value-Based 和 Policy-Based 两条路线在此汇合。
+- **第 7 章**聚焦 PPO，深入裁剪（Clipping）和广义优势估计（GAE）两大核心机制，在月球着陆器上实践稳定训练的艺术——PPO 既是游戏控制时代的集大成者，也是后续所有 LLM 对齐算法的出发点。
 
 **第三部分讨论大语言模型时代的对齐与智能体算法。**
 
-- **第 7 章**串联 SFT → RM → RL 三阶段，构建一条完整的 RLHF 工程流水线，覆盖数据工程、奖励函数设计和训练稳定性控制等实际工作中的核心挑战。
-- **第 8 章**从数学上揭示 DPO 如何将奖励信号"隐藏"在策略概率比中，绕过整个奖励模型训练环节，并扩展到 KTO、SimPO 等 DPO 变体。随后介绍 GRPO 如何用组内相对优势进一步省去 Critic 网络，以及 RLVR（Reinforcement Learning with Verifiable Rewards）如何用数学题的标准答案和代码测试用例替代人工标注的奖励模型，追踪 DeepSeek-R1-Zero 和 DAPO 的最新进展。
-- **第 9 章**聚焦 Agentic RL——如何用 RL 训练能在环境中连续行动、调用工具、多轮交互的智能体，这是从"对话模型"到"自主智能体"的关键跨越。
+- **第 8 章**串联 SFT → RM → RL 三阶段，构建一条完整的 RLHF 工程流水线，覆盖数据工程、奖励函数设计、训练稳定性控制和自我博弈数据飞轮等实际工作中的核心挑战。
+- **第 9 章**从数学上揭示 DPO 如何将奖励信号"隐藏"在策略概率比中，绕过整个奖励模型训练环节，并扩展到 KTO、SimPO 等 DPO 变体。随后介绍 GRPO 如何用组内相对优势进一步省去 Critic 网络，以及 RLVR（Reinforcement Learning with Verifiable Rewards）如何用数学题的标准答案和代码测试用例替代人工标注的奖励模型，追踪 DeepSeek-R1-Zero 和 DAPO 的最新进展。
+- **第 10 章**聚焦 Agentic RL——如何用 RL 训练能在环境中连续行动、调用工具、多轮交互的智能体，涵盖工具调用、轨迹合成、信用分配和工业界实践，这是从"对话模型"到"自主智能体"的关键跨越。
 
 **第四部分将 RL 拓展到视觉、物理世界与前沿方向。**
 
-- **第 10 章**把 RL 从纯文本推进到视觉-语言模型（VLM），分析多模态 RL 中视觉幻觉、奖励归因等独特问题。
-- **第 11 章**从离散动作扩展到连续力矩控制，介绍 DDPG、TD3 和 SAC 等连续动作空间算法，并进一步讨论 Sim-to-Real、域随机化等具身智能的核心挑战——这是 RL 走向机器人控制等物理世界的必经之路。
-- **第 12 章**展望 Test-time Reasoning、多智能体协作、离线 RL 和自博弈等前沿方向。
+- **第 11 章**把 RL 从纯文本推进到视觉-语言模型（VLM），分析多模态 RL 中视觉幻觉、奖励归因等独特问题。
+- **第 12 章**从离散动作扩展到连续力矩控制，介绍 DDPG、TD3 和 SAC 等连续动作空间算法，并进一步讨论 Sim-to-Real、域随机化等具身智能的核心挑战——这是 RL 走向机器人控制等物理世界的必经之路。
+- **第 13 章**展望 Test-time Reasoning、多智能体协作、离线 RL 和自博弈等前沿方向。
 
 ### 目标读者
 

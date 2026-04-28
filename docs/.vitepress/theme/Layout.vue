@@ -289,6 +289,30 @@ function initMediumZoom() {
   })
 }
 
+function renderSidebarKatex() {
+  if (typeof document === 'undefined') return
+  import('katex').then((katex) => {
+    const items = document.querySelectorAll('.VPSidebar .VPSidebarItem .text')
+    items.forEach((el) => {
+      const raw = el.textContent
+      if (!raw || !raw.includes('$')) return
+      const html = raw.replace(/\$([^$]+)\$/g, (_match, formula) => {
+        try {
+          return katex.default.renderToString(formula, {
+            throwOnError: false,
+            output: 'htmlAndMathml',
+          })
+        } catch {
+          return `$${formula}$`
+        }
+      })
+      if (html !== raw) {
+        el.innerHTML = html
+      }
+    })
+  }).catch(() => {})
+}
+
 function initNavigationSync() {
   cleanupNavigationSync()
 
@@ -374,6 +398,7 @@ onMounted(() => {
   initNavigationSync()
   updateSidebarEdgePosition()
   initMediumZoom()
+  renderSidebarKatex()
 })
 
 onBeforeUnmount(() => {
@@ -413,6 +438,7 @@ watch(
     await nextTick()
     initNavigationSync()
     initMediumZoom()
+    renderSidebarKatex()
     window.requestAnimationFrame(updateSidebarEdgePosition)
   }
 )

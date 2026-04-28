@@ -397,6 +397,52 @@
   background-color: rgba(244, 67, 54, 0.1) !important;
 }
 
+/* ---- Output block (运行结果) ---- */
+.vp-doc .custom-block.output {
+  border-left: 4px solid #607d8b;
+  background-color: rgba(96, 125, 139, 0.06) !important;
+  border-radius: 4px;
+  padding: 12px 20px;
+  margin: 12px 0;
+  font-family: var(--d2l-font-mono);
+  font-size: 0.9em;
+}
+
+.vp-doc .custom-block.output .custom-block-title {
+  color: #607d8b;
+  font-size: 0.85em;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 6px;
+}
+
+.vp-doc .custom-block.output pre {
+  margin: 0;
+  padding: 0;
+  background: none !important;
+  box-shadow: none !important;
+  border: none;
+}
+
+.vp-doc .custom-block.output pre code {
+  background: none !important;
+  font-size: 0.95em;
+}
+
+.vp-doc .custom-block.output p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.dark .vp-doc .custom-block.output {
+  border-left-color: #78909c;
+  background-color: rgba(120, 144, 156, 0.08) !important;
+}
+
+.dark .vp-doc .custom-block.output .custom-block-title {
+  color: #90a4ae;
+}
+
 .vp-doc .custom-block .custom-block-title {
   font-size: 16px;
   font-weight: 700;

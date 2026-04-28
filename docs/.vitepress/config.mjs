@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url'
 
 const require = createRequire(import.meta.url)
 const markdownItFootnote = require('markdown-it-footnote')
+const markdownItContainer = require('markdown-it-container')
 const katex = require('katex')
 
 const __filename = fileURLToPath(import.meta.url)
@@ -116,7 +117,7 @@ function renderSearchMarkdown(src) {
       continue
     }
 
-    if (!line || inFence || line.startsWith(':::')) {
+    if (!line || inFence || line.startsWith(':::') || line.startsWith('|')) {
       continue
     }
 
@@ -894,6 +895,16 @@ export default defineConfig({
         md.use(markdownItFootnote)
         katexMarkdown(md)
         MermaidMarkdown(md)
+        // Custom "output" container for displaying code running results
+        md.use(markdownItContainer, 'output', {
+          render: function (tokens, idx) {
+            if (tokens[idx].nesting === 1) {
+              const title = tokens[idx].info.trim().slice(6).trim() || '运行结果'
+              return `<div class="custom-block output"><p class="custom-block-title">${title}</p>\n`
+            }
+            return '</div>\n'
+          }
+        })
       }
     },
     vite: {

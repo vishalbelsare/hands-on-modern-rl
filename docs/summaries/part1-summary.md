@@ -43,7 +43,7 @@ while True:
 
 $$\nabla_\theta J(\theta) \approx \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t$$
 
-对应的损失函数就是 $\mathcal{L} = -\log \pi_\theta(a_t|s_t) \cdot G_t$。注意前面的负号——我们做的是梯度*下降*，所以要最小化这个损失来最大化期望回报。
+对应的损失函数就是 $\mathcal{L} = -\log \pi_\theta(a_t|s_t) \cdot G_t$。注意前面的负号——我们做的是梯度*下降*，所以要最小化这个损失来最大化期望回报。这就是 REINFORCE 算法的核心，[第 5 章](../chapter05_policy_gradient/policy-gradient)将给出完整的策略梯度定理推导。
 
 你可能觉得 $\log \pi$ 这个形式有点奇怪，为什么不用 $\pi$ 本身？原因是 $\log$ 变换有两个好处：第一，把概率的乘法变成加法，计算更稳定；第二，$\nabla \log \pi = \nabla \pi / \pi$，自然地对低概率动作赋予更大的梯度，鼓励探索。
 

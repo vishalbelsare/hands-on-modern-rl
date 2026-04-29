@@ -1,4 +1,4 @@
-# Part 1: 极速入门 — 知识总结
+# Part 1: 实践基础 — 核心概念回顾
 
 ## 这一 Part 我们学了什么？
 
@@ -39,13 +39,21 @@ while True:
 
 策略 $\pi_\theta(a|s)$ 是一个从状态到动作概率分布的映射。在 CartPole 中，我们的策略是一个两层 64 个神经元的全连接网络，输入 4 个状态值，输出 2 个动作的 logits，经过 softmax 转换为概率。
 
-训练这个策略的方式是**策略梯度**。直觉非常简单：如果一个动作带来了好的结果（总回报 $G_t$ 大），就让这个动作的概率升高；反之就降低。数学上，这等价于最大化期望回报 $J(\theta) = \mathbb{E}_{\pi_\theta}[G_t]$，其梯度为
+训练这个策略的方式是**策略梯度**。直觉非常简单：如果一个动作带来了好的结果（总回报 $G_t$ 大），就让这个动作的概率升高；反之就降低。
+
+具体怎么做？我们的目标是最大化期望回报 $J(\theta) = \mathbb{E}_{\pi_\theta}[G_t]$。$\theta$ 是神经网络的参数，它唯一控制的就是策略 $\pi_\theta(a|s)$——每个动作的概率。对 $J$ 求 $\theta$ 的梯度，第一步得到 $\sum_a \nabla_\theta \pi_\theta(a|s) \cdot G_t$。但这里有个问题：$\nabla \pi$ 不是概率分布，你没法从里面采样——而实际训练只能靠采样。
+
+解决方案是一个数学技巧：$\nabla \pi = \pi \cdot \nabla \log \pi$（链式法则）。把 $\pi$ 乘回去，梯度就变回了期望形式：
+
+$$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\left[\nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t\right]$$
+
+现在可以采样了。跑一局游戏拿到一组样本 $(s_t, a_t, G_t)$，用**单次采样近似期望**：
 
 $$\nabla_\theta J(\theta) \approx \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t$$
 
-对应的损失函数就是 $\mathcal{L} = -\log \pi_\theta(a_t|s_t) \cdot G_t$。注意前面的负号——我们做的是梯度*下降*，所以要最小化这个损失来最大化期望回报。这就是 REINFORCE 算法的核心，[第 5 章](../chapter05_policy_gradient/policy-gradient)将给出完整的策略梯度定理推导。
+直觉上：$\nabla_\theta \log \pi_\theta(a_t|s_t)$ 是"调概率的旋钮"，$G_t$ 是"往哪个方向调"——回报为正就调高概率，为负就调低。$\log$ 还有两个实用的好处：把概率的乘法变成加法（数值更稳定），以及 $\nabla \log \pi = \nabla \pi / \pi$ 自然地对低概率动作赋予更大的梯度，鼓励探索。完整的推导在 [第 5 章](../chapter05_policy_gradient/policy-gradient)。
 
-你可能觉得 $\log \pi$ 这个形式有点奇怪，为什么不用 $\pi$ 本身？原因是 $\log$ 变换有两个好处：第一，把概率的乘法变成加法，计算更稳定；第二，$\nabla \log \pi = \nabla \pi / \pi$，自然地对低概率动作赋予更大的梯度，鼓励探索。
+对应的损失函数就是 $\mathcal{L} = -\log \pi_\theta(a_t|s_t) \cdot G_t$。注意前面的负号——我们做的是梯度*下降*，所以要最小化这个损失来最大化期望回报。这就是 REINFORCE 算法的核心。
 
 在训练过程中，你会观察到两个关键指标呈现"剪刀交叉"的现象：回合奖励（Reward）逐步上升，说明策略越来越强；策略熵（Entropy）$\mathcal{H} = -\sum_a \pi(a|s) \log \pi(a|s)$ 逐步下降，说明策略从随机探索变得越来越确定。这是 RL 训练健康的标志。
 

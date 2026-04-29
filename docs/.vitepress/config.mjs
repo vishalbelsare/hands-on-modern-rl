@@ -307,6 +307,46 @@ function katexMarkdown(md) {
     `<p>${renderKatex(tokens[idx].content, true)}</p>\n`
 }
 
+function safeHeadingAttrs(md) {
+  md.core.ruler.before('linkify', 'safe_heading_attrs', (state) => {
+    for (let idx = 0; idx < state.tokens.length - 1; idx += 1) {
+      const headingOpen = state.tokens[idx]
+      const inline = state.tokens[idx + 1]
+
+      if (headingOpen.type !== 'heading_open' || inline.type !== 'inline') {
+        continue
+      }
+
+      const children = inline.children || []
+      const lastText = [...children].reverse().find((token) => token.type === 'text')
+      if (!lastText) continue
+
+      const match = lastText.content.match(
+        /\s*\{((?:[#.][A-Za-z0-9][A-Za-z0-9_.:-]*)(?:\s+[#.][A-Za-z0-9][A-Za-z0-9_.:-]*)*)\}$/
+      )
+      if (!match) continue
+
+      const attrs = match[1].trim().split(/\s+/)
+      const classes = []
+
+      for (const attr of attrs) {
+        if (attr.startsWith('#')) {
+          headingOpen.attrSet('id', attr.slice(1))
+        } else if (attr.startsWith('.')) {
+          classes.push(attr.slice(1))
+        }
+      }
+
+      if (classes.length) {
+        headingOpen.attrJoin('class', classes.join(' '))
+      }
+
+      lastText.content = lastText.content.slice(0, match.index)
+      inline.content = inline.content.replace(match[0], '')
+    }
+  })
+}
+
 const zhNav = [
   { text: '前言与导论', link: '/preface/intro' },
   { text: '基础导论', link: '/chapter01_cartpole/intro' },
@@ -338,12 +378,9 @@ const zhSidebar = {
       text: '前言',
       items: [
         { text: '课程导读', link: '/preface/intro' },
-        { text: '强化学习简史', link: '/preface/brief-history' }
+        { text: '强化学习简史', link: '/preface/brief-history' },
+        { text: '环境安装指南', link: '/preface/env-setup' }
       ]
-    },
-    {
-      text: '安装',
-      items: [{ text: '环境安装指南', link: '/appendix_env_install/intro' }]
     },
     {
       text: '基础导论',
@@ -389,8 +426,8 @@ const zhSidebar = {
           link: '/chapter03_mdp/intro',
           collapsed: false,
           items: [
-            { text: '3.1 动手：多臂老虎机', link: '/chapter03_mdp/bandit' },
-            { text: '3.2 马尔可夫决策过程', link: '/chapter03_mdp/mdp' },
+            { text: '3.1 两台老虎机：RL 的最小问题', link: '/chapter03_mdp/bandit' },
+            { text: '3.2 MDP：RL 的形式化框架', link: '/chapter03_mdp/mdp' },
             {
               text: '3.3 V(s) 与贝尔曼方程',
               link: '/chapter03_mdp/value-bellman'
@@ -927,7 +964,11 @@ export default defineConfig({
     cleanUrls: true,
     lastUpdated: true,
     markdown: {
+      attrs: {
+        disable: true
+      },
       config: (md) => {
+        safeHeadingAttrs(md)
         md.use(markdownItFootnote)
         katexMarkdown(md)
         MermaidMarkdown(md)
@@ -945,6 +986,15 @@ export default defineConfig({
     },
     vite: {
       plugins: [mermaidConfigPlugin(), normalizeBrokenDocPathPlugin()],
+      optimizeDeps: {
+        include: [
+          '@braintree/sanitize-url',
+          'cytoscape',
+          'cytoscape-cose-bilkent',
+          'dayjs',
+          'debug'
+        ]
+      },
       resolve: {
         alias: {
           'dayjs/plugin/advancedFormat.js':

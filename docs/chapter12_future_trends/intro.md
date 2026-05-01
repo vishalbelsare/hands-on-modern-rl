@@ -13,5 +13,6 @@
 | [自博弈与自我进化](./self-play-outlook/)                 | 模型能否通过自我博弈持续进化？             |
 | [LLM 多智能体强化学习](./llm-multi-agent-rl/)            | 多智能体、基于模型 RL 与协作博弈           |
 | [离线强化学习](./offline-rl/)                            | 不能在线试错时，如何从历史数据中学习策略？ |
+| [RL Scaling 展望](./rl-scaling-outlook)                  | RL 训练的天花板在哪？Test-time Scaling？   |
 
 准备好了吗？让我们从 RL 走进物理世界的第一步开始——[具身智能](./embodied-intelligence/)。

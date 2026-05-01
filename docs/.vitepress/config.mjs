@@ -634,11 +634,7 @@ const zhSidebar = {
               link: '/chapter09_grpo_rlvr/deepseek-dapo-rlvr'
             },
             {
-              text: '9.5 RL Scaling 展望',
-              link: '/chapter09_grpo_rlvr/rl-scaling-outlook'
-            },
-            {
-              text: '9.6 On-Policy Distillation',
+              text: '9.5 On-Policy Distillation',
               link: '/chapter09_grpo_rlvr/on-policy-distillation'
             }
           ]
@@ -743,6 +739,10 @@ const zhSidebar = {
             {
               text: '12.5 离线强化学习',
               link: '/chapter12_future_trends/offline-rl/'
+            },
+            {
+              text: '12.6 RL Scaling 展望',
+              link: '/chapter12_future_trends/rl-scaling-outlook'
             }
           ]
         },

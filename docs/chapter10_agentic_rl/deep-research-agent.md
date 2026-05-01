@@ -801,4 +801,4 @@ Deep Research Agent 是一个把本书所有 RL 知识"串起来"的绝佳场景
 
 [^memento]: Zhou H, et al. "Memento: Fine-tuning LLM Agents without Fine-tuning LLMs." [arXiv:2508.16153](https://arxiv.org/abs/2508.16153), 2025. **为什么不归入上述任何一类**：Memento 提供了一条完全不同的技术路线——**不修改模型参数**，而是通过外部情景记忆机制让 Agent 在推理时检索相似案例来指导行为。它在 GAIA 验证集上排名第一（87.88% Pass@3），有力地证明了：有时候"更好的检索"比"更好的训练"更有效。这个工作提示我们，RL 并非提升 Agent 能力的唯一路径，外部记忆与推理时策略同样是值得关注的方向。
 
-到这里，第 9 章的全部内容就结束了。下一章，让我们把目光投向更远的前沿——[未来趋势](../chapter13_future_trends/intro)，看看 RL 领域正在发生哪些激动人心的变化。
+到这里，第 9 章的全部内容就结束了。下一章，让我们把目光投向更远的前沿——[未来趋势](../chapter12_future_trends/intro)，看看 RL 领域正在发生哪些激动人心的变化。

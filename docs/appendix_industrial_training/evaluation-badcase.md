@@ -100,7 +100,7 @@ N 步评测一次 ← ← ← ← ← 调整超参数/数据
 
 ## Benchmark 构建方法论
 
-前面讨论了"怎么选 benchmark"和"怎么做 badcase 分析"。但如果现有的 benchmark 不满足你的需求——比如你的模型面向特定行业（医疗、法律、金融），或者你需要评估一种新能力（如[多模态 Agent](/chapter12_agentic_rl/multimodal-agent) 的跨模态推理）——你就需要**自己构建评测集**。
+前面讨论了"怎么选 benchmark"和"怎么做 badcase 分析"。但如果现有的 benchmark 不满足你的需求——比如你的模型面向特定行业（医疗、法律、金融），或者你需要评估一种新能力（如[多模态 Agent](/chapter10_agentic_rl/multimodal-agent) 的跨模态推理）——你就需要**自己构建评测集**。
 
 ### 设计原则
 

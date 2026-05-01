@@ -146,7 +146,7 @@ def rejection_sampling(model, prompt, verifier, num_samples=16):
 
 ### 3. 课程式合成
 
-从简单任务逐步组合成复杂任务——[第 9 章的轨迹合成](../chapter12_agentic_rl/trajectory-synthesis)中大量使用了这种方式：
+从简单任务逐步组合成复杂任务——[第 9 章的轨迹合成](../chapter10_agentic_rl/trajectory-synthesis)中大量使用了这种方式：
 
 ```mermaid
 flowchart LR
@@ -195,7 +195,7 @@ def active_learning_cycle(model, eval_set, data_producer):
 
 ### 案例一：Reasoning 数据循环
 
-[GRPO](../chapter08_grpo_rlvr/grpo-practice-and-mechanism) + [RLVR](../chapter08_grpo_rlvr/deepseek-dapo-rlvr) 训练中的数据循环：
+[GRPO](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) + [RLVR](../chapter09_grpo_rlvr/deepseek-dapo-rlvr) 训练中的数据循环：
 
 ```
 GRPO 采样 N 条回答
@@ -231,7 +231,7 @@ GRPO / PPO 训练
 按失败类型分析 → 构造针对性的训练任务 → 回到训练
 ```
 
-Agent 轨迹数据循环的特殊之处在于：**轨迹是环境交互的产物，不能凭空生成**。每条轨迹都需要真实的工具执行（运行代码、访问网页、调用 API），这意味着数据生产有不可压缩的时间成本。这也是为什么[第 9 章的工程实战](../chapter12_agentic_rl/agentic-engineering)花了大量篇幅讨论异步并发和并行 rollout 的工程优化。
+Agent 轨迹数据循环的特殊之处在于：**轨迹是环境交互的产物，不能凭空生成**。每条轨迹都需要真实的工具执行（运行代码、访问网页、调用 API），这意味着数据生产有不可压缩的时间成本。这也是为什么[第 9 章的工程实战](../chapter10_agentic_rl/agentic-engineering)花了大量篇幅讨论异步并发和并行 rollout 的工程优化。
 
 <details>
 <summary>思考题：如果数据飞轮转得很快但评测集很小（只有 100 道题），会有什么问题？</summary>
@@ -246,4 +246,4 @@ Agent 轨迹数据循环的特殊之处在于：**轨迹是环境交互的产物
 
 </details>
 
-到这里，我们从数据飞轮、质量保障、合成策略到两个实践案例，完整覆盖了对齐系统中"数据"这个核心要素。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——看看如何训练能在环境中连续行动、调用工具的智能体。让我们进入第 9 章——[Agentic RL](../chapter12_agentic_rl/intro)。
+到这里，我们从数据飞轮、质量保障、合成策略到两个实践案例，完整覆盖了对齐系统中"数据"这个核心要素。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——看看如何训练能在环境中连续行动、调用工具的智能体。让我们进入第 9 章——[Agentic RL](../chapter10_agentic_rl/intro)。

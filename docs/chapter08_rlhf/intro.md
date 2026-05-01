@@ -9,9 +9,9 @@
 ::: tip 前置知识回顾
 本章会频繁用到以下概念，如果记不清了，点进去复习一下再继续：
 
-- [PPO 算法与裁剪机制](../chapter06_ppo/intro)——RLHF 第三阶段的核心优化器
-- [DPO 与偏好数据](../chapter07_alignment/intro)——偏好对 (chosen, rejected) 的另一种用法
-- [GRPO 与组内相对优势](../chapter08_grpo_rlvr/intro)——不用 Critic 的策略优化
+- [PPO 算法与裁剪机制](../chapter07_ppo/intro)——RLHF 第三阶段的核心优化器
+- [DPO 与偏好数据](../chapter09_alignment/intro)——偏好对 (chosen, rejected) 的另一种用法
+- [GRPO 与组内相对优势](../chapter09_grpo_rlvr/intro)——不用 Critic 的策略优化
   :::
 
 | 小节                                                           | 你会回答的问题                                         |

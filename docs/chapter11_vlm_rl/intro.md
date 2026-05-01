@@ -22,9 +22,9 @@
 ::: tip 前置知识回顾
 本章会用到以下概念，如果记不清了，点进去复习一下再继续：
 
-- [GRPO 算法](../chapter08_grpo_rlvr/intro)——不用 Critic 的组内相对优化
-- [奖励函数设计](../chapter10_rlhf/reward-function-design)——规则奖励、模型奖励与 reward hacking
-- [训练稳定性控制](../chapter10_rlhf/training-stability-hacking)——KL 惩罚、梯度裁剪与参考模型
+- [GRPO 算法](../chapter09_grpo_rlvr/intro)——不用 Critic 的组内相对优化
+- [奖励函数设计](../chapter08_rlhf/reward-function-design)——规则奖励、模型奖励与 reward hacking
+- [训练稳定性控制](../chapter08_rlhf/training-stability-hacking)——KL 惩罚、梯度裁剪与参考模型
   :::
 
 ## VLM RL 和纯文本 RL 有什么不同？

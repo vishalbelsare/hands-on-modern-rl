@@ -395,7 +395,7 @@ const zhNav = [
   { text: '前言与导论', link: '/preface/intro' },
   { text: '基础导论', link: '/chapter01_cartpole/intro' },
   { text: '核心理论与方法', link: '/chapter03_mdp/intro' },
-  { text: '大模型强化学习', link: '/chapter10_rlhf/intro' },
+  { text: '大模型强化学习', link: '/chapter08_rlhf/intro' },
   {
     text: '前沿与进阶专题',
     link: '/chapter11_vlm_rl/intro'
@@ -558,24 +558,24 @@ const zhSidebar = {
         },
         {
           text: '7. PPO',
-          link: '/chapter06_ppo/intro',
+          link: '/chapter07_ppo/intro',
           collapsed: false,
           items: [
             {
               text: '7.1 动手：PPO 训练 LunarLander',
-              link: '/chapter06_ppo/ppo-lunar-lander'
+              link: '/chapter07_ppo/ppo-lunar-lander'
             },
             {
               text: '7.2 PPO 数学推导',
-              link: '/chapter06_ppo/ppo-math'
+              link: '/chapter07_ppo/ppo-math'
             },
             {
               text: '7.3 信任域与裁剪',
-              link: '/chapter06_ppo/trust-region-clipping'
+              link: '/chapter07_ppo/trust-region-clipping'
             },
             {
               text: '7.4 GAE 与奖励模型',
-              link: '/chapter06_ppo/gae-reward-model'
+              link: '/chapter07_ppo/gae-reward-model'
             }
           ]
         },
@@ -587,106 +587,106 @@ const zhSidebar = {
       items: [
         {
           text: '8. RLHF',
-          link: '/chapter10_rlhf/intro',
+          link: '/chapter08_rlhf/intro',
           collapsed: false,
           items: [
             {
               text: '8.1 SFT 与偏好数据',
-              link: '/chapter10_rlhf/imitation-learning-pipeline'
+              link: '/chapter08_rlhf/imitation-learning-pipeline'
             },
             {
               text: '8.2 奖励函数设计',
-              link: '/chapter10_rlhf/reward-function-design'
+              link: '/chapter08_rlhf/reward-function-design'
             },
             {
               text: '8.3 KL、崩溃与稳定性',
-              link: '/chapter10_rlhf/training-stability-hacking'
+              link: '/chapter08_rlhf/training-stability-hacking'
             },
             {
               text: '8.4 自我博弈与数据飞轮',
-              link: '/chapter10_rlhf/rlaif-and-data-cycle'
+              link: '/chapter08_rlhf/rlaif-and-data-cycle'
             },
             {
               text: '8.5 动手：奖励黑客实战',
-              link: '/chapter10_rlhf/reward-hacking-hands-on'
+              link: '/chapter08_rlhf/reward-hacking-hands-on'
             }
           ]
         },
         {
           text: '9. 推理强化',
-          link: '/chapter07_alignment/intro',
+          link: '/chapter09_alignment/intro',
           collapsed: false,
           items: [
             {
               text: '9.1 DPO、IPO 与 KTO',
-              link: '/chapter07_alignment/dpo-theory-and-family'
+              link: '/chapter09_alignment/dpo-theory-and-family'
             },
             {
               text: '9.2 动手：DPO 对齐实验',
-              link: '/chapter07_alignment/dpo-hands-on'
+              link: '/chapter09_alignment/dpo-hands-on'
             },
             {
               text: '9.3 GRPO 实践与机制',
-              link: '/chapter08_grpo_rlvr/grpo-practice-and-mechanism'
+              link: '/chapter09_grpo_rlvr/grpo-practice-and-mechanism'
             },
             {
               text: '9.4 DeepSeek、DAPO 与 RLVR',
-              link: '/chapter08_grpo_rlvr/deepseek-dapo-rlvr'
+              link: '/chapter09_grpo_rlvr/deepseek-dapo-rlvr'
             },
             {
               text: '9.5 RL Scaling 展望',
-              link: '/chapter08_grpo_rlvr/rl-scaling-outlook'
+              link: '/chapter09_grpo_rlvr/rl-scaling-outlook'
             },
             {
               text: '9.6 On-Policy Distillation',
-              link: '/chapter08_grpo_rlvr/on-policy-distillation'
+              link: '/chapter09_grpo_rlvr/on-policy-distillation'
             }
           ]
         },
         {
           text: '10. Agentic RL',
-          link: '/chapter12_agentic_rl/intro',
+          link: '/chapter10_agentic_rl/intro',
           collapsed: false,
           items: [
             {
               text: '10.1 多轮交互与信用分配',
-              link: '/chapter12_agentic_rl/multi-turn-rl'
+              link: '/chapter10_agentic_rl/multi-turn-rl'
             },
             {
               text: '10.2 轨迹合成与数据工程',
-              link: '/chapter12_agentic_rl/trajectory-synthesis'
+              link: '/chapter10_agentic_rl/trajectory-synthesis'
             },
             {
               text: '10.3 工具调用 RL',
-              link: '/chapter12_agentic_rl/tool-use-agents'
+              link: '/chapter10_agentic_rl/tool-use-agents'
             },
             {
               text: '10.4 Agentic 工程',
-              link: '/chapter12_agentic_rl/agentic-engineering'
+              link: '/chapter10_agentic_rl/agentic-engineering'
             },
             {
               text: '10.5 工业实践',
-              link: '/chapter12_agentic_rl/industrial-practice'
+              link: '/chapter10_agentic_rl/industrial-practice'
             },
             {
               text: '10.6 Benchmark 与评测',
-              link: '/chapter12_agentic_rl/evaluation-benchmarks'
+              link: '/chapter10_agentic_rl/evaluation-benchmarks'
             },
             {
               text: '10.7 动手：ORM 与 PRM 对比',
-              link: '/chapter12_agentic_rl/agent-loop-hands-on'
+              link: '/chapter10_agentic_rl/agent-loop-hands-on'
             },
             {
               text: '10.8 项目：端到端 Agentic 训练',
-              link: '/chapter12_agentic_rl/agentic-training-hands-on'
+              link: '/chapter10_agentic_rl/agentic-training-hands-on'
             },
             {
               text: '10.9 项目：Deep Research Agent',
-              link: '/chapter12_agentic_rl/deep-research-agent'
+              link: '/chapter10_agentic_rl/deep-research-agent'
             },
             {
               text: '10.10 延伸阅读',
-              link: '/chapter12_agentic_rl/extended-readings'
+              link: '/chapter10_agentic_rl/extended-readings'
             }
           ]
         },
@@ -721,28 +721,28 @@ const zhSidebar = {
         },
         {
           text: '12. 未来趋势',
-          link: '/chapter13_future_trends/intro',
+          link: '/chapter12_future_trends/intro',
           collapsed: false,
           items: [
             {
               text: '12.1 具身智能',
-              link: '/chapter13_future_trends/embodied-intelligence/'
+              link: '/chapter12_future_trends/embodied-intelligence/'
             },
             {
               text: '12.2 Model-Based RL',
-              link: '/chapter13_future_trends/embodied-intelligence/model-based-rl/'
+              link: '/chapter12_future_trends/embodied-intelligence/model-based-rl/'
             },
             {
               text: '12.3 Self-Play 与自进化',
-              link: '/chapter13_future_trends/self-play-outlook/'
+              link: '/chapter12_future_trends/self-play-outlook/'
             },
             {
               text: '12.4 LLM 多智能体 RL',
-              link: '/chapter13_future_trends/llm-multi-agent-rl/'
+              link: '/chapter12_future_trends/llm-multi-agent-rl/'
             },
             {
               text: '12.5 离线强化学习',
-              link: '/chapter13_future_trends/offline-rl/'
+              link: '/chapter12_future_trends/offline-rl/'
             }
           ]
         },

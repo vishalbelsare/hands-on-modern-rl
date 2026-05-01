@@ -113,7 +113,7 @@ Q 网络要回答的是“任意状态动作对有多好”。但离线数据只
 运行：
 
 ```bash
-python docs/chapter13_future_trends/offline-rl/snippets/minimal_offline_rl_contextual_bandit.py
+python docs/chapter12_future_trends/offline-rl/snippets/minimal_offline_rl_contextual_bandit.py
 ```
 
 典型输出：

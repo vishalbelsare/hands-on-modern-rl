@@ -262,7 +262,7 @@ $$
 完整脚本在 [minimal_mbrl_point_mass.py](./snippets/minimal_mbrl_point_mass.py)，可以直接运行：
 
 ```bash
-python docs/chapter13_future_trends/embodied-intelligence/model-based-rl/snippets/minimal_mbrl_point_mass.py
+python docs/chapter12_future_trends/embodied-intelligence/model-based-rl/snippets/minimal_mbrl_point_mass.py
 ```
 
 典型结果会看到随机策略把系统越推越远，而 MBRL 的 MPC 能把状态拉回原点附近：

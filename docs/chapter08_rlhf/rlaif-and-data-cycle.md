@@ -166,7 +166,7 @@ flowchart TD
 
 ### 1. 拒绝采样合成正例
 
-让模型在同一个 prompt 上生成 N 次回答，保留最好的（通过验证器或 RM 评分）作为 chosen。[GRPO](../chapter08_grpo_rlvr/grpo-practice-and-mechanism) 训练中最常用的数据生产方式：
+让模型在同一个 prompt 上生成 N 次回答，保留最好的（通过验证器或 RM 评分）作为 chosen。[GRPO](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) 训练中最常用的数据生产方式：
 
 ```python
 def rejection_sampling(model, prompt, verifier, num_samples=16):
@@ -186,7 +186,7 @@ def rejection_sampling(model, prompt, verifier, num_samples=16):
 
 ### 3. 课程式合成
 
-从简单任务逐步组合成复杂任务——[第 9 章的轨迹合成](../chapter12_agentic_rl/trajectory-synthesis)中大量使用：
+从简单任务逐步组合成复杂任务——[第 9 章的轨迹合成](../chapter10_agentic_rl/trajectory-synthesis)中大量使用：
 
 单步工具调用 → 2-3 步组合 → 5-10 步复杂任务 → 20+ 步研究任务
 
@@ -278,4 +278,4 @@ def self_evolution_loop(model, prompts, external_rm, num_iterations=3):
 
 </details>
 
-到这里，我们从模仿学习的理论基础、奖励函数设计、训练稳定性控制，到 RLAIF 和数据飞轮，完整走遍了 RLHF 的工程全景。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——[Agentic RL](../chapter12_agentic_rl/intro)。
+到这里，我们从模仿学习的理论基础、奖励函数设计、训练稳定性控制，到 RLAIF 和数据飞轮，完整走遍了 RLHF 的工程全景。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——[Agentic RL](../chapter10_agentic_rl/intro)。

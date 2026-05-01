@@ -357,11 +357,11 @@ def self_evolution_loop(model, prompts, external_rm, num_iterations=3):
 自我进化循环不是万能的——它更适合**已经具备基本能力**的模型。如果模型的基础能力太差（比如经常生成胡言乱语），它的自评能力也不可靠，自我进化循环就无从谈起。在实践中，通常先用 RLHF 或 SFT 将模型训练到一个合理的基线水平，然后再启动自我进化循环来做"锦上添花"。
 
 <details>
-<summary>思考题：Self-Rewarding 的自我进化循环，和[第 8 章的 GRPO + RLVR](../chapter08_grpo_rlvr/intro) 有什么本质区别？</summary>
+<summary>思考题：Self-Rewarding 的自我进化循环，和[第 8 章的 GRPO + RLVR](../chapter09_grpo_rlvr/intro) 有什么本质区别？</summary>
 
 两者的核心区别在于**奖励信号的来源**：
 
-- **[GRPO](../chapter08_grpo_rlvr/grpo-practice-and-mechanism) + [RLVR](../chapter08_grpo_rlvr/deepseek-dapo-rlvr)** 的奖励来自**外部验证器**（数学答案是否正确、代码是否通过测试）。这个信号是客观的、可验证的，不依赖模型自己的判断。它的天花板取决于验证器的设计质量。
+- **[GRPO](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) + [RLVR](../chapter09_grpo_rlvr/deepseek-dapo-rlvr)** 的奖励来自**外部验证器**（数学答案是否正确、代码是否通过测试）。这个信号是客观的、可验证的，不依赖模型自己的判断。它的天花板取决于验证器的设计质量。
 
 - **Self-Rewarding** 的奖励来自**模型自身**。这个信号是主观的，模型既是"选手"又是"裁判"。它的上限取决于模型的"元认知"能力——能否准确评估自己输出的质量。
 
@@ -369,4 +369,4 @@ def self_evolution_loop(model, prompts, external_rm, num_iterations=3):
 
 </details>
 
-到这里，我们从理论基础到数据工程、从奖励函数到训练稳定性、从奖励黑客到 RLAIF，完整走遍了 RLHF 的工程全景。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——看看如何训练能在环境中连续行动、调用工具的智能体。让我们进入第 9 章——[Agentic RL](../chapter12_agentic_rl/intro)。
+到这里，我们从理论基础到数据工程、从奖励函数到训练稳定性、从奖励黑客到 RLAIF，完整走遍了 RLHF 的工程全景。下一章，我们将从单轮 RL 进入多轮交互的 Agentic RL——看看如何训练能在环境中连续行动、调用工具的智能体。让我们进入第 9 章——[Agentic RL](../chapter10_agentic_rl/intro)。

@@ -471,22 +471,23 @@ const zhSidebar = {
           collapsed: false,
           items: [
             { text: '3.1 两台老虎机：RL 的最小问题', link: '/chapter03_mdp/bandit' },
-            { text: '3.2 MDP：RL 的形式化框架', link: '/chapter03_mdp/mdp' },
+            { text: '3.2 探索策略进阶', link: '/chapter03_mdp/exploration' },
+            { text: '3.3 MDP：RL 的形式化框架', link: '/chapter03_mdp/mdp' },
             {
-              text: '3.3 V(s) 与贝尔曼方程',
+              text: '3.4 V(s) 与贝尔曼方程',
               link: '/chapter03_mdp/value-bellman'
             },
             {
-              text: '3.4 DP、MC、TD',
+              text: '3.5 DP、MC、TD',
               link: '/chapter03_mdp/dp-mc-td'
             },
-            { text: '3.5 Q(s, a)', link: '/chapter03_mdp/value-q' },
+            { text: '3.6 Q(s, a)', link: '/chapter03_mdp/value-q' },
             {
-              text: '3.6 策略目标 J(theta)',
+              text: '3.7 策略目标 J(theta)',
               link: '/chapter03_mdp/policy-objective'
             },
-            { text: '3.7 Reward Shaping', link: '/chapter03_mdp/reward-design' },
-            { text: '3.8 本章总结', link: '/chapter03_mdp/panorama' }
+            { text: '3.8 Reward Shaping', link: '/chapter03_mdp/reward-design' },
+            { text: '3.9 本章总结', link: '/chapter03_mdp/panorama' }
           ]
         },
         {
@@ -507,9 +508,13 @@ const zhSidebar = {
               text: '4.4 训练过程分析',
               link: '/chapter04_dqn/training-analysis'
             },
-            { text: '4.5 Double、Dueling 与 Rainbow', link: '/chapter04_dqn/dqn-family' },
             {
-              text: '4.6 项目：DQN 实战与视觉游戏',
+              text: '4.5 Mountain Car 与稀疏奖励',
+              link: '/chapter04_dqn/mountain-car'
+            },
+            { text: '4.6 Double、Dueling 与 Rainbow', link: '/chapter04_dqn/dqn-family' },
+            {
+              text: '4.7 项目：DQN 实战与视觉游戏',
               link: '/chapter04_dqn/visual-game-projects'
             }
           ]
@@ -824,6 +829,10 @@ const zhSidebar = {
         {
           text: 'D. 强化学习经典项目',
           link: '/appendix_game_projects/intro'
+        },
+        {
+          text: 'F. 强化学习学习资源推荐',
+          link: '/appendix_resources/intro'
         },
         {
           text: 'E. 强化学习的数学基础',

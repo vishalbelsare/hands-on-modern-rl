@@ -555,10 +555,16 @@
 .vp-doc .mermaid,
 .vp-doc pre.mermaid,
 .vp-doc div[class*='mermaid'],
+.vp-doc .mermaid-static,
 .mermaid-wrapper {
   display: flex;
   justify-content: center;
   margin: 2.5rem 0;
+}
+
+.vp-doc .mermaid-static img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* ---- Dark mode: Feature cards ---- */

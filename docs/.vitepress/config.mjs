@@ -461,6 +461,53 @@ function optimizedImagesPlugin(md) {
   }
 }
 
+function mermaidBlockIndex(tokens, idx) {
+  let index = 0
+
+  for (let i = 0; i <= idx; i += 1) {
+    const info = tokens[i].info?.trim()
+    if (info === 'mermaid' || info === 'mmd') {
+      index += 1
+    }
+  }
+
+  return index
+}
+
+function buildMermaidManifestMap() {
+  return new Map(
+    (assetManifest.mermaid || [])
+      .filter((block) => block.status === 'optimized' && block.optimized)
+      .map((block) => [`${block.page}:${block.index}`, block])
+  )
+}
+
+const mermaidManifest = buildMermaidManifestMap()
+
+function optimizedMermaidPlugin(md) {
+  const fenceRule = md.renderer.rules.fence
+
+  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+    const token = tokens[idx]
+    const info = token.info.trim()
+
+    if (info === 'mermaid' || info === 'mmd') {
+      const index = mermaidBlockIndex(tokens, idx)
+      const block = mermaidManifest.get(`${env.relativePath}:${index}`)
+
+      if (block?.optimized) {
+        const src = md.utils.escapeHtml(block.optimized)
+        const source = md.utils.escapeHtml(block.source)
+        const page = md.utils.escapeHtml(block.page)
+
+        return `<p class="mermaid-static"><img src="${src}" alt="Mermaid diagram" data-source-src="/src/${source}" data-source-page="/src/${page}" data-source-index="${block.index}" loading="lazy" decoding="async"></p>\n`
+      }
+    }
+
+    return fenceRule(tokens, idx, options, env, self)
+  }
+}
+
 const zhNav = [
   { text: '前言与导论', link: '/preface/intro' },
   { text: '基础导论', link: '/chapter01_cartpole/intro' },
@@ -1028,6 +1075,7 @@ export default defineConfig({
         md.use(markdownItFootnote)
         katexMarkdown(md)
         MermaidMarkdown(md)
+        optimizedMermaidPlugin(md)
         // Custom "output" container for displaying code running results
         md.use(markdownItContainer, 'output', {
           render: function (tokens, idx) {

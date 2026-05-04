@@ -488,7 +488,7 @@ npm run verify        # 运行格式检查、Lint、构建和产物验证
 
 ## WeChat Group
 
-欢迎扫码加入我们的 WeChat Group：
+有任何建议 / 反馈，欢迎扫码加入 WeChat Group 交流：
 
 <img src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png" alt="WeChat Group" width="300" />
 

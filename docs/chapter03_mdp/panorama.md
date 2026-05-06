@@ -29,7 +29,7 @@ $$
 $$
 
 $$
-\mathbb{E}[R_T] = \sum_{t=1}^{T} \mathbb{E}[R_{a_t}]
+\mathbb{E}[R_T] = \mathbb{E}[R_{a_1}] + \mathbb{E}[R_{a_2}] + \cdots + \mathbb{E}[R_{a_T}] = \sum_{t=1}^{T} \mathbb{E}[R_{a_t}]
 \quad \text{（T 轮期望总回报；作用：衡量一整套策略的累计表现；详见 3.1）}
 $$
 

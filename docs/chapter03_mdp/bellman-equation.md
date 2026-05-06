@@ -42,11 +42,17 @@ $$V^\pi(s) = \mathbb{E}_\pi \left[ \sum_{k=0}^{\infty} \gamma^k r_{t+k} \;\middl
 
 假设你在一个 1×5 的走廊里寻宝：
 
-```
-┌───┬───┬───┬───┬───┐
-│ S │   │   │   │ 🏆 │
-└───┴───┴───┴───┴───┘
-```
+<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0;">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#c084fc,#7c3aed);color:#fff;font-size:18px;font-weight:700;">S</div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:16px;font-weight:600;"></div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:16px;font-weight:600;"></div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:16px;font-weight:600;"></div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;font-size:18px;font-weight:700;">🏆</div>
+</div>
 
 规则：
 
@@ -60,12 +66,23 @@ $$V^\pi(s) = \mathbb{E}_\pi \left[ \sum_{k=0}^{\infty} \gamma^k r_{t+k} \;\middl
 
 想好了吗？
 
-```
-┌────┬────┬────┬────┬───┐
-│ -4 │ -3 │ -2 │ -1 │ 0 │
-└────┴────┴────┴────┴───┘
-  S                      🏆
-```
+<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#c084fc,#7c3aed);color:#fff;font-size:16px;font-weight:600;">-4</div>
+    <span style="font-size:12px;color:#7c3aed;font-weight:600;">S</span>
+  </div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:16px;font-weight:600;">-3</div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:16px;font-weight:600;">-2</div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:16px;font-weight:600;">-1</div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;font-size:16px;font-weight:600;">0</div>
+    <span style="font-size:12px;color:#f59e0b;font-weight:600;">🏆</span>
+  </div>
+</div>
 
 你是怎么填的？大概率是这样想的：
 

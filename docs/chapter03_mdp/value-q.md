@@ -54,23 +54,61 @@ $$
 
 考虑上一节那个只有一条直路的 1×5 走廊寻宝游戏：
 
-```
-┌───┬───┬───┬───┬───┐
-│ S │   │   │   │ 🏆 │
-└───┴───┴───┴───┴───┘
-  -4  -3  -2  -1   0
-```
+<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:16px 0;">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-size:22px;font-weight:700;">S</div>
+    <span style="font-size:12px;color:#6366f1;font-weight:600;">-4</span>
+  </div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;"></div>
+    <span style="font-size:12px;color:#94a3b8;font-weight:600;">-3</span>
+  </div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;"></div>
+    <span style="font-size:12px;color:#94a3b8;font-weight:600;">-2</span>
+  </div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;"></div>
+    <span style="font-size:12px;color:#94a3b8;font-weight:600;">-1</span>
+  </div>
+  <span style="color:#94a3b8;font-size:20px;">→</span>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:22px;font-weight:700;">🏆</div>
+    <span style="font-size:12px;color:#f59e0b;font-weight:600;">0</span>
+  </div>
+</div>
 
 在这个走廊里，每个格子你只能被迫做一个动作（往右走），所以知道 $V(s)$ 就足够了。但如果走廊有岔路呢？
 
-```
-          ┌───┬───┐
-          │   │ 🏆│  上方路线
-      ┌───┼───┘   │
-  ┌───┤ ? │       │
-  │ S │   │       │  下方路线
-  └───┴───┴───────┘
-```
+<div style="display:flex;align-items:center;justify-content:center;margin:20px 0;">
+  <!-- Start cell -->
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-size:22px;font-weight:700;">S</div>
+  <span style="color:#94a3b8;font-size:20px;margin:0 4px;">→</span>
+  <!-- Branch point -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#fef3c7;color:#d97706;font-size:20px;font-weight:700;">?</div>
+    <span style="font-size:11px;color:#d97706;font-weight:600;">岔路口</span>
+  </div>
+  <span style="color:#94a3b8;font-size:20px;margin:0 4px;">→</span>
+  <!-- Upper branch -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <span style="color:#3b82f6;font-size:12px;font-weight:600;white-space:nowrap;">↑ 上方路线</span>
+      <div style="display:flex;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#dbeafe;color:#1d4ed8;font-size:13px;"></div>
+      <span style="color:#94a3b8;font-size:20px;">→</span>
+      <div style="display:flex;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:22px;font-weight:700;">🏆</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <span style="color:#94a3b8;font-size:12px;font-weight:600;white-space:nowrap;">↓ 下方路线</span>
+      <div style="display:flex;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;"></div>
+      <span style="color:#94a3b8;font-size:20px;">→</span>
+      <div style="display:flex;align-items:center;justify-content:center;height:72px;width:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;"></div>
+    </div>
+  </div>
+</div>
 
 假设你现在站在 `?` 处。$V(?)$ 会告诉你：“这个岔路口整体值个 50 分”。
 但这就尴尬了，作为一个需要做决定的智能体，你无法回答那个最关键的问题：**我到底是该往上走，还是往下走？**
@@ -95,16 +133,17 @@ $$Q^\pi(s,a) = \mathbb{E}_\pi \left[ G_t \mid s_t = s, a_t = a \right]$$
 
 为了把 $Q(s,a)$ 的直觉变得可触摸，我们构造一个更具体的 3×3 格子世界：
 
-```
-┌─────┬─────┬─────┐
-│  s0 │  s1 │  s2 │
-├─────┼─────┼─────┤
-│  s3 │  s4 │  s5 │
-├─────┼─────┼─────┤
-│  s6 │  s7 │  s8 │
-│  ⭐  │     │  🏆  │
-└─────┴─────┴─────┘
-```
+<div style="display:grid;grid-template-columns:repeat(3,72px);gap:4px;justify-content:center;margin:20px 0;">
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s0</div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s1</div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s2</div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s3</div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s4</div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s5</div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-size:14px;font-weight:700;line-height:1.3;">s6<br><span style="font-size:18px;">⭐</span></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;color:#94a3b8;font-size:13px;">s7</div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:72px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:14px;font-weight:700;line-height:1.3;">s8<br><span style="font-size:18px;">🏆</span></div>
+</div>
 
 规则很简单：
 

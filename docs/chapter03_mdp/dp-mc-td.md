@@ -696,9 +696,13 @@ $$
 
 举个 3 格走廊的例子：
 
-```text
-S -> M -> G
-```
+<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin:16px 0;">
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-weight:700;padding:0 12px;">S</div>
+  <span style="font-size:20px;color:#94a3b8;">→</span>
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:#dbeafe;color:#1d4ed8;font-weight:700;padding:0 12px;">M</div>
+  <span style="font-size:20px;color:#94a3b8;">→</span>
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-weight:700;padding:0 12px;">G</div>
+</div>
 
 每走一步奖励 -1，终点 $G$ 的价值是 0。刚开始我们什么都不知道，先设：
 
@@ -817,9 +821,13 @@ TD Target 只用了一个真实奖励 $r$，后面的未来先用当前估计 $V
 
 还是 3 格走廊：
 
-```text
-S -> M -> G
-```
+<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin:16px 0;">
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-weight:700;padding:0 12px;">S</div>
+  <span style="font-size:20px;color:#94a3b8;">→</span>
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:#dbeafe;color:#1d4ed8;font-weight:700;padding:0 12px;">M</div>
+  <span style="font-size:20px;color:#94a3b8;">→</span>
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-weight:700;padding:0 12px;">G</div>
+</div>
 
 真实价值是：
 
@@ -922,9 +930,13 @@ $$\theta \leftarrow \theta + \alpha \cdot \delta \cdot \nabla_\theta V_\theta(s)
 
 还是看 3 格走廊：
 
-```text
-S -> M -> G
-```
+<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin:16px 0;">
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-weight:700;padding:0 12px;">S</div>
+  <span style="font-size:20px;color:#94a3b8;">→</span>
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:#dbeafe;color:#1d4ed8;font-weight:700;padding:0 12px;">M</div>
+  <span style="font-size:20px;color:#94a3b8;">→</span>
+  <div style="display:flex;align-items:center;justify-content:center;min-width:48px;height:40px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-weight:700;padding:0 12px;">G</div>
+</div>
 
 从 $S$ 出发，完整回报是：
 

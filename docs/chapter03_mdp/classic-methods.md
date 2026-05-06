@@ -105,17 +105,24 @@ $$Q(s, a) \leftarrow Q(s, a) + \alpha \left[ r + \gamma Q(s', a') - Q(s, a) \rig
 
 ### 环境设定
 
-```
-┌───┬───┬───┬───┐
-│ S │   │   │   │
-├───┼───┼───┼───┤
-│   │   │   │   │
-├───┼───┼───┼───┤
-│   │   │   │   │
-├───┼───┼───┼───┤
-│   │   │   │ G │
-└───┴───┴───┴───┘
-```
+<div style="display:inline-grid;grid-template-columns:repeat(4,72px);gap:6px;padding:12px;background:#fff;border-radius:12px;border:1px solid #e2e8f0;">
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;font-size:22px;font-weight:700;">S</div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:#f1f5f9;"></div>
+  <div style="display:flex;align-items:center;justify-content:center;height:72px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#fff;font-size:22px;font-weight:700;">G</div>
+</div>
 
 4×4 网格，左上角起点 $S$，右下角终点 $G$。每步奖励 -1（鼓励尽快到达终点），到达终点奖励 0。动作：上/下/左/右。初始 Q-table：全部为 0。
 

@@ -52,7 +52,11 @@ $$
 
 $r + \gamma \max_{a'} Q(s', a')$ 这个更新规则面对连续状态**仍然是对的**，没有任何修改的必要。真正卡住的是**实现层面**：只要状态多到无法枚举，”每个状态-动作对单独存一个数”就从理所当然变成了**根本做不到**。
 
-出路在第 3 章已经点明：**函数逼近**。既然不能为每个状态单独存一个数，那就学一个函数 $f(s; \theta)$，输入状态，输出价值的近似值。把同样的思想搬到动作价值上，就是用神经网络近似整张 Q 表——这就是深度 Q 网络要做的事：**保留 Q-Learning 的更新思想，但把”64 行的表格”换成”几万个参数的神经网络”。**
+出路是**函数逼近**（function approximation）。核心思想很简单：既然不能为每个状态单独存一个数，那就学一个带参数的函数 $f(s; \theta)$，输入状态 $s$，输出价值估计。参数 $\theta$ 的数量是固定的——几百、几千或几百万——与状态空间多大无关。更重要的是，这个函数有**泛化能力**：训练时没见过的状态，只要和见过的状态相似，也能得到合理的估计值。
+
+用函数逼近来做强化学习并不是新想法。Sutton 在 1988 年的 TD($\lambda$) 论文中已经讨论了用神经网络作为函数逼近器 [^sutton1988]。1990 年代，Lin [^lin1993] 和 Rummery & Niranjan [^rummery1994] 先后尝试把神经网络和 Q-Learning 结合，但受限于当时的计算能力和训练稳定性，这些早期尝试只能在极小的问题上工作，始终未能扩展到 Atari 这类高维输入任务。真正的突破要等到 2013 年——DeepMind 的 Mnih 等人提出了**深度 Q 网络**（Deep Q-Network, DQN），用两个关键技巧让神经网络 Q-Learning 在 Atari 上第一次跑通了 [^mnih2013]。2015 年，这篇论文正式发表在 Nature 上，标志着深度强化学习时代的开端 [^mnih2015]。
+
+把函数逼近的思想搬到 Q-Learning 上，就是用神经网络近似整张 Q 表，写成 $Q(s, a; \theta) \approx Q^*(s, a)$。这件事的实质是：**保留 Q-Learning 的更新思想，但把”64 行的表格”换成”几万个参数的神经网络”。**
 
 ## Q-Learning 的回顾
 
@@ -160,4 +164,12 @@ DeepMind 的深度 Q 网络在 2013 年首次公布（arXiv 论文），2015 年
 
 ## 参考文献
 
-[^1]: Mnih, V., et al. (2015). Human-level control through deep reinforcement learning. _Nature_, 518(7540), 529-533.
+[^sutton1988]: Sutton, R. S. (1988). Learning to predict by the methods of temporal differences. _Machine Learning_, 3(1), 9-44.
+
+[^lin1993]: Lin, L.-J. (1993). _Reinforcement learning for robots using neural networks_. PhD thesis, Carnegie Mellon University.
+
+[^rummery1994]: Rummery, G. A., & Niranjan, M. (1994). _On-line Q-learning using connectionist systems_. Technical Report CUED/F-INFENG/TR 166, Cambridge University.
+
+[^mnih2013]: Mnih, V., et al. (2013). Playing Atari with deep reinforcement learning. _arXiv preprint_, arXiv:1312.5602.
+
+[^mnih2015]: Mnih, V., et al. (2015). Human-level control through deep reinforcement learning. _Nature_, 518(7540), 529-533.

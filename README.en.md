@@ -13,17 +13,18 @@
   </p>
 
   <p>
-    <a href="README.md">Chinese</a> |
-    <a href="README.en.md">English</a>
+    <a href="README.md">English</a> ·
+    <a href="README.zh.md">中文</a>
   </p>
 
   <p>
-    <a href="#course-preview">Course Preview</a> |
-    <a href="#overview">Overview</a> |
-    <a href="#news">News</a> |
-    <a href="#course-outline">Course Outline</a> |
-    <a href="#experiment-code">Experiment Code</a> |
-    <a href="#quick-start">Quick Start</a> |
+    <a href="#course-preview">Course Preview</a> ·
+    <a href="#overview">Overview</a> ·
+    <a href="#news">News</a> ·
+    <a href="#contents">Contents</a> ·
+    <a href="#course-outline">Course Outline</a> ·
+    <a href="#experiment-code">Experiment Code</a> ·
+    <a href="#quick-start">Quick Start</a> ·
     <a href="#contributing">Contributing</a>
   </p>
 </div>
@@ -88,6 +89,9 @@
 >
 > The course is evolving quickly. We recommend focusing on chapters that are not marked as under construction; chapters still in progress may contain mistakes, and corrections or suggestions are welcome.
 
+> [!WARNING]
+> **The LLM RL and Agentic RL sections have not yet been fully reviewed or corrected. Please read them carefully.**
+
 > **Help Wanted**
 >
 > Because compute resources are limited, we are seeking GPU support. If you can help with GPU access, please contact physicoada@gmail.com.
@@ -95,6 +99,7 @@
 ## Contents
 
 - [Course Preview](#course-preview)
+- [Contents](#contents)
 - [Overview](#overview)
   - [Design Principles](#design-principles)
   - [Audience](#audience)
@@ -119,6 +124,9 @@
 - [Repository Structure](#repository-structure)
 - [Development Commands](#development-commands)
 - [Contributing](#contributing)
+- [Star History](#star-history)
+- [Other Courses](#other-courses)
+- [WeChat Group](#wechat-group)
 - [Citation](#citation)
 - [License](#license)
 
@@ -231,23 +239,22 @@ The course is divided into four parts plus appendices. The online site includes 
 | Chapter | Topic                                                                                          | Core Question                                                                                                |
 | :------ | :--------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- |
 | 03      | [MDPs and Value Functions](docs/chapter03_mdp/intro.md)                                        | How do bandits, MDPs, value functions, Bellman equations, and TD error formalize sequential decision-making? |
-| 3.1     | [Two-Armed Bandit: The Smallest RL Problem](docs/chapter03_mdp/bandit.md)                      | How does the simplest trial-and-error problem show exploration and exploitation?                             |
-| 3.2     | [MDP: The Formal Framework for RL](docs/chapter03_mdp/mdp.md)                                  | How do states, actions, transitions, rewards, and discounting define a sequential decision model?            |
-| 3.3     | [V(s) and the Bellman Equation](docs/chapter03_mdp/value-bellman.md)                           | How can a value function recursively evaluate a situation?                                                   |
+| 3.1     | [Two-Armed Bandit Problem](docs/chapter03_mdp/bandit.md)                                       | How does the simplest trial-and-error problem show exploration and exploitation?                             |
+| 3.2     | [Markov Decision Processes](docs/chapter03_mdp/mdp.md)                                         | How do states, actions, transitions, rewards, and discounting define a sequential decision model?            |
+| 3.3     | [Value Functions and Bellman Equations](docs/chapter03_mdp/value-bellman.md)                   | How can a value function recursively evaluate a situation?                                                   |
 | 3.4     | [DP, MC, and TD](docs/chapter03_mdp/dp-mc-td.md)                                               | How do dynamic programming, Monte Carlo, and temporal-difference learning estimate value?                    |
-| 3.5     | [Q(s, a)](docs/chapter03_mdp/value-q.md)                                                       | How does action value turn "is this state good?" into "which action should I choose?"                        |
-| 3.6     | [Policy Objective J(theta)](docs/chapter03_mdp/policy-objective.md)                            | When directly optimizing a policy, what exactly does the objective maximize?                                 |
-| 3.7     | [Where Algorithm Data Comes From](docs/chapter03_mdp/algorithm-taxonomy.md)                    | How do on-policy, off-policy, and data sources affect algorithm design?                                      |
-| 3.8     | [Reward Shaping](docs/chapter03_mdp/reward-design.md)                                          | How can reward functions guide learning, and how can they be misused?                                        |
-| 3.9     | [Chapter Panorama](docs/chapter03_mdp/panorama.md)                                             | How do the MDP chapter concepts connect into an algorithm map?                                               |
-| 04      | [Q-Learning and DQN](docs/chapter04_dqn/intro.md)                                              | Why are replay buffers, target networks, CNN encoders, and DQN variants important?                           |
-| 4.1     | [Hands-On: Q-Learning and GridWorld](docs/chapter04_dqn/q-learning.md)                         | How can we update values by hand from tabular Q-learning?                                                    |
-| 4.2     | [From Tabular Q to DQN](docs/chapter04_dqn/from-q-to-dqn.md)                                   | How do neural networks replace tables for approximating Q functions?                                         |
-| 4.3     | [Replay, Target Networks, and CNNs](docs/chapter04_dqn/dqn-components.md)                      | What stability problems do replay, target networks, and encoders solve?                                      |
-| 4.4     | [Training Analysis](docs/chapter04_dqn/training-analysis.md)                                   | What do DQN training curves and Q-value changes reveal?                                                      |
-| 4.5     | [Mountain Car and Sparse Rewards](docs/chapter04_dqn/mountain-car.md)                          | Why do exploration and initialization matter when rewards are rare?                                          |
-| 4.6     | [Double, Dueling, and Rainbow](docs/chapter04_dqn/dqn-family.md)                               | How did the DQN family fix overestimation, representation, and sampling issues?                              |
-| 4.7     | [Project: DQN and Visual Games](docs/chapter04_dqn/visual-game-projects.md)                    | What engineering changes are needed when moving from low-dimensional control to visual games?                |
+| 3.5     | [From Q to Q-Learning](docs/chapter03_mdp/value-q.md)                                          | How does action value turn "is this state good?" into "which action should I choose?"                        |
+| 3.6     | [From Value to Policy](docs/chapter03_mdp/policy-objective.md)                                 | When directly optimizing a policy, what exactly does the objective maximize?                                 |
+| 3.7     | [Where Data Comes From](docs/chapter03_mdp/algorithm-taxonomy.md)                              | How do on-policy, off-policy, and data sources affect algorithm design?                                      |
+| 3.8     | [Reward Function Design](docs/chapter03_mdp/reward-design.md)                                  | How can reward functions guide learning, and how can they be misused?                                        |
+| 3.9     | [Chapter Summary](docs/chapter03_mdp/panorama.md)                                              | How do the MDP chapter concepts connect into an algorithm map?                                               |
+| 04      | [Deep Q-Networks](docs/chapter04_dqn/intro.md)                                                 | Why are replay buffers, target networks, CNN encoders, and DQN variants important?                           |
+| 4.1     | [Why Deep Q-Networks Are Needed](docs/chapter04_dqn/from-q-to-dqn.md)                          | How do neural networks replace tables for approximating Q functions?                                         |
+| 4.2     | [The Three Components of DQN](docs/chapter04_dqn/dqn-components.md)                            | What stability problems do replay, target networks, and encoders solve?                                      |
+| 4.3     | [LunarLander Training Analysis](docs/chapter04_dqn/training-analysis.md)                       | What do DQN training curves and Q-value changes reveal?                                                      |
+| 4.4     | [LunarLander Hands-On](docs/chapter04_dqn/lunar-lander.md)                                     | How does DQN land on a fuller control task, and how should it be tuned?                                      |
+| 4.5     | [The Deep Q-Network Family](docs/chapter04_dqn/dqn-family.md)                                  | How did the DQN family fix overestimation, representation, and sampling issues?                              |
+| 4.6     | [Visual Game Projects](docs/chapter04_dqn/visual-game-projects.md)                             | What engineering changes are needed when moving from low-dimensional control to visual games?                |
 | 05      | [Policy Gradient and REINFORCE](docs/chapter05_policy_gradient/intro.md)                       | How can policies be optimized directly, and why do baselines reduce gradient variance?                       |
 | 5.1     | [Hands-On: Dice Gambling Bandit](docs/chapter05_policy_gradient/dice-game.md)                  | How does a minimal experiment reveal policy-gradient sampling updates?                                       |
 | 5.2     | [Policy Gradient and REINFORCE](docs/chapter05_policy_gradient/policy-gradient.md)             | How does REINFORCE increase the probability of high-return actions?                                          |
@@ -266,50 +273,51 @@ The course is divided into four parts plus appendices. The online site includes 
 
 ### Part 3: LLM-era RL
 
-| Chapter | Topic                                                                                                           | Core Question                                                                                                    |
-| :------ | :-------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
-| 08      | [The Full RLHF Pipeline](docs/chapter08_rlhf/intro.md)                                                          | How do instruction data, reward models, PPO training, evaluation, and scaling fit together?                      |
-| 8.1     | [Why a Base Model Is Not Yet an Assistant](docs/chapter08_rlhf/base-model-to-assistant.md)                      | What is the gap between a pretrained model and an assistant model?                                               |
-| 8.2     | [The Standard RLHF Pipeline](docs/chapter08_rlhf/standard-rlhf-pipeline.md)                                     | How do SFT, RM, and RL connect as three training stages?                                                         |
-| 8.3     | [SFT: Teaching the Model to Follow Instructions](docs/chapter08_rlhf/imitation-learning-pipeline.md)            | How does supervised fine-tuning build basic instruction-following ability?                                       |
-| 8.4     | [Reward Model: Teaching a Judge](docs/chapter08_rlhf/reward-function-design.md)                                 | How does a reward model turn human preferences into an optimizable signal?                                       |
-| 8.5     | [PPO-RLHF: Practicing Against Rewards](docs/chapter08_rlhf/ppo-rlhf-loop.md)                                    | How does PPO optimize a language model under a KL constraint?                                                    |
-| 8.6     | [Evaluation: Did RLHF Actually Improve the Model?](docs/chapter08_rlhf/evaluation.md)                           | How can we tell whether alignment training improved the model?                                                   |
-| 8.7     | [Scaling from Small Models to Large Models](docs/chapter08_rlhf/scaling-to-large-models.md)                     | What engineering problems appear when the same RLHF pipeline is scaled up?                                       |
-| 8.8     | [Extended Practice: Reward Hacking and Data Flywheels](docs/chapter08_rlhf/extended-practice.md)                | How can reward gaming be detected, and how can data iteration keep improving the model?                          |
-| 09      | [Post-Training Alignment](docs/chapter09_alignment/intro.md)                                                    | How do DPO, GRPO, DeepSeek-R1, and verifiable rewards train reasoning behavior?                                  |
-| 9.1     | [DPO, IPO, and KTO](docs/chapter09_alignment/dpo-theory-and-family.md)                                          | How does the preference-optimization family bypass explicit reward models?                                       |
-| 9.2     | [Hands-On: DPO Alignment Experiment](docs/chapter09_alignment/dpo-hands-on.md)                                  | How can a DPO training experiment be run and inspected end to end?                                               |
-| 9.3     | [GRPO Practice and Mechanism](docs/chapter09_grpo_rlvr/grpo-practice-and-mechanism.md)                          | How does GRPO replace a critic with within-group relative advantage?                                             |
-| 9.4     | [DeepSeek-R1 and DAPO](docs/chapter09_grpo_rlvr/deepseek-dapo.md)                                               | What new RL lessons appear in reasoning-model training?                                                          |
-| 9.5     | [RLVR: Verifiable Rewards](docs/chapter09_grpo_rlvr/rlvr.md)                                                    | How can rule-checkable tasks provide stable rewards for RL?                                                      |
-| 9.6     | [On-Policy Distillation](docs/chapter09_grpo_rlvr/on-policy-distillation.md)                                    | How can online RL behavior be distilled back into a more usable model?                                           |
-| 10      | [Agentic RL](docs/chapter10_agentic_rl/intro.md)                                                                | How do multi-turn interaction, tool use, trajectory synthesis, and agent systems engineering change RL problems? |
-| 10.1    | [Multi-Turn Interaction and Credit Assignment](docs/chapter10_agentic_rl/multi-turn-rl.md)                      | In multi-step tasks, how can final outcomes be assigned back to intermediate actions?                            |
-| 10.2    | [Tool Use, Trajectory Synthesis, and Agentic Engineering](docs/chapter10_agentic_rl/tool-use-and-trajectory.md) | How do tool execution results enter RL trajectories and training data?                                           |
-| 10.3    | [Industrial Practice, Evaluation, and Bad Cases](docs/chapter10_agentic_rl/industrial-evaluation.md)            | What failure modes appear most often in engineering evaluation for Agentic RL?                                   |
-| 10.4    | [Project 1: Multi-Tool Code Agent](docs/chapter10_agentic_rl/multi-tool-code-agent.md)                          | How can a model be trained to switch among search, coding, and testing?                                          |
-| 10.5    | [Project 2: Deep Research Agent](docs/chapter10_agentic_rl/deep-research-agent.md)                              | How do research agents organize search, citations, and answer-quality rewards?                                   |
-| 10.6    | [Extended Readings](docs/chapter10_agentic_rl/extended-readings.md)                                             | What should learners read next to go deeper into Agentic RL?                                                     |
-| Summary | [Part 3 Summary](docs/summaries/part3-summary.md)                                                               | What makes RL for LLMs different from RL in classic environments?                                                |
+| Chapter | Topic                                                                                | Core Question                                                                                                    |
+| :------ | :----------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------- |
+| 08      | [The Full RLHF Pipeline](docs/chapter08_rlhf/intro.md)                               | How do instruction data, reward models, PPO training, evaluation, and scaling fit together?                      |
+| 8.1     | [From Model to Assistant](docs/chapter08_rlhf/base-model-to-assistant.md)            | What is the gap between a pretrained model and an assistant model?                                               |
+| 8.2     | [The RLHF Pipeline](docs/chapter08_rlhf/standard-rlhf-pipeline.md)                   | How do SFT, RM, and RL connect as three training stages?                                                         |
+| 8.3     | [Instruction Fine-Tuning](docs/chapter08_rlhf/imitation-learning-pipeline.md)        | How does supervised fine-tuning build basic instruction-following ability?                                       |
+| 8.4     | [Reward Models](docs/chapter08_rlhf/reward-function-design.md)                       | How does a reward model turn human preferences into an optimizable signal?                                       |
+| 8.5     | [PPO Fine-Tuning](docs/chapter08_rlhf/ppo-rlhf-loop.md)                              | How does PPO optimize a language model under a KL constraint?                                                    |
+| 8.6     | [Evaluating Improvement](docs/chapter08_rlhf/evaluation.md)                          | How can we tell whether alignment training improved the model?                                                   |
+| 8.7     | [Scaling to Large Models](docs/chapter08_rlhf/scaling-to-large-models.md)            | What engineering problems appear when the same RLHF pipeline is scaled up?                                       |
+| 8.8     | [Reward Hacking](docs/chapter08_rlhf/extended-practice.md)                           | How can reward gaming be detected, and how can data iteration keep improving the model?                          |
+| 09      | [Post-Training Alignment](docs/chapter09_alignment/intro.md)                         | How do DPO, GRPO, DeepSeek-R1, and verifiable rewards train reasoning behavior?                                  |
+| 9.1     | [Preference Optimization Methods](docs/chapter09_alignment/dpo-theory-and-family.md) | How does the preference-optimization family bypass explicit reward models?                                       |
+| 9.2     | [DPO Experiment](docs/chapter09_alignment/dpo-hands-on.md)                           | How can a DPO training experiment be run and inspected end to end?                                               |
+| 9.3     | [GRPO](docs/chapter09_grpo_rlvr/grpo-practice-and-mechanism.md)                      | How does GRPO replace a critic with within-group relative advantage?                                             |
+| 9.4     | [R1 and DAPO](docs/chapter09_grpo_rlvr/deepseek-dapo.md)                             | What new RL lessons appear in reasoning-model training?                                                          |
+| 9.5     | [Verifiable Rewards](docs/chapter09_grpo_rlvr/rlvr.md)                               | How can rule-checkable tasks provide stable rewards for RL?                                                      |
+| 9.6     | [Policy Distillation](docs/chapter09_grpo_rlvr/on-policy-distillation.md)            | How can online RL behavior be distilled back into a more usable model?                                           |
+| 9.7     | [Post-Training Practice](docs/chapter09_alignment/industrial-post-training.md)       | How does LLM post-training land in data, rewards, evaluation, and engineering loops?                             |
+| 10      | [Agentic RL](docs/chapter10_agentic_rl/intro.md)                                     | How do multi-turn interaction, tool use, trajectory synthesis, and agent systems engineering change RL problems? |
+| 10.1    | [Multi-Turn Interaction](docs/chapter10_agentic_rl/multi-turn-rl.md)                 | In multi-step tasks, how can final outcomes be assigned back to intermediate actions?                            |
+| 10.2    | [Tool Use](docs/chapter10_agentic_rl/tool-use-and-trajectory.md)                     | How do tool execution results enter RL trajectories and training data?                                           |
+| 10.3    | [Evaluation and Cases](docs/chapter10_agentic_rl/industrial-evaluation.md)           | What failure modes appear most often in engineering evaluation for Agentic RL?                                   |
+| 10.4    | [Code Agent](docs/chapter10_agentic_rl/multi-tool-code-agent.md)                     | How can a model be trained to switch among search, coding, and testing?                                          |
+| 10.5    | [Deep Research](docs/chapter10_agentic_rl/deep-research-agent.md)                    | How do research agents organize search, citations, and answer-quality rewards?                                   |
+| 10.6    | [Extended Readings](docs/chapter10_agentic_rl/extended-readings.md)                  | What should learners read next to go deeper into Agentic RL?                                                     |
+| Summary | [Part 3 Summary](docs/summaries/part3-summary.md)                                    | What makes RL for LLMs different from RL in classic environments?                                                |
 
 ### Part 4: Frontier and Advanced Systems
 
-| Chapter | Topic                                                                                        | Core Question                                                                                     |
-| :------ | :------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ |
-| 11      | [VLM Reinforcement Learning](docs/chapter11_vlm_rl/intro.md)                                 | How do visual rewards, multimodal frameworks, and visual generation RL change the training loop?  |
-| 11.1    | [Hands-On: GRPO Training for VLMs](docs/chapter11_vlm_rl/vlm-grpo-hands-on.md)               | How can GRPO training be extended to visual question answering tasks?                             |
-| 11.2    | [Visual Rewards and Hallucination](docs/chapter11_vlm_rl/vlm-challenges.md)                  | What new problems do multimodal rewards and visual hallucinations introduce?                      |
-| 11.3    | [Open-R1, R1-V, and VLM-R1](docs/chapter11_vlm_rl/vlm-frameworks.md)                         | How do frontier VLM-RL frameworks organize data, rewards, and training?                           |
-| 11.4    | [Visual Generation RL](docs/chapter11_vlm_rl/visual-generation-rl.md)                        | How can image generation models be optimized with preferences and rewards?                        |
-| 12      | [Future Trends](docs/chapter12_future_trends/intro.md)                                       | Where are embodied intelligence, model-based RL, self-play, multi-agent RL, and offline RL going? |
-| 12.1    | [Embodied Intelligence](docs/chapter12_future_trends/embodied-intelligence/index.md)         | How does RL enter robotics and the physical world?                                                |
-| 12.2    | [Model-Based RL](docs/chapter12_future_trends/embodied-intelligence/model-based-rl/index.md) | How can world models reduce the cost of real environment interaction?                             |
-| 12.3    | [Self-Play and Self-Evolution](docs/chapter12_future_trends/self-play-outlook/index.md)      | How can self-play drive continuous capability improvement?                                        |
-| 12.4    | [LLM Multi-Agent RL](docs/chapter12_future_trends/llm-multi-agent-rl/index.md)               | How can multiple language agents collaborate, compete, and learn together?                        |
-| 12.5    | [Offline Reinforcement Learning](docs/chapter12_future_trends/offline-rl/index.md)           | How can a policy be learned from fixed data when online trial and error is unavailable?           |
-| 12.6    | [RL Scaling Outlook](docs/chapter12_future_trends/rl-scaling-outlook.md)                     | Where might large-scale RL training go next?                                                      |
-| Summary | [Part 4 Summary](docs/summaries/part4-summary.md)                                            | What directions should learners follow after finishing the core course?                           |
+| Chapter | Topic                                                                                                            | Core Question                                                                                     |
+| :------ | :--------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ |
+| 11      | [VLM Reinforcement Learning](docs/chapter11_vlm_rl/intro.md)                                                     | How do visual rewards, multimodal frameworks, and visual generation RL change the training loop?  |
+| 11.1    | [Training VLMs](docs/chapter11_vlm_rl/vlm-grpo-hands-on.md)                                                      | How can GRPO training be extended to visual question answering tasks?                             |
+| 11.2    | [Visual Rewards](docs/chapter11_vlm_rl/vlm-challenges.md)                                                        | What new problems do multimodal rewards and visual hallucinations introduce?                      |
+| 11.3    | [VLM Reasoning Frameworks](docs/chapter11_vlm_rl/vlm-frameworks.md)                                              | How do frontier VLM-RL frameworks organize data, rewards, and training?                           |
+| 11.4    | [Visual Generation](docs/chapter11_vlm_rl/visual-generation-rl.md)                                               | How can image generation models be optimized with preferences and rewards?                        |
+| 12      | [Future Trends](docs/chapter12_future_trends/intro.md)                                                           | Where are embodied intelligence, model-based RL, self-play, multi-agent RL, and offline RL going? |
+| 12.1    | [Embodied Intelligence](docs/chapter12_future_trends/embodied-intelligence/index.md)                             | How does RL enter robotics and the physical world?                                                |
+| 12.2    | [Model-Based Reinforcement Learning](docs/chapter12_future_trends/embodied-intelligence/model-based-rl/index.md) | How can world models reduce the cost of real environment interaction?                             |
+| 12.3    | [Self-Play](docs/chapter12_future_trends/self-play-outlook/index.md)                                             | How can self-play drive continuous capability improvement?                                        |
+| 12.4    | [Multi-Agent Systems](docs/chapter12_future_trends/llm-multi-agent-rl/index.md)                                  | How can multiple language agents collaborate, compete, and learn together?                        |
+| 12.5    | [Offline Reinforcement Learning](docs/chapter12_future_trends/offline-rl/index.md)                               | How can a policy be learned from fixed data when online trial and error is unavailable?           |
+| 12.6    | [Scaling Trends](docs/chapter12_future_trends/rl-scaling-outlook.md)                                             | Where might large-scale RL training go next?                                                      |
+| Summary | [Part 4 Summary](docs/summaries/part4-summary.md)                                                                | What directions should learners follow after finishing the core course?                           |
 
 ### Appendices
 
@@ -322,12 +330,44 @@ The course is divided into four parts plus appendices. The online site includes 
 | B.3      | [RL and Agent Benchmarks](docs/appendix_industrial_training/evaluation-badcase.md)                  | How should evaluations and bad-case analysis be designed?                                             |
 | B.4      | [Training Metrics Glossary](docs/appendix_industrial_training/metrics-glossary.md)                  | What do common training metrics indicate?                                                             |
 | B.5      | [Industrial Practice Exercises](docs/appendix_industrial_training/industrial-exercises.md)          | How can engineering concepts be turned into practice tasks?                                           |
-| D        | [Learning Resources and Project Recommendations](docs/appendix_game_projects/intro.md)              | Curated resources and reproduction projects for expanding course examples.                            |
-| E        | [Math Foundations](docs/appendix_math/intro.md)                                                     | Linear algebra, probability and statistics, calculus and optimization, and information theory for RL. |
+| C        | [Handwritten Code Cheatsheet](docs/appendix_code_cheatsheet/intro.md)                               | Core code notes for SFT, PPO, DPO, GRPO, sampling, attention, and DAPO.                               |
+| C.1      | [SFT and KL](docs/appendix_code_cheatsheet/sft-kl.md)                                               | How do instruction tuning and KL constraints appear in code?                                          |
+| C.2      | [PPO and GAE](docs/appendix_code_cheatsheet/ppo-gae.md)                                             | How can the key PPO and GAE calculations be written by hand?                                          |
+| C.3      | [The DPO Family](docs/appendix_code_cheatsheet/dpo-family.md)                                       | How do DPO-family objectives map to minimal implementations?                                          |
+| C.4      | [GRPO and Reward Models](docs/appendix_code_cheatsheet/grpo-rlvr.md)                                | How do group advantages and reward signals enter the training loop?                                   |
+| C.5      | [Softmax and Cross-Entropy](docs/appendix_code_cheatsheet/softmax-ce.md)                            | What is the basic code behind classification and language-model losses?                               |
+| C.6      | [Sampling Methods](docs/appendix_code_cheatsheet/top-k-top-p.md)                                    | How are generation sampling methods such as top-k and top-p implemented?                              |
+| C.7      | [Attention Mechanisms](docs/appendix_code_cheatsheet/attention-mha.md)                              | What are the core tensor transformations in multi-head attention?                                     |
+| C.8      | [DAPO](docs/appendix_code_cheatsheet/dapo.md)                                                       | How can DAPO's key training tricks become code checkpoints?                                           |
+| D        | [Learning Resources and Reproduction Projects](docs/appendix_game_projects/intro.md)                | Curated resources and reproduction projects for expanding course examples.                            |
+| E        | [Math Foundations for Reinforcement Learning](docs/appendix_math/intro.md)                          | Linear algebra, probability and statistics, calculus and optimization, and information theory for RL. |
 | E.1      | [Math Objects and Linear Algebra](docs/appendix_math/linear-algebra.md)                             | How do vectors, matrices, and function approximation support RL representations?                      |
+| E.1.1    | [Basic Objects](docs/appendix_math/linear-algebra-basics.md)                                        | How do scalars, vectors, matrices, and tensors organize RL data?                                      |
+| E.1.2    | [Bellman Matrices](docs/appendix_math/linear-algebra-bellman.md)                                    | How can Bellman equations be written in linear-algebra form?                                          |
+| E.1.3    | [Function Approximation](docs/appendix_math/linear-algebra-function-approx.md)                      | How do linear layers and feature representations approximate values or policies?                      |
+| E.1.4    | [Convergence and Trust Regions](docs/appendix_math/linear-algebra-advanced.md)                      | How do spectra, norms, and approximation error explain stability?                                     |
+| E.1.5    | [Formulas and Exercises](docs/appendix_math/linear-algebra-formulas-exercises.md)                   | How can small exercises strengthen linear-algebra tools?                                              |
 | E.2      | [Probability, Expectation, and Stochastic Estimation](docs/appendix_math/probability-statistics.md) | What probability tools do returns, sampling, and trajectory estimation depend on?                     |
+| E.2.1    | [Probability Basics](docs/appendix_math/probability-basics.md)                                      | How do random variables, conditional probability, and distributions enter RL?                         |
+| E.2.2    | [Returns and Values](docs/appendix_math/probability-value.md)                                       | Why is a value function fundamentally a conditional expectation?                                      |
+| E.2.3    | [Sampling Estimation](docs/appendix_math/probability-sampling.md)                                   | How can samples estimate expectations and gradients?                                                  |
+| E.2.4    | [Trajectories and GAE](docs/appendix_math/probability-trajectory-td.md)                             | How are trajectory distributions, TD error, and GAE related?                                          |
+| E.2.5    | [Bellman Expectations](docs/appendix_math/probability-bellman-advanced.md)                          | What does the Bellman expectation equation mean probabilistically?                                    |
+| E.2.6    | [Formulas and Exercises](docs/appendix_math/probability-formulas-exercises.md)                      | How can common probability and stochastic-estimation formulas be checked?                             |
 | E.3      | [Calculus and Optimization](docs/appendix_math/calculus-optimization.md)                            | How do gradients, the chain rule, and optimizers drive policy updates?                                |
+| E.3.1    | [Derivatives and Gradients](docs/appendix_math/calculus-basics.md)                                  | How does a gradient tell the policy which direction to move?                                          |
+| E.3.2    | [Policy Gradients](docs/appendix_math/calculus-policy-gradient.md)                                  | How does the policy gradient theorem follow from the objective?                                       |
+| E.3.3    | [PPO and Adam](docs/appendix_math/calculus-ppo.md)                                                  | What calculus intuition appears in PPO objectives and Adam updates?                                   |
+| E.3.4    | [Derivation Tools](docs/appendix_math/calculus-derivations.md)                                      | Which transformations are easiest to get wrong in common derivations?                                 |
+| E.3.5    | [Complete Formulas](docs/appendix_math/calculus-advanced-formulas.md)                               | How do advanced formulas help with reading algorithm papers?                                          |
+| E.3.6    | [Formulas and Exercises](docs/appendix_math/calculus-formulas-exercises.md)                         | How can exercises reinforce gradient and optimization formulas?                                       |
 | E.4      | [Information Theory and Distribution Distance](docs/appendix_math/information-theory.md)            | How do entropy, cross-entropy, and KL explain exploration and alignment constraints?                  |
+| E.4.1    | [Entropy and Exploration](docs/appendix_math/information-basics.md)                                 | How does entropy measure whether a policy is still exploring?                                         |
+| E.4.2    | [Cross-Entropy and KL](docs/appendix_math/information-cross-entropy-kl.md)                          | Why can KL constrain old and new policy or model distributions?                                       |
+| E.4.3    | [RLHF and DPO](docs/appendix_math/information-rlhf-dpo.md)                                          | What are the distribution-distance and reward interpretations in preference optimization?             |
+| E.4.4    | [Mutual Information](docs/appendix_math/information-mutual-info.md)                                 | How does mutual information describe shared information between variables?                            |
+| E.4.5    | [Complete Formulas](docs/appendix_math/information-advanced-formulas.md)                            | How do advanced information-theory formulas serve RL and alignment derivations?                       |
+| E.4.6    | [Formulas and Exercises](docs/appendix_math/information-formulas-exercises.md)                      | How can entropy, cross-entropy, and KL calculations be practiced?                                     |
 
 ## Experiment Code
 
@@ -473,6 +513,18 @@ When adding content:
 6. Use Conventional Commits, such as `docs: clarify ppo clipping` or `fix: repair chapter link`.
 
 For repository-specific maintenance rules, see [`AGENTS.md`](AGENTS.md).
+
+## Other Courses
+
+Our team has also created other courses. Take a look:
+
+[![LEARN HARNESS ENGINEERING](https://img.shields.io/badge/LEARN_HARNESS_ENGINEERING-0052cc?style=for-the-badge)](https://github.com/walkinglabs/learn-harness-engineering)
+
+## WeChat Group
+
+For suggestions or feedback, scan the QR code to join the WeChat group:
+
+<img src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png" alt="WeChat Group" width="300" />
 
 ## Citation
 

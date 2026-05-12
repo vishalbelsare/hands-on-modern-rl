@@ -17,6 +17,7 @@
 """
 
 import os
+import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -26,6 +27,7 @@ import matplotlib.pyplot as plt
 
 # 创建输出目录
 os.makedirs("output", exist_ok=True)
+SEED = 0
 
 # 设置中文字体
 plt.rcParams['font.sans-serif'] = ['Arial Unicode MS', 'SimHei']
@@ -148,7 +150,12 @@ def train_vanilla_reinforce(num_episodes=500, gamma=0.99, lr=1e-3):
     损失 = -Σ log π(a_t|s_t) * G_t
     直接用折扣累计回报 G_t 作为权重
     """
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+
     env = gym.make("CartPole-v1")
+    env.reset(seed=SEED)
     policy = PolicyNetwork(
         state_dim=env.observation_space.shape[0],
         action_dim=env.action_space.n,
@@ -213,7 +220,13 @@ def train_reinforce_with_baseline(num_episodes=500, gamma=0.99, lr=1e-3):
         - 策略网络学习"什么动作更好"（相对于基线）
         - 价值网络学习"当前状态平均能拿多少分"（基线）
     """
+    baseline_seed = SEED + 100
+    random.seed(baseline_seed)
+    np.random.seed(baseline_seed)
+    torch.manual_seed(baseline_seed)
+
     env = gym.make("CartPole-v1")
+    env.reset(seed=baseline_seed)
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
@@ -278,7 +291,7 @@ def train_reinforce_with_baseline(num_episodes=500, gamma=0.99, lr=1e-3):
 
         if (episode + 1) % 100 == 0:
             avg = np.mean(episode_rewards[-50:])
-            print(f"  [Baseline] 回合 {episode+1:4d} | 近50均值: {avg:6.1f}")
+            print(f"  [Value Baseline] 回合 {episode+1:4d} | 近50均值: {avg:6.1f}")
 
     env.close()
     return episode_rewards, gradient_estimates
@@ -289,7 +302,7 @@ def train_reinforce_with_baseline(num_episodes=500, gamma=0.99, lr=1e-3):
 # ==========================================
 def run_comparison():
     """
-    运行对比实验：Vanilla REINFORCE vs REINFORCE + Baseline
+    运行对比实验：Vanilla REINFORCE vs REINFORCE + Value Baseline
 
     对比两个维度：
         1. 学习速度和最终性能（奖励曲线）
@@ -313,8 +326,8 @@ def run_comparison():
         num_episodes=num_episodes, gamma=gamma, lr=lr
     )
 
-    # ---------- 实验2：REINFORCE + Baseline ----------
-    print("\n[实验2] 训练 REINFORCE + Baseline（价值基线）...")
+    # ---------- 实验2：REINFORCE + Value Baseline ----------
+    print("\n[实验2] 训练 REINFORCE + Value Baseline（价值基线）...")
     baseline_rewards, baseline_grads = train_reinforce_with_baseline(
         num_episodes=num_episodes, gamma=gamma, lr=lr
     )
@@ -328,15 +341,15 @@ def run_comparison():
     baseline_grad_var = np.var(baseline_grads)
 
     print(f"  Vanilla REINFORCE 梯度估计方差: {vanilla_grad_var:.6f}")
-    print(f"  REINFORCE+Baseline 梯度估计方差: {baseline_grad_var:.6f}")
+    print(f"  REINFORCE+Value Baseline 梯度估计方差: {baseline_grad_var:.6f}")
 
     if vanilla_grad_var > 0:
         ratio = vanilla_grad_var / max(baseline_grad_var, 1e-10)
-        print(f"  方差比（Vanilla/Baseline）: {ratio:.2f}x")
-        print(f"  基线将方差降低至原来的 {1/ratio*100:.1f}%")
+        print(f"  方差比（Vanilla/Value Baseline）: {ratio:.2f}x")
+        print(f"  Value Baseline 将方差降低至原来的 {1/ratio*100:.1f}%")
 
     print(f"\n  Vanilla REINFORCE 最后50回合均值: {np.mean(vanilla_rewards[-50:]):.1f}")
-    print(f"  REINFORCE+Baseline 最后50回合均值: {np.mean(baseline_rewards[-50:]):.1f}")
+    print(f"  REINFORCE+Value Baseline 最后50回合均值: {np.mean(baseline_rewards[-50:]):.1f}")
     print("=" * 60)
 
     # ---------- 绘制对比图1：奖励曲线 ----------
@@ -354,8 +367,8 @@ def plot_reward_comparison(vanilla_rewards, baseline_rewards, window=50):
     绘制两组实验的奖励曲线对比
 
     包含原始曲线和滑动平均曲线，直观展示：
-        - Baseline 版本是否收敛更快
-        - Baseline 版本是否更稳定（波动更小）
+        - Value Baseline 版本是否收敛更快
+        - Value Baseline 版本是否更稳定（波动更小）
     """
     fig, ax = plt.subplots(figsize=(10, 5))
 
@@ -366,16 +379,16 @@ def plot_reward_comparison(vanilla_rewards, baseline_rewards, window=50):
     ax.plot(vanilla_avg, color='steelblue', linewidth=2.0,
             label='Vanilla REINFORCE')
 
-    # REINFORCE + Baseline
+    # REINFORCE + Value Baseline
     ax.plot(baseline_rewards, alpha=0.2, color='crimson')
     baseline_avg = [np.mean(baseline_rewards[max(0, i-window+1):i+1])
                     for i in range(len(baseline_rewards))]
     ax.plot(baseline_avg, color='crimson', linewidth=2.0,
-            label='REINFORCE + Baseline')
+            label='REINFORCE + Value Baseline')
 
     ax.set_xlabel('训练回合', fontsize=12)
     ax.set_ylabel('回合奖励', fontsize=12)
-    ax.set_title('REINFORCE 奖励曲线对比（Vanilla vs Baseline）', fontsize=14)
+    ax.set_title('REINFORCE 奖励曲线对比（Vanilla vs Value Baseline）', fontsize=14)
     ax.legend(fontsize=11)
     ax.grid(True, alpha=0.3)
 
@@ -392,7 +405,7 @@ def plot_variance_comparison(vanilla_grads, baseline_grads, window=50):
     """
     绘制梯度估计方差的滑动窗口对比
 
-    这张图是本实验的核心：展示基线如何降低策略梯度的方差。
+    这张图是本实验的核心：展示 Value Baseline 如何降低策略梯度的方差。
     方差越低，训练过程越稳定，收敛越可靠。
     """
     fig, ax = plt.subplots(figsize=(10, 5))
@@ -411,11 +424,11 @@ def plot_variance_comparison(vanilla_grads, baseline_grads, window=50):
     ax.plot(vanilla_var, color='steelblue', linewidth=1.5, alpha=0.8,
             label='Vanilla REINFORCE')
     ax.plot(baseline_var, color='crimson', linewidth=1.5, alpha=0.8,
-            label='REINFORCE + Baseline')
+            label='REINFORCE + Value Baseline')
 
     ax.set_xlabel('训练回合', fontsize=12)
     ax.set_ylabel(f'梯度估计方差（窗口={window}）', fontsize=12)
-    ax.set_title('策略梯度方差对比 —— 基线的方差缩减效果', fontsize=14)
+    ax.set_title('策略梯度方差对比 —— Value Baseline 的方差缩减效果', fontsize=14)
     ax.legend(fontsize=11)
     ax.grid(True, alpha=0.3)
 
@@ -423,7 +436,7 @@ def plot_variance_comparison(vanilla_grads, baseline_grads, window=50):
     if len(vanilla_var) > 100:
         mid_point = len(vanilla_var) // 2
         ax.annotate(
-            '基线显著降低方差',
+            'Value Baseline 降低方差',
             xy=(mid_point, baseline_var[mid_point]),
             xytext=(mid_point + 50, max(vanilla_var) * 0.7),
             fontsize=11,

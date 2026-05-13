@@ -697,15 +697,15 @@ const zhSidebar = {
               link: '/chapter06_actor_critic/actor-critic'
             },
             {
-              text: '6.4 动手：Pendulum 摆杆平衡',
+              text: '6.4 Hands-on: Pendulum',
               link: '/chapter06_actor_critic/pendulum'
             },
             {
-              text: '6.5 动手：BipedalWalker 双足行走',
+              text: '6.5 Hands-on: BipedalWalker',
               link: '/chapter06_actor_critic/bipedalwalker'
             },
             {
-              text: '6.6 Actor-Critic 的前沿大规模应用',
+              text: '6.6 Actor-Critic at Scale: Frontier Applications',
               link: '/chapter06_actor_critic/ac-frontier'
             }
           ]
@@ -716,75 +716,79 @@ const zhSidebar = {
           collapsed: false,
           items: [
             {
-              text: '7.1 动手：BipedalWalker 连续控制',
+              text: '7.1 Hands-on: BipedalWalker (Continuous Control)',
               link: '/chapter07_ppo/ppo-bipedal-walker'
             },
             {
-              text: '7.2 PPO 推导',
+              text: '7.2 PPO Derivation',
               link: '/chapter07_ppo/ppo-math'
             },
             {
-              text: '7.3 信任域与裁剪机制',
+              text: '7.3 Trust Region and Clipping',
               link: '/chapter07_ppo/trust-region-clipping'
             },
             {
-              text: '7.4 GAE 与奖励模型',
+              text: '7.4 GAE and Reward Models',
               link: '/chapter07_ppo/gae-reward-model'
             },
             {
-              text: '7.5 PPO 游戏项目实践导论',
+              text: '7.5 Hands-on: PPO Game Projects (Introduction)',
               link: '/chapter07_ppo/ppo-game-benchmark'
             },
             {
-              text: '7.6 长程任务中的 RL',
+              text: '7.6 RL for Long-Horizon Tasks',
               link: '/chapter07_ppo/rl-long-horizon-planning'
             }
           ]
         },
-        { text: '本篇小结', link: '/summaries/part2-summary' }
+        { text: 'Part Summary', link: '/summaries/part2-summary' }
       ]
     },
     {
-      text: '大模型 RL',
+      text: 'LLM RL',
       items: [
         {
-          text: '8. RLHF 全流程',
+          text: '8. RLHF End-to-End',
           link: '/chapter08_rlhf/intro',
           collapsed: false,
           items: [
             {
-              text: '8.1 Base 模型与对齐助手',
+              text: '8.1 From Base Model to Aligned Assistant',
               link: '/chapter08_rlhf/base-model-to-assistant'
             },
             {
-              text: '8.2 RLHF 流水线',
+              text: '8.2 The RLHF Pipeline',
               link: '/chapter08_rlhf/standard-rlhf-pipeline'
             },
             {
-              text: '8.3 SFT 指令微调',
+              text: '8.3 SFT Instruction Tuning',
               link: '/chapter08_rlhf/imitation-learning-pipeline'
             },
             {
-              text: '8.4 奖励模型',
+              text: '8.4 Reward Model',
               link: '/chapter08_rlhf/reward-function-design'
             },
             {
-              text: '8.5 PPO-RLHF 对齐',
+              text: '8.5 PPO-RLHF Alignment',
               link: '/chapter08_rlhf/ppo-rlhf-loop'
             },
             {
-              text: '8.6 评估与奖励黑客',
+              text: '8.6 Evaluation and Reward Hacking',
               link: '/chapter08_rlhf/evaluation'
+            },
+            {
+              text: '8.7 Hands-on: veRL PPO on GSM8K',
+              link: '/chapter08_rlhf/verl-ppo-gsm8k'
             }
           ]
         },
         {
-          text: '9. 后训练对齐',
+          text: '9. Post-Training Alignment',
           link: '/chapter09_alignment/intro',
           collapsed: false,
           items: [
             {
-              text: '9.1 DPO 原理、数学与选型',
+              text: '9.1 DPO Theory, Math, and Choosing Variants',
               link: '/chapter09_alignment/dpo-theory-and-family'
             },
             {
@@ -804,7 +808,11 @@ const zhSidebar = {
               link: '/chapter09_grpo_rlvr/on-policy-distillation'
             },
             {
-              text: '9.6 后训练工业实践',
+              text: '9.6 动手：用 veRL 做代码生成强化学习',
+              link: '/chapter09_grpo_rlvr/verl-code-sandbox'
+            },
+            {
+              text: '9.7 后训练工业实践',
               link: '/chapter09_alignment/industrial-post-training'
             }
           ]
@@ -1346,6 +1354,10 @@ const enSidebar = {
             {
               text: '8.6 Evaluation & Reward Hacking',
               link: '/en/chapter08_rlhf/evaluation'
+            },
+            {
+              text: '8.7 Hands-on: veRL PPO on GSM8K',
+              link: '/en/chapter08_rlhf/verl-ppo-gsm8k'
             }
           ]
         },
@@ -1375,7 +1387,11 @@ const enSidebar = {
               link: '/en/chapter09_grpo_rlvr/on-policy-distillation'
             },
             {
-              text: '9.6 Industrial Post-Training',
+              text: '9.6 Hands-on: Code Generation RL with veRL',
+              link: '/en/chapter09_grpo_rlvr/verl-code-sandbox'
+            },
+            {
+              text: '9.7 Industrial Post-Training',
               link: '/en/chapter09_alignment/industrial-post-training'
             }
           ]
@@ -1707,7 +1723,7 @@ export default defineConfig({
   lang: 'zh-CN',
   title: 'Hands-on Modern RL',
   description:
-    '现代强化学习实战指南：涵盖经典控制、LLM 后训练、RLVR 与多模态智能体',
+    'Hands-on Modern Reinforcement Learning: Classic Control, LLM Post-Training, RLVR, and Multimodal Agents',
   base,
   cleanUrls: true,
   lastUpdated: true,
@@ -1729,7 +1745,7 @@ export default defineConfig({
       md.use(markdownItContainer, 'output', {
         render: function (tokens, idx) {
           if (tokens[idx].nesting === 1) {
-            const title = tokens[idx].info.trim().slice(6).trim() || '运行结果'
+            const title = tokens[idx].info.trim().slice(6).trim() || 'Output'
             return `<div class="custom-block output"><p class="custom-block-title">${title}</p>\n`
           }
           return '</div>\n'
@@ -1775,7 +1791,7 @@ export default defineConfig({
       {
         property: 'og:description',
         content:
-          '现代强化学习实战指南：涵盖经典控制、LLM 后训练、RLVR 与多模态智能体'
+          'Hands-on Modern Reinforcement Learning: Classic Control, LLM Post-Training, RLVR, and Multimodal Agents'
       }
     ],
     ['meta', { property: 'og:type', content: 'website' }],
@@ -1842,7 +1858,7 @@ export default defineConfig({
           text: 'Edit this page on GitHub'
         },
         footer: {
-          message: '现代强化学习实战课程',
+          message: 'Hands-on Modern RL Course',
           copyright: 'Copyright © WalkingLabs'
         },
         outline: {

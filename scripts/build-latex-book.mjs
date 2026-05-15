@@ -1878,20 +1878,27 @@ function compileLatex() {
     )
 
     if (result.status !== 0) {
-      fs.writeFileSync(
-        path.join(workDir, `xelatex-run-${run}.stdout.log`),
-        result.stdout || ''
-      )
-      fs.writeFileSync(
-        path.join(workDir, `xelatex-run-${run}.stderr.log`),
-        result.stderr || ''
-      )
-      throw new Error(
-        `xelatex failed on run ${run}. See ${path.join(
-          workDir,
-          `xelatex-run-${run}.stdout.log`
-        )}`
-      )
+      const stdoutLogPath = path.join(workDir, `xelatex-run-${run}.stdout.log`)
+      const stderrLogPath = path.join(workDir, `xelatex-run-${run}.stderr.log`)
+      fs.writeFileSync(stdoutLogPath, result.stdout || '')
+      fs.writeFileSync(stderrLogPath, result.stderr || '')
+
+      const tailLines = String(result.stdout || '')
+        .split(/\r?\n/)
+        .slice(-120)
+        .join('\n')
+      if (tailLines.trim()) {
+        console.error(`\n--- xelatex stdout tail (run ${run}) ---`)
+        console.error(tailLines)
+        console.error('--- end xelatex stdout tail ---\n')
+      }
+      if (String(result.stderr || '').trim()) {
+        console.error(`\n--- xelatex stderr (run ${run}) ---`)
+        console.error(result.stderr)
+        console.error('--- end xelatex stderr ---\n')
+      }
+
+      throw new Error(`xelatex failed on run ${run}. See ${stdoutLogPath}`)
     }
   }
 

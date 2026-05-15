@@ -1799,10 +1799,10 @@ export default defineConfig({
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }]
   ],
   locales: {
-    zh: {
+    root: {
       label: '简体中文',
       lang: 'zh-CN',
-      link: '/zh/',
+      link: '/',
       title: 'Hands-on Modern RL',
       description: '现代强化学习实战——从代码到原理',
       themeConfig: {
@@ -1837,7 +1837,7 @@ export default defineConfig({
         notFound: {
           title: '页面未找到',
           quote: '这个地址不存在，试试从中文首页重新进入。',
-          link: '/zh/',
+          link: '/',
           linkText: '返回中文首页',
           linkLabel: '返回中文首页'
         }

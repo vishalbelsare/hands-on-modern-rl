@@ -1,13 +1,13 @@
 <script setup>
 import DefaultTheme from 'vitepress/theme'
-import { useData, useRoute } from 'vitepress'
+import { useData, useRoute, withBase } from 'vitepress'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ReadingProgress from './components/ReadingProgress.vue'
 import TextType from './components/TextType.vue'
 import mediumZoom from 'medium-zoom'
 import { initGithubStars } from './githubStars.js'
 
-const { frontmatter, theme } = useData()
+const { frontmatter, site, theme } = useData()
 const route = useRoute()
 
 const FONT_SIZE_STORAGE_KEY = 'ct-doc-font-size'
@@ -46,6 +46,34 @@ const mermaidViewerCustomZoom = ref(false)
 
 const isHomePage = computed(() => frontmatter.value.layout === 'home')
 const showDocChrome = computed(() => !isHomePage.value)
+const mobileRoutePath = computed(() => {
+  const base = site.value.base || '/'
+  if (base === '/') return route.path
+
+  const normalizedBase = base.replace(/\/$/, '')
+  const pathWithoutBase = route.path.replace(normalizedBase, '')
+  return pathWithoutBase || '/'
+})
+const isEnglishRoute = computed(
+  () =>
+    mobileRoutePath.value === '/en' || mobileRoutePath.value.startsWith('/en/')
+)
+const mobileCurrentLanguage = computed(() =>
+  isEnglishRoute.value ? 'English' : '简体中文'
+)
+const mobileAlternateLanguage = computed(() =>
+  isEnglishRoute.value ? '简体中文' : 'English'
+)
+const mobileAlternateLanguageLink = computed(() => {
+  if (isEnglishRoute.value) {
+    const zhPath = mobileRoutePath.value.replace(/^\/en(?=\/|$)/, '') || '/'
+    return withBase(zhPath)
+  }
+
+  const enPath =
+    mobileRoutePath.value === '/' ? '/en/' : `/en${mobileRoutePath.value}`
+  return withBase(enPath)
+})
 const homeTypingText = computed(
   () =>
     frontmatter.value.hero?.typingTagline ||
@@ -745,6 +773,23 @@ watch(
         </ClientOnly>
       </div>
     </template>
+
+    <template #nav-screen-content-after>
+      <div class="ct-mobile-language-switcher">
+        <div class="ct-mobile-language-title">切换语言</div>
+        <div class="ct-mobile-language-options">
+          <span class="ct-mobile-language-current">
+            {{ mobileCurrentLanguage }}
+          </span>
+          <a
+            class="ct-mobile-language-link"
+            :href="mobileAlternateLanguageLink"
+          >
+            {{ mobileAlternateLanguage }}
+          </a>
+        </div>
+      </div>
+    </template>
   </DefaultTheme.Layout>
 
   <ClientOnly>
@@ -980,6 +1025,42 @@ watch(
   transform: translateY(-6px);
 }
 
+.ct-mobile-language-switcher {
+  display: none;
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.ct-mobile-language-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-text-1);
+}
+
+.ct-mobile-language-options {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 32px;
+}
+
+.ct-mobile-language-current {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+}
+
+.ct-mobile-language-link {
+  color: var(--vp-c-text-1);
+  transition: color 0.2s;
+}
+
+.ct-mobile-language-link:hover {
+  color: var(--vp-c-brand-1);
+}
+
 .ct-sidebar-hover-area {
   display: none;
   position: fixed;
@@ -1198,6 +1279,10 @@ watch(
   .ct-reading-tools-panel {
     right: -6px;
     width: min(280px, calc(100vw - 24px));
+  }
+
+  .ct-mobile-language-switcher {
+    display: block;
   }
 }
 

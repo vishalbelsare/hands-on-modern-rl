@@ -545,7 +545,7 @@ const zhSidebar = {
       text: '前言',
       items: [
         { text: '课程导读', link: '/preface/intro' },
-        { text: '强化学习简史', link: '/preface/brief-history' },
+        { text: '强化学习简史', link: '/preface/brief-history/' },
         { text: '环境安装指南', link: '/preface/env-setup' }
       ]
     },

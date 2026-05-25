@@ -779,6 +779,10 @@ const zhSidebar = {
             {
               text: '8.7 动手：veRL PPO 训练 GSM8K',
               link: '/chapter08_rlhf/verl-ppo-gsm8k'
+            },
+            {
+              text: '8.8 扩展实战',
+              link: '/chapter08_rlhf/extended-practice'
             }
           ]
         },
@@ -1362,6 +1366,10 @@ const enSidebar = {
             {
               text: '8.7 Hands-on: veRL PPO on GSM8K',
               link: '/en/chapter08_rlhf/verl-ppo-gsm8k'
+            },
+            {
+              text: '8.8 Extended Practice',
+              link: '/en/chapter08_rlhf/extended-practice'
             }
           ]
         },

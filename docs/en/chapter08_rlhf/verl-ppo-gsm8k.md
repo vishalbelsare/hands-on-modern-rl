@@ -159,7 +159,7 @@ In practice, prefer veRL's built-in script: it tracks veRL version changes and h
 
 For GSM8K, you do not need to train a Reward Model. You can directly validate the final answer with rules. This is different from RLHF in Section 8.5: RLHF uses an RM to produce preference signals, while math reasoning uses **verifiable rewards**. Section 9.4 will discuss the RLVR paradigm in detail; here we start with a simple implementation.
 
-Create a reward function file:
+This repository provides the course adaptation here: [`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py). If you are working inside the veRL repository, you can also create the same file manually:
 
 ```python
 # gsm8k_reward.py
@@ -234,7 +234,7 @@ Why no Reward Model? Because GSM8K answers are **objectively verifiable**: corre
 
 ## Single-GPU Training Script
 
-Based on veRL's official PPO scripts, the following is a complete launch script adapted for a single GPU and a 0.5B model:
+Based on veRL's official PPO scripts, this repository provides a single-GPU + 0.5B launch script here: [`code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh`](../../../code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh). The full content is:
 
 ```bash
 #!/bin/bash
@@ -592,7 +592,7 @@ Other parameters (learning rates, `clip_ratio`, GAE settings, etc.) **do not nee
 
 ## Advanced Reward Functions
 
-The earlier `gsm8k_reward.py` uses only a 0/1 accuracy reward. In real training, you often add a format reward to guide the model toward cleaner outputs:
+The earlier `gsm8k_reward.py` uses only a 0/1 accuracy reward. In real training, you often add a format reward to guide the model toward cleaner outputs. This repository provides the advanced version here: [`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py).
 
 ```python
 # gsm8k_reward_advanced.py
@@ -741,6 +741,18 @@ From an algorithmic viewpoint, this experiment follows the same six-step loop fr
 3. **Switch algorithms**: change `algorithm.adv_estimator` from `gae` (PPO) to `grpo`, and compare PPO vs GRPO training curves on the same dataset. GRPO does not require a Critic, so it uses less memory, but it estimates advantages differently.
 4. **Scale to multi-GPU**: increase `NDEVICES_PER_NODE` and `TRAIN_BATCH_SIZE` and observe whether curves get smoother and final accuracy improves.
 5. **Add the MATH dataset**: include both GSM8K and MATH in `data.train_files` and study how mixed training affects results.
+
+## Repository Code Index
+
+This section depends on external veRL and does not copy veRL source code. This repository only keeps the course adaptation layer:
+
+| File                                                                                                                                              | Purpose                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| [`code/chapter08_rlhf/verl_gsm8k/README.md`](../../../code/chapter08_rlhf/verl_gsm8k/README.md)                                                   | External veRL index and usage notes |
+| [`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py)                                       | Basic 0/1 accuracy reward           |
+| [`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py)                     | Accuracy + format combined reward   |
+| [`code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh`](../../../code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh) | Single-GPU 0.5B PPO launch script   |
+| [`code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_8gpu.sh`](../../../code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_8gpu.sh)             | Single-node 8-GPU PPO launch script |
 
 ## Exercises
 

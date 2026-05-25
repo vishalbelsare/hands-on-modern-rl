@@ -1,5 +1,5 @@
 """
-第8章：可验证奖励函数 —— RLVR 的核心组件
+第9章：可验证奖励函数 —— RLVR 的核心组件
 ==========================================================
 
 本脚本实现了 RLVR (Reinforcement Learning with Verifiable Rewards) 中

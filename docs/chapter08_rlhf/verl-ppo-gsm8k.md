@@ -159,7 +159,7 @@ for split in ["train", "test"]:
 
 GSM8K 的 reward 不需要训练 Reward Model——直接用规则验证答案即可。这和 8.5 节讲的 RLHF 不同：RLHF 用 RM 提供偏好信号，而数学推理用**可验证奖励**（verifiable reward）。9.4 节会详细讨论 RLVR 范式，这里先用一个简单的实现。
 
-创建 reward 函数文件：
+本仓库已经提供了课程适配版本：[`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py)。如果你在 veRL 仓库内操作，也可以按下面内容创建同名文件：
 
 ```python
 # gsm8k_reward.py
@@ -234,7 +234,7 @@ def compute_score(reward_input: dict[str, Any], **kwargs) -> dict[str, float]:
 
 ## 单卡训练脚本
 
-基于 veRL 官方的 PPO 脚本，以下是适配单卡 + 0.5B 模型的完整启动脚本：
+基于 veRL 官方的 PPO 脚本，本仓库已经提供了适配单卡 + 0.5B 模型的启动脚本：[`code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh`](../../../code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh)。完整内容如下：
 
 ```bash
 #!/bin/bash
@@ -592,7 +592,7 @@ bash run_qwen2.5_0.5b_ppo_single_gpu.sh
 
 ## Reward 函数进阶
 
-上面的 `gsm8k_reward.py` 只使用了 0/1 的 accuracy reward。在真实训练中，通常还会加入格式奖励来引导模型输出规范：
+上面的 `gsm8k_reward.py` 只使用了 0/1 的 accuracy reward。在真实训练中，通常还会加入格式奖励来引导模型输出规范。本仓库提供了进阶版本：[`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py)。
 
 ```python
 # gsm8k_reward_advanced.py
@@ -741,6 +741,18 @@ actor_rollout_ref.actor.clip_ratio=0.2     # 标准裁剪范围
 3. **换算法**：把 `algorithm.adv_estimator` 从 `gae`（PPO）改为 `grpo`，对比 PPO 和 GRPO 在同一数据集上的训练曲线。GRPO 不需要 Critic，显存更省，但优势估计方式不同。
 4. **多卡扩展**：增加 `NDEVICES_PER_NODE` 和 `TRAIN_BATCH_SIZE`，观察训练曲线是否更平滑、最终 accuracy 是否更高。
 5. **加入 MATH 数据集**：在 `data.train_files` 中同时加入 GSM8K 和 MATH 的训练数据，看混合数据集对训练效果的影响。
+
+## 本仓库代码索引
+
+本节依赖外部 veRL，不复制 veRL 源码。本仓库只保存课程适配层：
+
+| 文件                                                                                                                                              | 作用                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| [`code/chapter08_rlhf/verl_gsm8k/README.md`](../../../code/chapter08_rlhf/verl_gsm8k/README.md)                                                   | 外部 veRL 索引与使用说明      |
+| [`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward.py)                                       | 基础 0/1 accuracy reward      |
+| [`code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py`](../../../code/chapter08_rlhf/verl_gsm8k/gsm8k_reward_advanced.py)                     | accuracy + format 组合 reward |
+| [`code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh`](../../../code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_single_gpu.sh) | 单卡 0.5B PPO 启动脚本        |
+| [`code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_8gpu.sh`](../../../code/chapter08_rlhf/verl_gsm8k/run_qwen2_5_0_5b_ppo_8gpu.sh)             | 单机 8 卡 PPO 启动脚本        |
 
 ## 练习
 

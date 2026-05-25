@@ -1,5 +1,5 @@
 """
-第10章：奖励模型（Reward Model）训练
+第8章：奖励模型（Reward Model）训练
 ====================================
 
 本脚本演示 RLHF 三阶段流水线的第二阶段 —— 奖励模型训练。
@@ -430,7 +430,7 @@ def visualize_reward_distributions(chosen_scores, rejected_scores, save_path="ou
 
 def main():
     print("=" * 60)
-    print("第10章：奖励模型（Reward Model）训练")
+    print("第8章：奖励模型（Reward Model）训练")
     print("=" * 60)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

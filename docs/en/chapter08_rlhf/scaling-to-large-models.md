@@ -1,8 +1,8 @@
 ---
-title: 8.7 Scaling RLHF
+title: 'Supplement: Scaling RLHF'
 ---
 
-# 8.7 Scaling RLHF: From Small to Large Models
+# Supplement: Scaling RLHF from Small to Large Models
 
 ## Reading Guide
 

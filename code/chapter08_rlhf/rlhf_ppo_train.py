@@ -1,5 +1,5 @@
 """
-第10章：RLHF PPO 对齐训练
+第8章：RLHF PPO 对齐训练
 ==========================
 
 本脚本演示 RLHF 三阶段流水线的第三阶段 —— PPO 对齐训练。
@@ -470,7 +470,7 @@ def plot_training_stats(stats, save_path="output/ppo_training_stats.png"):
 
 def main():
     print("=" * 60)
-    print("第10章：RLHF PPO 对齐训练")
+    print("第8章：RLHF PPO 对齐训练")
     print("=" * 60)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -95,6 +95,8 @@ $$
 | [Reward Model：教一个裁判](./reward-function-design)            | 如何把 chosen/rejected 偏好对变成可优化的标量奖励？     | Reward Model 与 RM 验证指标      |
 | [PPO-RLHF：按奖励练习](./ppo-rlhf-loop)                         | Actor、Reference、Reward Model、Critic 如何协作？       | PPO-RLHF 四模型结构 + 大参数扩展 |
 | [评估与奖励黑客](./evaluation)                                  | 如何证明模型变好且没有 reward hacking？数据飞轮怎么做？ | 评估闭环 + 受控实验 + 飞轮模板   |
+| [动手：veRL PPO 训练 GSM8K](./verl-ppo-gsm8k)                   | 工业级 LLM RL 框架如何跑通 PPO？                        | veRL 外部索引 + 本仓库适配脚本   |
+| [扩展实战：Reward Hacking 与数据飞轮](./extended-practice)      | 坏奖励如何被 hack？失败样本如何进入迭代闭环？           | 可复现 reward hacking 实验       |
 
 ## 8.6 为什么必须做评估
 

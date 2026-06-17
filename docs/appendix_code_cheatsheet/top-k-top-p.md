@@ -6,6 +6,14 @@
 
 ## Temperature
 
+**核心问题**：模型给出的 logits 直接 softmax 得到的分布往往太"尖"或太"平"，难以控制采样随机性。Temperature 引入一个缩放因子，调节分布尖锐程度，等效于控制策略的探索-利用平衡。
+
+**核心变量**：
+
+- `logits`：模型原始输出
+- `temperature`（$T$）：缩放因子，$T>0$；$T\to 0$ 趋向贪婪，$T=1$ 保持原分布，$T\to\infty$ 趋向均匀
+- `scaled_logits`：$\text{logits}/T$，喂给 softmax 的实际输入
+
 ### 一句话记忆
 
 > **logits 除以 T 再 softmax。T 大更随机，T 小更确定。**
@@ -44,6 +52,14 @@ def sample_with_temperature(logits, temperature=1.0):
 ---
 
 ## Top-k Sampling
+
+**核心问题**：纯按概率采样时，长尾低概率 token 偶尔被采到会导致输出胡言乱语。Top-k 固定只保留概率最高的 k 个 token，砍掉尾部噪声，保证采样质量。
+
+**核心变量**：
+
+- `logits`：模型输出向量，长度为词表大小
+- `k`：固定保留的 token 数量（典型 50）
+- `threshold`：第 k 大的 logit 值，低于它的位置全部置 `-inf`
 
 ### 一句话记忆
 
@@ -105,6 +121,16 @@ def top_k_sample(logits, k, temperature=1.0):
 ---
 
 ## Top-p (Nucleus) Sampling
+
+**核心问题**：Top-k 固定保留 k 个 token，但不同位置的分布尖锐程度不同——确定性强时只需 3 个就够，不确定时 50 个都不够。Top-p 改成保留**累积概率质量达到 p 的最小 token 集合**，自适应分布形状。
+
+**核心变量**：
+
+- `logits`：模型输出
+- `p`：累积概率阈值（典型 0.9），决定"核"的大小
+- `sorted_logits` / `sorted_indices`：降序排序后的 logits 和原索引
+- `cumulative_probs`：从高到低的累积概率
+- `cutoff_mask`：累积值减去当前 prob 后超过 p 的位置
 
 ### 一句话记忆
 

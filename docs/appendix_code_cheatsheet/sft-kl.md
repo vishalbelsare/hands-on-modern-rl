@@ -2,6 +2,14 @@
 
 ## SFT Loss（自回归交叉熵）
 
+**核心问题**：让模型学会在每个位置预测下一个 token，且只在回答部分（非 prompt）计算 loss。
+
+**核心变量**：
+
+- `logits`：模型输出，形状 `[B, seq_len, vocab_size]`，每个位置是对下一个 token 的预测分布
+- `input_ids` / `labels`：真实 token 序列；prompt 部分通常被标为 `ignore_index=-100`
+- `ignore_index`：告诉交叉熵跳过这些位置（默认 `-100`）
+
 ### 一句话记忆
 
 > **模型预测下一个词：每个位置的预测目标，是它后面那个真实词；只在回答部分（`label != -100`）算交叉熵。**
@@ -81,6 +89,14 @@ def sft_loss(logits, labels, ignore_index=-100):
 ---
 
 ## KL 散度估计
+
+**核心问题**：估计"当前策略 $p$"与"参考策略 $q$"之间的分布差异，用于 PPO / GRPO 的 KL 惩罚，防止策略跑偏。
+
+**核心变量**：
+
+- `log_probs`：当前策略 $p$ 对采样 token 的 log 概率
+- `ref_log_probs`：参考策略 $q$（一般是 SFT 后冻结的模型）对同一批 token 的 log 概率
+- `log_ratio`：$\log(q/p)$，k3 估计器的核心中间量
 
 ### 一句话记忆
 

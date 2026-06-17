@@ -16,6 +16,16 @@ DAPO（Decoupled Clip and Dynamic Sampling Policy Optimization）是 2025 年字
 
 ## 解耦裁剪（Decoupled Clip）
 
+**核心问题**：GRPO 用对称的 `clip(ratio, 1-ε, 1+ε)`，但正负 advantage 方向的"危险"是不同的——正 advantage 时 ratio 飙高是好事（在学），负 advantage 时 ratio 跌低也未必坏。对称裁剪在两边都过度保守，限制了学习速度。DAPO 把上下界 ε 解耦，让正方向可以更激进、负方向更稳妥。
+
+**核心变量**：
+
+- `ratio`：新旧策略概率比 $r = \exp(\text{new\_logp} - \text{old\_logp})$
+- `advantage`：来自组内 z-score
+- `clip_high`（$\epsilon_{high}$）：正 advantage 的上界，典型 0.28
+- `clip_low`（$\epsilon_{low}$）：负 advantage 的下界，典型 0.28
+- `pos_mask` / `neg_mask`：按 advantage 正负分两组分别裁剪
+
 ### 一句话记忆
 
 > **好的不贪心、坏的不报复：正优势只裁上界，负优势只裁下界。**
@@ -124,6 +134,14 @@ def dapo_policy_loss(new_logps, old_logps, advantages,
 
 ## 动态采样（Dynamic Sampling）
 
+**核心问题**：GRPO 的 advantage 是组内 z-score。如果某 prompt 下 G 条回答**全对或全错**，组内 reward 方差为 0，z-score 退化成 NaN 或 0，这条 prompt 白白浪费采样算力却不提供任何梯度信号。DAPO 在数据层面提前过滤这些无效样本。
+
+**核心变量**：
+
+- `rewards`：$[B, G]$，每个 prompt 下 G 条回答的 reward
+- `reward_std`：组内 reward 标准差
+- `valid_mask`：$[B]$ bool，`reward_std > eps` 的 prompt 才保留
+
 ### 一句话记忆
 
 > **一组答案全对或全错 → 没区分度 → 跳过这个题。**
@@ -160,6 +178,16 @@ GRPO 的 advantage 是组内 z-score 归一化。如果全组 reward 一样，st
 ---
 
 ## 超长惩罚（Overlong Reward Shaping）
+
+**核心问题**：GRPO 对超长回答采用二元惩罚（超长直接 reward=0），但边界处没有梯度信号——策略只知道"这条被罚了"，不知道"短一点会变好"。DAPO 改成**线性渐进惩罚**：超得越多扣得越多，给策略一个连续可微的方向信号。
+
+**核心变量**：
+
+- `reward`：原始奖励
+- `response_length`：当前回答的 token 数
+- `max_length`：长度上限阈值
+- `penalty_weight`：每超出单位比例扣多少分（典型 0.1）
+- `penalty_ratio`：$(\text{len} - \text{max})/\text{max}$，超出比例
 
 ### 一句话记忆
 

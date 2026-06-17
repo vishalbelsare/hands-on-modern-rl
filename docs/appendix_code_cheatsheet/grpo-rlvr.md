@@ -4,6 +4,17 @@
 
 ## GRPO Loss
 
+**核心问题**：PPO 需要训练一个 Critic 来估计 $V(s)$ 提供 baseline，但 LLM 场景下 Critic 本身就和 policy 同样大、同样难训。GRPO 利用"同一 prompt 采 G 条回答"天然形成的对照组，用组内 reward 的 z-score 直接当 advantage，**砍掉 Critic**。
+
+**核心变量**：
+
+- `completions`：同一 prompt 下采的 G 条回答
+- `rewards`：每条回答的奖励（来自 RM 或规则验证器）
+- `advantages`：组内 z-score 归一化后的优势，$A_i = (r_i - \bar r)/\mathrm{std}(r)$
+- `new_log_probs` / `old_log_probs`：当前策略与采样时策略对回答的 log 概率
+- `ref_log_probs`：参考策略的 log 概率，用于 KL 惩罚
+- `kl_coeff`、`clip_eps`：PPO 同款超参
+
 ### 一句话记忆
 
 > **同一题采 G 条回答，组内 reward 做 z-score 当 advantage；其余照抄 PPO（clipped loss + KL），砍掉 Critic。**
@@ -113,6 +124,13 @@ def grpo_loss(log_probs, old_log_probs, ref_log_probs,
 ---
 
 ## Reward Model（Bradley-Terry 模型）
+
+**核心问题**：RLHF-PPO 需要一个标量奖励信号 $\in \mathbb{R}$ 来指导策略优化，但人类偏好只有相对顺序（"A 比 B 好"）。Reward Model 把偏好对压缩成绝对分数，让"好回答分数高于坏回答"的概率最大。
+
+**核心变量**：
+
+- `r_chosen` / `r_rejected`：RM 对好/坏回答打的标量分数
+- Bradley-Terry 假设：$P(y_w \succ y_l) = \sigma(r_w - r_l)$，偏好概率正比于分数差的 sigmoid
 
 ### 一句话记忆
 

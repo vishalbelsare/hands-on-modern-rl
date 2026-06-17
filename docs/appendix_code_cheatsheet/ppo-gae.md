@@ -6,6 +6,16 @@ PPO 是大模型 RL 面试中考查频率最高的算法。面试官通常会要
 
 ## GAE（广义优势估计）
 
+**核心问题**：把多步未来回报组合成一个低方差的优势估计 $\hat{A}_t$，告诉 actor "这一步比平均好多少"，给 PPO 提供 training signal。
+
+**核心变量**：
+
+- `delta_t`：TD 误差 $r_t + \gamma V(s_{t+1}) - V(s_t)$，单步"惊喜"
+- `advantage_t`：累积优势 $\hat{A}_t$，从后往前递推
+- `gamma`（$\gamma$）：折扣因子，控制"目光短浅"程度
+- `lambda`（$\lambda$）：GAE 偏差-方差权衡参数，$\lambda=0$ 退化为 TD(0)，$\lambda=1$ 退化为 Monte-Carlo
+- `done_t`：episode 结束标志，用于截断跨 episode 的递推
+
 ### 一句话记忆
 
 > **从后往前扫：$\hat{A}_t = \delta_t + \gamma\lambda \hat{A}_{t+1}$，其中 $\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$。**
@@ -88,6 +98,15 @@ def compute_gae(rewards, values, dones, gamma=0.99, lam=0.95):
 
 ## PPO Clipped Policy Loss
 
+**核心问题**：在 TRPO 的"信任域"约束下做策略提升，但用 clip 近似代替 KL 约束，让单步更新既能利用旧数据（重要性采样），又不会因 ratio 过大而崩溃。
+
+**核心变量**：
+
+- `ratio`：$r_t(\theta) = \pi_\theta(a_t\mid s_t) / \pi_{\theta_{old}}(a_t\mid s_t)$，新旧策略概率比
+- `advantage`：$\hat{A}_t$，来自 GAE
+- `eps`（$\epsilon$）：clip 范围，典型 `0.1` 或 `0.2`
+- `new_log_prob` / `old_log_prob`：当前策略与采样时策略的 log 概率
+
 ### 一句话记忆
 
 > **新策略 ÷ 旧策略 = 比值；比值 × 优势 = 目标；比值超范围就截断，取小的那个。**
@@ -156,6 +175,15 @@ def ppo_policy_loss(new_logps, old_logps, advantages, clip_eps=0.2):
 ---
 
 ## PPO Value Loss
+
+**核心问题**：训练 critic（value head）让它准确预测累积回报 $V(s)$，并防止它在单次更新中漂移过大（value clipping）。
+
+**核心变量**：
+
+- `value_pred`：critic 当前对 $V(s_t)$ 的预测
+- `old_values`：采样时 critic 的预测，用于 clip 参考
+- `returns`：$R_t = \hat{A}_t + V_{old}(s_t)$，GAE 给出的回归目标
+- `eps`：clip 范围，与 policy loss 共享
 
 ### 一句话记忆
 

@@ -6,6 +6,16 @@
 
 ## Scaled Dot-Product Attention
 
+**核心问题**：序列建模需要让每个位置"看到"上下文中所有相关位置，并按相关度加权聚合信息。Scaled Dot-Product Attention 用 query 和 key 的相似度作为权重，对 value 做加权求和，是 Transformer 的核心算子。
+
+**核心变量**：
+
+- `Q`（query）：当前位置"我要查什么"
+- `K`（key）：每个位置"我能被怎样匹配"
+- `V`（value）：每个位置"我携带的信息"
+- `d_k`：query/key 的维度，点积后除以 $\sqrt{d_k}$ 防止 softmax 饱和
+- `mask`：遮挡矩阵，causal mask 把"未来"位置置 $-\infty$
+
 ### 一句话记忆
 
 > **Q 和 K 点积打分，除根号、遮未来、softmax、再乘 V。**
@@ -93,6 +103,15 @@ def causal_mask(seq_len):
 
 ## Multi-Head Attention (MHA)
 
+**核心问题**：单头 attention 只能学到一种"关系模式"（如局部依赖或长程依赖）。MHA 把 $d_{model}$ 切成 $h$ 份，每个头独立做 attention，让模型在不同表示子空间里同时建模多种关系，再拼接融合。
+
+**核心变量**：
+
+- `d_model`：模型隐藏维度（如 768/4096）
+- `n_heads` / `h`：头数，每头维度 $d_k = d_{model}/h$
+- `W_Q` / `W_K` / `W_V`：输入到 Q/K/V 的线性投影
+- `W_O`：多头拼接后的输出投影
+
 ### 一句话记忆
 
 > **总维度切成 h 份，每份单独做一次 attention，最后拼回去过线性层。**
@@ -161,6 +180,15 @@ class MultiHeadAttention(nn.Module):
 ---
 
 ## MQA 与 GQA
+
+**核心问题**：MHA 里 K/V 的头数和 Q 相同（都是 h），推理时 KV cache 占用大、显存吃紧。MQA 让所有 Q 头共用一组 K/V（最省显存但可能掉点），GQA 折中：Q 分组、组内共用 K/V，在显存和质量之间取得平衡。
+
+**核心变量**：
+
+- `n_heads`：Q 的头数（与 MHA 一致）
+- `n_kv_heads`：K/V 的头数，MQA 时为 1，GQA 时为 $g$（$1<g<h$）
+- `n_groups`：每组共享同一组 K/V 的 Q 头数，$= n_{heads}/n_{kv\_heads}$
+- KV cache 占用：随 `n_kv_heads` 线性下降，这是 GQA/MQA 的核心收益
 
 ### 对比速查
 

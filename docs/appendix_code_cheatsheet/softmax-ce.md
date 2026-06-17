@@ -6,6 +6,15 @@
 
 ## 数值稳定的 Softmax
 
+**核心问题**：把任意实数 logits 映射成概率分布（和为 1），同时避免 $\exp(1000)=\text{inf}$ 这类数值溢出。
+
+**核心变量**：
+
+- `x` / `logits`：模型输出的实数向量
+- `x_shifted`：减去 $\max(x)$ 后的平移向量，用于数值稳定
+- `exp_x`：平移后的指数
+- `axis`：归一化方向，LLM 里通常是最后一维（词表）
+
 ### 一句话记忆
 
 > **先减最大值，再 exp、再求和、再相除——防止数字爆炸。**
@@ -58,6 +67,14 @@ def manual_softmax(x, dim=-1):
 
 ## Log-Sum-Exp 技巧
 
+**核心问题**：LLM 训练需要的是 log 概率，不是概率本身。若先 softmax 再 log，先除再 log 会损失精度，且小概率位置会下溢为 0 后 log 变 -inf。log-sum-exp 公式把减 max 和 log 合并成一步，得到数值稳定的 log 概率。
+
+**核心变量**：
+
+- `x_shifted`：减去 $\max(x)$ 后的向量
+- `log_sum_exp`：$\log\sum_i \exp(x_i - \max)$，logistic normalizer 的对数
+- 输出：`log_softmax(x) = x_shifted - log_sum_exp`
+
 ### 一句话记忆
 
 > **算 log(softmax) 别分两步——直接 log-sum-exp，先把 max 提出来。**
@@ -87,6 +104,15 @@ def manual_log_softmax(x, dim=-1):
 ---
 
 ## Cross-Entropy Loss
+
+**核心问题**：分类/SFT 任务需要一个标量损失来衡量"预测分布"和"真实标签"的差距。Cross-Entropy 把它压缩成"目标位置 log 概率的负数"——预测越准，loss 越小。
+
+**核心变量**：
+
+- `logits`：模型输出，形状 `[N, C]`，N 是样本数，C 是类别数
+- `targets`：真实类别索引，形状 `[N]`
+- `ignore_index`：跳过的位置（如 padding/prompt），默认 `-100`
+- `log_probs`：log_softmax 后的对数概率，用于取出目标位置
 
 ### 一句话记忆
 

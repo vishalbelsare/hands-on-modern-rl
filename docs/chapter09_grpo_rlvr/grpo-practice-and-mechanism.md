@@ -225,9 +225,17 @@ TRL 的真实源码也正是这个结构。2026-05-01 查看 Hugging Face TRL ma
 
 对照 [`PPOTrainer`](https://github.com/huggingface/trl/blob/main/trl/experimental/ppo/ppo_trainer.py)，差别就更清楚：PPOTrainer 需要 `reward_model` 和 `value_model`，并用 `value_model` 产生优势估计；GRPOTrainer 不需要单独的 `value_model`，它把**同题多答的组内相对分数**直接变成优势。
 
-## 9.3.1 GRPO 的完整公式
+## GRPO 的完整公式
 
-前面用直觉和代码 diff 看过 GRPO 怎么工作。这一节把所有公式正式写一遍：从样本结构开始，依次是组内优势、策略比值、PPO Clip，最后是 KL 惩罚。
+前面用直觉和代码 diff 看过 GRPO 怎么工作。这一节把所有公式正式写一遍，要证明的核心命题是：**用组内归一化替代 Critic 之后，GRPO 的策略梯度方向和 PPO 完全一致——只是基线换了来源**。
+
+**核心命题**：对任意同题多答样本 $(x_j, \{y_{j,i}\}_{i=1}^G, \{r_{j,i}\}_{i=1}^G)$，组内归一化优势 $\hat A_{j,i} = (r_{j,i} - \bar r_j) / (s_j + \epsilon)$ 满足：
+
+1. **梯度方向正确**：$\hat A_{j,i} > 0 \Leftrightarrow r_{j,i} > \bar r_j$，即优势的正负和"是否好于组平均"完全对齐；
+2. **不引入额外偏差**：$\mathbb{E}_i[\hat A_{j,i}] = 0$，组内期望为零，与 Critic 基线的性质一致；
+3. **难度归一**：$\text{Var}_i[\hat A_{j,i}] \approx 1$，不同难度的题目梯度尺度一致。
+
+下面四小节依次给出样本结构、组内优势（命题 1+2+3 的兑现）、PPO Clip、KL 惩罚，最后用一张数据流图收尾。
 
 ### 样本结构与组采样
 
@@ -265,36 +273,35 @@ $$
 
 ### 组内优势：替代 Critic 的基线
 
-GRPO 的核心思路在这里兑现：对同一个问题 $x_j$，先采样 $G$ 个回答，再得到 $G$ 个奖励 $\{r_{j,1}, \ldots, r_{j,G}\}$，然后计算这组奖励的均值：
-
-$$
-\bar r_j = \frac{1}{G} \sum_{i=1}^{G} r_{j,i}
-$$
-
-再计算这组奖励的标准差：
-
-$$
-s_j = \sqrt{\frac{1}{G} \sum_{i=1}^{G} (r_{j,i} - \bar r_j)^2}
-$$
-
-最后得到第 $i$ 个回答的组内优势：
+GRPO 的核心思路在这里兑现：对同一个问题 $x_j$，先采样 $G$ 个回答得到 $G$ 个奖励 $\{r_{j,1}, \ldots, r_{j,G}\}$，再做两步处理——**减均值替代 Critic，除标准差归一化尺度**。两步合起来得到组内优势：
 
 $$
 \hat A_{j,i} = \frac{r_{j,i} - \bar r_j}{s_j + \epsilon}
 $$
 
-这就是 GRPO 的核心公式。它读起来很朴素：
+其中 $\bar r_j = \frac{1}{G}\sum_i r_{j,i}$ 是组内均值，$s_j = \sqrt{\frac{1}{G}\sum_i (r_{j,i}-\bar r_j)^2}$ 是组内标准差，$\epsilon$ 是一个很小的数（如 $10^{-4}$），防止标准差为 0 时除以 0。下面两步推导把这个公式拆开看为什么是这个形式。
 
-- $r_{j,i} - \bar r_j$：这个回答比同题平均水平高多少。
-- 除以 $s_j + \epsilon$：把不同题目的奖励尺度拉到相近范围。
-- $\epsilon$：一个很小的数，防止标准差为 0 时除以 0。
-- $\hat A_{j,i} > 0$：这个回答比同组平均好，应该提高概率。
-- $\hat A_{j,i} < 0$：这个回答比同组平均差，应该降低概率。
-- $\hat A_{j,i} \approx 0$：这个回答和平均水平差不多，不需要太强更新。
+**第一步：减均值替代 Critic**。回顾 PPO 优势 $A_t = R - V_\phi(s_t)$，本质是"奖励减基线"。Critic 学的 $V_\phi(s_t)$ 就是对"在这个 prompt 下平均能拿多少分"的估计。**而组内均值 $\bar r_j$ 是这个估计的直接样本版本**——同一道题的 $G$ 个回答就是 $V(s_j)$ 的 $G$ 次蒙特卡洛采样，平均起来就是无偏估计。代换：
 
-如果同一组回答奖励全都一样，$s_j$ 会接近 0，代码会把优势设成 0。这表示这道题暂时没有可学习的差异：大家都对，或者大家都错，模型不知道该更偏向哪一个回答。
+$$
+\underbrace{R - V_\phi(s_t)}_{\text{PPO 优势}} \quad \longrightarrow \quad \underbrace{r_{j,i} - \bar r_j}_{\text{GRPO 优势（未归一化）}}
+$$
 
-这个公式做的事情和 Critic 很像——**减去均值就是"比平均好了多少"**。只不过 Critic 用一个单独的神经网络来预测基线 $V(s)$，而 GRPO 直接用同一组回答的实际得分均值 $\bar r_j$ 当基线。
+这一步保证了：$\hat A$ 的正负和"是否好于组平均"完全对齐；组内期望 $\mathbb{E}_i[r_{j,i} - \bar r_j] = 0$，与 Critic 基线的性质一致。
+
+**第二步：除标准差归一化尺度**。不同题目的奖励尺度差异巨大——简单题组内奖励可能在 $[1.0, 1.5]$ 之间波动（$\bar r = 1.2$, $s = 0.2$），难题组内可能在 $[0.0, 0.5]$ 之间波动（$\bar r = 0.2$, $s = 0.2$）。如果只减均值不除标准差，简单题和难题的梯度尺度相同——但简单题已经掌握了，不应该再主导梯度。除以 $s_j$ 把所有题目的优势尺度拉到接近 1：
+
+$$
+\text{Var}_i\left[\frac{r_{j,i} - \bar r_j}{s_j}\right] = \frac{\text{Var}_i[r_{j,i}]}{s_j^2} = \frac{s_j^2}{s_j^2} = 1
+$$
+
+在统计学里这个变换叫 **z-score 标准化**，几何含义是把每组奖励平移到原点、缩放到单位方差，让不同分布可以在同一坐标轴上比较。
+
+两步合起来读：$\hat A_{j,i} > 0$ 表示这个回答比同组平均好，应该提高概率；$\hat A_{j,i} < 0$ 表示比平均差，应该降低概率；$\hat A_{j,i} \approx 0$ 表示和平均差不多，不需要太强更新。这种"控制变量"式的组内比较也比跨样本的绝对评分更稳定——同一组内的回答共享相同的 prompt，唯一差异是模型生成的随机性。它也和人类偏好的本质对齐：判断本来就是"A 比 B 好"这种比较式的，不是"A 得 87 分"这种绝对的。
+
+### 边界情形与代码对应
+
+如果同一组回答奖励全都一样，$s_j$ 会接近 0，代码会把优势设成 0。这表示这道题暂时没有可学习的差异：大家都对，或者大家都错，模型不知道该更偏向哪一个回答。$\epsilon$ 的作用是避免 $0/0$ 的数值问题。
 
 代码里对应的是 **[C] 组内优势**：
 
@@ -307,16 +314,6 @@ $$
 - `group_std = grouped_rewards.std(dim=1, keepdim=True)`：计算每个 prompt 的 $s_j$。
 - `advantages = (grouped_rewards - group_mean) / (group_std + eps)`：实现 $\hat A_{j,i}$。
 - `torch.where(group_std < eps, 0, advantages)`：如果一组回答没有差异，就不给这组样本训练信号。
-
-### 组内归一化的三个好处
-
-组内归一化有效的原因有三个：
-
-**难度归一化**：不同题目的难度不同。简单题所有回答都正确（奖励均值很高），难题大部分回答都错误（奖励均值很低）。如果用绝对奖励，简单题的回答会获得更高的梯度信号，模型会把大部分精力花在简单题上。组内归一化消除了这种偏差——它只关注"这道题内部谁更好"，不受题目绝对难度的影响。
-
-**相对比较更稳定**：人类偏好本质上也是比较式的（"A 比 B 好"），不是绝对的（"A 得 87 分"）。GRPO 的组内比较和人类的判断方式天然一致。
-
-**方差更低**：同一组内的回答共享相同的 prompt，唯一的差异是模型生成的随机性。这种"控制变量"式的比较比跨样本的绝对评分更稳定。
 
 一句话总结：**GRPO = PPO 的裁剪机制 + 用组内排名替代 Critic**。下面两小节就把"PPO 的裁剪机制"完整展开。
 
@@ -378,13 +375,23 @@ $$
 \widehat D_{\text{KL}} = \exp(\Delta) - \Delta - 1, \qquad \Delta = \log \pi_{\text{ref}}(y \mid x) - \log \pi_\theta(y \mid x)
 $$
 
-这个近似有一个好性质：当 Policy 和 Reference 给出的 log probability 一样时，$\Delta = 0$，于是
+这个形式不是凭空选的，它满足三个关键性质。
+
+**性质一：逐样本非负**。令 $u = \exp(\Delta)$，则 $\widehat D_{\text{KL}} = u - \log u - 1 \circeq g(u)$。求导 $g'(u) = 1 - 1/u$、$g''(u) = 1/u^2 > 0$，所以 $g$ 是凸函数，在 $u = 1$（即 $\Delta = 0$）处取最小值 $g(1) = 0$。**任何 $\Delta \neq 0$ 都给出正值**——这避免了朴素估计 $-\Delta$ 在单样本上可能为负的麻烦。
+
+**性质二：是 $D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$ 的无偏估计**。注意 $\exp(\Delta) = \pi_{\text{ref}}/\pi_\theta$，所以 $\mathbb{E}_{y \sim \pi_\theta}[\exp(\Delta)] = \sum_y \pi_\theta(y) \cdot \pi_{\text{ref}}(y)/\pi_\theta(y) = 1$；而 $\mathbb{E}_{\pi_\theta}[\Delta] = -D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$。代回去：
 
 $$
-\exp(0) - 0 - 1 = 0
+\mathbb{E}_{\pi_\theta}[\widehat D_{\text{KL}}] = 1 - (-D_{\text{KL}}) - 1 = D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})
 $$
 
-也就是说，两个模型越接近，KL 惩罚越小；偏离越大，惩罚越大。
+**性质三：在小偏差处退化为二次型**。把 $\exp(\Delta)$ 在 $\Delta = 0$ 处 Taylor 展开：$\exp(\Delta) = 1 + \Delta + \Delta^2/2 + O(\Delta^3)$，所以
+
+$$
+\widehat D_{\text{KL}} = \exp(\Delta) - \Delta - 1 = \frac{\Delta^2}{2} + O(\Delta^3)
+$$
+
+**几何含义**：$\widehat D_{\text{KL}}$ 作为 $\Delta$ 的函数是一条 $U$ 形曲线，最低点在 $\Delta = 0$（Policy = Reference），开口由 $\Delta^2/2$ 主导。这正是"越偏离惩罚越大"在数学上的写照——而二次型主导意味着梯度在偏离小时温和、偏离大时变陡，避免一次性把策略推得太远。
 
 最后总损失可以写成：
 
@@ -461,7 +468,7 @@ flowchart TD
     style A2 fill:#fce4ec,stroke:#c62828
 ```
 
-## 9.3.2 GRPO 训练实验：GSM8K + 规则奖励
+## GRPO 训练实验：GSM8K + 规则奖励
 
 公式讲完后，看一次真实的 GRPO 训练。本节用一个最小可跑的实验：在 GSM8K 上用规则奖励训练 Qwen2.5-1.5B。
 
@@ -594,7 +601,7 @@ flowchart LR
     style A3 fill:#e8f5e9,stroke:#2e7d32
 ```
 
-## 9.3.3 实验对比与参数调优
+## 实验对比与参数调优
 
 ### 显存占用对比
 

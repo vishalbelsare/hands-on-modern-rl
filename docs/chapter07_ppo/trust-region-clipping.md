@@ -71,13 +71,25 @@ $$L^{\text{IS}}(\theta) = \mathbb{E}_t \left[ r_t(\theta) \cdot A_t \right]$$
 
 ## TRPO 与 KL 散度约束
 
-2015 年，Schulman 等人给出的方案是：**直接约束新旧策略之间的距离**。衡量两个概率分布距离的标准工具为 KL 散度，将其表述为硬约束：
+2015 年，Schulman 等人给出的方案是：**直接约束新旧策略之间的距离**。衡量两个概率分布差异的标准工具为 KL 散度（Kullback-Leibler divergence），将其表述为硬约束：
 
 $$\max_\theta \; \mathbb{E}_t \left[ r_t(\theta) \cdot A_t \right] \quad \text{s.t.} \quad \mathbb{E}_t \left[ D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta) \right] \leq \delta$$
 
-$\delta$ 通常取 0.01，即每次更新后策略的行为分布最多改变 1%。这定义了一个**信任域**（trust region）：策略可在域内自由变动，一旦越界则更新被拒绝。
+该优化问题包含两部分：左侧 $\max_\theta \; \mathbb{E}_t[r_t(\theta) \cdot A_t]$ 是待最大化的目标——即重要性采样目标，追求更高的累积优势；右侧 $\mathbb{E}_t[D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta)] \leq \delta$ 是必须满足的约束条件。其中 "s.t." 读作 "subject to"（受约束于）。
 
-代入示例。$\pi(a_1\mid s)$ 从 0.6 变至 0.99，KL 散度粗略估计在 0.5 以上，远超 $\delta = 0.01$。TRPO 在此情形下将直接拒绝该更新，并将策略拉回信任域内。
+KL 散度衡量两个概率分布的差异程度，其定义为：
+
+$$D_{\text{KL}}(P \| Q) = \sum_i P(i) \log \frac{P(i)}{Q(i)}$$
+
+当两个分布完全相同时，$D_{\text{KL}} = 0$；差异越大，$D_{\text{KL}}$ 越大（始终非负）。式中 $\pi_{\text{old}}$ 为更新前的旧策略，$\pi_\theta$ 为更新后的新策略，因此 $D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta)$ 衡量一次更新使策略分布改变的程度。约束条件要求这一改变量不超过 $\delta$。
+
+代入微型示例。$\pi_{\text{old}}(a_1) = 0.6$，$\pi_\theta(a_1) = 0.99$，则：
+
+$$D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta) = 0.6 \ln\frac{0.6}{0.99} + 0.4 \ln\frac{0.4}{0.01} \approx 0.6 \times (-0.50) + 0.4 \times 3.69 \approx 1.18$$
+
+结果约为 1.18，远超 $\delta = 0.01$。TRPO 在此情形下将直接拒绝该更新，并将策略拉回信任域内。
+
+$\delta$ 通常取 0.01，即每次更新后策略的行为分布最多改变 1%。这定义了一个**信任域**（trust region）：策略可在域内自由变动，一旦越界则更新被拒绝。
 
 理论上严谨，工程上却存在困难。求解该约束优化问题需要 Hessian 矩阵（参数的二阶导数）。对于百万参数规模的网络，Hessian 的维度为参数数量的平方，无法存入显存。在 LLM 场景中，策略本身是 70B 参数的语言模型，计算其 Hessian 完全不可行。TRPO 采用共轭梯度法进行近似，但仍然速度慢且实现复杂。**严格约束的代价是计算成本**。
 

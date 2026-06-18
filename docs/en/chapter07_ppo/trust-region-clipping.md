@@ -75,13 +75,25 @@ Importance sampling solves the data-reuse problem but provides no guarantee of s
 
 ## TRPO and a KL-Divergence Constraint
 
-In 2015, Schulman et al. proposed: **constrain the distance between the old and new policies directly**. The standard tool for measuring the distance between two distributions is KL divergence, written here as a hard constraint:
+In 2015, Schulman et al. proposed: **constrain the distance between the old and new policies directly**. The standard tool for measuring the difference between two probability distributions is KL divergence (Kullback-Leibler divergence), written here as a hard constraint:
 
 $$\max_\theta \; \mathbb{E}_t \left[ r_t(\theta) \cdot A_t \right] \quad \text{s.t.} \quad \mathbb{E}_t \left[ D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta) \right] \leq \delta$$
 
-$\delta$ is typically 0.01, meaning the policy's behavior distribution may change by at most 1% per update. This defines a **trust region**: the policy may move freely within it, but any update that crosses the boundary is rejected.
+This optimization problem has two parts: the left side $\max_\theta \; \mathbb{E}_t[r_t(\theta) \cdot A_t]$ is the objective to be maximized — the importance-sampled objective, pursuing higher cumulative advantage; the right side $\mathbb{E}_t[D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta)] \leq \delta$ is the constraint that must be satisfied. "s.t." reads "subject to."
 
-Substituting the example. Moving $\pi(a_1 \mid s)$ from 0.6 to 0.99 gives a KL divergence roughly 0.5 or higher, far exceeding $\delta = 0.01$. TRPO would reject this update outright and pull the policy back inside the trust region.
+KL divergence measures the difference between two probability distributions, defined as:
+
+$$D_{\text{KL}}(P \| Q) = \sum_i P(i) \log \frac{P(i)}{Q(i)}$$
+
+When the two distributions are identical, $D_{\text{KL}} = 0$; the greater the difference, the larger $D_{\text{KL}}$ (always non-negative). Here $\pi_{\text{old}}$ is the policy before the update and $\pi_\theta$ is the policy after, so $D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta)$ measures how much a single update changes the policy distribution. The constraint requires this change to not exceed $\delta$.
+
+Substituting the running example. With $\pi_{\text{old}}(a_1) = 0.6$ and $\pi_\theta(a_1) = 0.99$:
+
+$$D_{\text{KL}}(\pi_{\text{old}} \| \pi_\theta) = 0.6 \ln\frac{0.6}{0.99} + 0.4 \ln\frac{0.4}{0.01} \approx 0.6 \times (-0.50) + 0.4 \times 3.69 \approx 1.18$$
+
+The result is approximately 1.18, far exceeding $\delta = 0.01$. TRPO would reject this update outright and pull the policy back inside the trust region.
+
+$\delta$ is typically 0.01, meaning the policy's behavior distribution may change by at most 1% per update. This defines a **trust region**: the policy may move freely within it, but any update that crosses the boundary is rejected.
 
 Elegant in theory, but difficult in practice. Solving this constrained optimization requires the Hessian matrix (second derivatives of the parameters). For a network with millions of parameters, the Hessian's dimension is the square of the parameter count and cannot fit in memory. In the LLM setting, the policy itself is a 70B-parameter language model; computing its Hessian is entirely infeasible. TRPO approximates the solution via conjugate gradient, but it remains slow and complex to implement. **The cost of strict constraints is computational expense.**
 

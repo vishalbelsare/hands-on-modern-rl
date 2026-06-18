@@ -93,7 +93,7 @@ def compute_gae(rewards, values, dones, gamma=0.99, lam=0.95):
 
 ### 一句话记忆
 
-> **新策略 ÷ 旧策略 = 比值；比值超 $[1-\epsilon, 1+\epsilon]$ 就截断，对截断前后的目标取小。**
+> **比值 $r_t=\pi_{new}/\pi_{old}$，clip 到 $[1-\epsilon, 1+\epsilon]$；原始与裁剪两个 surrogate 取 min——只信更保守的那个。**
 
 $$L^{CLIP} = -\min\big(r_t(\theta) \cdot A_t,\;\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \cdot A_t\big)$$
 
@@ -157,7 +157,7 @@ def ppo_policy_loss(new_logps, old_logps, advantages, clip_eps=0.2):
 
 ### 一句话记忆
 
-> **预测离回报多远，平方取平均；可选 value clipping：预测别离旧预测太远。**
+> **$(V_{pred} - R)^2$ 求均值；可选 clip：预测别离旧预测超过 $\epsilon$。**
 
 ### 伪代码
 

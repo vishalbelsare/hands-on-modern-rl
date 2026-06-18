@@ -65,7 +65,7 @@ def sample_with_temperature(logits, temperature=1.0):
 
 ### 一句话记忆
 
-> **保留概率最高的 k 个，其余设 -inf，重新归一化后采样。**
+> **只留前 k 个 logit，其余设 $-\infty$，softmax 自动重归一化后采样。**
 
 ### 伪代码
 
@@ -123,7 +123,7 @@ def top_k_sample(logits, k, temperature=1.0):
 
 ### 一句话记忆
 
-> **按概率降序排，累加到 p 就停，只从这群高概率 token 里采样。**
+> **按概率降序排，累加到 p 就停，剩下的设 $-\infty$。**
 
 ### 伪代码
 

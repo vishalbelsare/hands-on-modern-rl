@@ -16,7 +16,7 @@ title: C.1 SFT and KL
 
 ### One-Line Memory
 
-> Position $t$ predicts $t+1$: cut the tail of logits, cut the head of labels; compute cross-entropy only where `label != -100`.
+> Cut the tail of logits, the head of labels: position $t$ predicts $t+1$. Mask prompt positions with `-100` so they don't enter the loss.
 
 ### Pseudocode
 
@@ -92,7 +92,7 @@ def sft_loss(logits, labels, ignore_index=-100):
 
 ### One-Line Memory
 
-> k1 = mean(log p − log q), direct but can be negative with few samples; k3 = mean(exp(ref−cur) − 1 − (ref−cur)), always nonnegative, ratio direction is $q/p$.
+> k1: `mean(log_p − log_q)`, simple and unbiased but can go negative; k3: `mean(exp(Δ) − 1 − Δ)`, $\Delta=\log\frac{q}{p}$, always nonnegative.
 
 ### Pseudocode
 

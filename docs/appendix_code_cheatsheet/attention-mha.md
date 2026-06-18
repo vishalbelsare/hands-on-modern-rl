@@ -97,7 +97,7 @@ def causal_mask(seq_len):
 
 ### 一句话记忆
 
-> **总维度切 h 份，每份单独做 attention，最后 concat 过线性层。**
+> **总维度切 h 份，每份独立做 attention，concat 后过 $W_O$。**
 
 ### 伪代码
 
@@ -166,9 +166,7 @@ class MultiHeadAttention(nn.Module):
 
 ### 一句话记忆
 
-- **MQA**：所有 Q 头共用**同一组** K/V。最省显存，但可能掉点。
-- **GQA**：Q 头分 $g$ 组，组内共用 K/V。省显存又不至于太笨。
-- **MQA 是 GQA 的特例**（$n_{kv\_heads}=1$）。
+> **MQA：所有 Q 头共用一组 K/V（最省）；GQA：分 $g$ 组共用（折中）；MQA 是 $g=1$ 的 GQA。**
 
 ### PyTorch 实现（GQA）
 

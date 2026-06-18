@@ -101,7 +101,7 @@ def causal_mask(seq_len):
 
 ### One-Line Memory
 
-> Slice the total dimension into h slices; each slice runs attention on its own; finally concat them back and pass through a linear layer.
+> Slice the total dimension into h pieces; each runs attention on its own; concat, then project through $W_O$.
 
 ### Pseudocode
 
@@ -170,9 +170,7 @@ class MultiHeadAttention(nn.Module):
 
 ### One-Line Memory
 
-- **MQA**: all Q heads share the **same** set of K/V. Smallest cache, but quality may drop.
-- **GQA**: split Q heads into $g$ groups; each group shares one set of K/V. Saves cache without dumbing down too much.
-- **MQA is a special case of GQA** ($n_{kv\_heads}=1$).
+> **MQA**: all Q heads share one set of K/V (smallest cache); **GQA**: split into $g$ groups sharing (middle ground); MQA is GQA with $g=1$.
 
 ### PyTorch Implementation (GQA)
 

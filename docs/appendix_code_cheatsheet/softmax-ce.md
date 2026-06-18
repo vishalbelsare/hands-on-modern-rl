@@ -73,7 +73,7 @@ $$
 
 ### 一句话记忆
 
-> **算 log(softmax) 别分两步——直接 log-sum-exp，把 max 提出来。**
+> **别先 softmax 再 log——$\log\text{softmax}_i = x_i - \text{LSE}(x)$，LSE 内部减 max 防溢出。**
 
 ### Python 实现
 
@@ -116,7 +116,7 @@ $$
 
 ### 一句话记忆
 
-> **取目标位置的 log 概率，取负、求平均。**
+> **`-log_softmax(logits)[target].mean()`——一步到位。**
 
 ### 伪代码
 

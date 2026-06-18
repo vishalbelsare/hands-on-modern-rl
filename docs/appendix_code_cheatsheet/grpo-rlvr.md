@@ -16,7 +16,7 @@
 
 ### 一句话记忆
 
-> **同一 prompt 采 G 条，组内 reward 做 z-score 当 advantage；其余照抄 PPO（clipped loss + KL），砍掉 Critic。**
+> **同 prompt 采 G 条，组内 reward 做 z-score 当 advantage；抄 PPO 的 clip 和 KL，砍掉 Critic。**
 
 ### 伪代码
 
@@ -117,7 +117,7 @@ def grpo_loss(log_probs, old_log_probs, ref_log_probs,
 
 ### 一句话记忆
 
-> **让 RM 给好回答打分比坏回答高，一行：`-log_sigmoid(r_chosen - r_rejected)`。**
+> **让好分高于坏分：`-log_sigmoid(r_chosen - r_rejected)`，一行完事。**
 
 ### 伪代码
 

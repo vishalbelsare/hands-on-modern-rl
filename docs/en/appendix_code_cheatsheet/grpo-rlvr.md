@@ -20,7 +20,7 @@ title: C.4 GRPO and Reward Models
 
 ### One-Line Memory
 
-> Sample G answers per prompt; z-score the rewards within each group as the advantage; copy PPO from there (clipped loss + KL); no critic.
+> Sample G answers per prompt; z-score the rewards within each group as the advantage; copy PPO's clip and KL; drop the critic.
 
 ### Pseudocode
 
@@ -121,7 +121,7 @@ def grpo_loss(log_probs, old_log_probs, ref_log_probs,
 
 ### One-Line Memory
 
-> Make the RM score good answers higher than bad ones; one line: `-log_sigmoid(r_chosen - r_rejected)`.
+> Make good scores beat bad ones: `-log_sigmoid(r_chosen - r_rejected)`, one line, done.
 
 ### Pseudocode
 

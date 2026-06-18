@@ -83,7 +83,7 @@ def dpo_loss(policy_chosen_logps, policy_rejected_logps,
 
 ### One-Line Memory
 
-> **Swap DPO's $-\log\sigma$ for a squared loss: drive the chosen-minus-rejected advantage toward the fixed target $\frac{1}{2\beta}$, no saturation.**
+> **Swap DPO's $-\log\sigma$ for $(\Delta - \frac{1}{2\beta})^2$ — no saturation, the target becomes a fixed point.**
 
 $$\mathcal{L}_{IPO} = \Big(\Delta - \frac{1}{2\beta}\Big)^2, \quad \Delta = \log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}$$
 
@@ -116,7 +116,7 @@ def ipo_loss(log_ratio_w, log_ratio_l, beta=0.1):
 
 ### One-Line Memory
 
-> **No pairing needed. Push desirable samples' log-ratio above $z_{ref}$, push undesirable below; each through its own sigmoid.**
+> **No pairing needed: push desirable $\beta\log r$ above $z_{ref}$, push undesirable below; each through $-\log\sigma$.**
 
 ### Pseudocode
 
@@ -165,7 +165,7 @@ def kto_loss(log_ratio, is_desirable, z_ref=0.0,
 
 ### One-Line Memory
 
-> **DPO without a reference model. Divide log-prob by response length, then subtract a margin $\gamma$.**
+> **DPO without a ref: log-prob divided by response length, chosen minus rejected, scale by β, subtract margin $\gamma$.**
 
 ### Pseudocode
 

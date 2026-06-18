@@ -12,7 +12,7 @@
 
 ### 一句话记忆
 
-> **位置 $t$ 预测 $t+1$：logits 砍尾、labels 砍头；只在 `label != -100` 上算交叉熵。**
+> **logits 砍尾、labels 砍头：位置 $t$ 预测 $t+1$；prompt 标 `-100`，不进 loss。**
 
 ### 伪代码
 
@@ -88,7 +88,7 @@ def sft_loss(logits, labels, ignore_index=-100):
 
 ### 一句话记忆
 
-> **k1 = mean(log p − log q)，直接但样本少时可能为负；k3 = mean(exp(ref−cur) − 1 − (ref−cur))，恒非负，ratio 方向是 $q/p$。**
+> **k1：`mean(log_p − log_q)`，简单无偏但能负；k3：`mean(exp(Δ) − 1 − Δ)`，$\Delta=\log\frac{q}{p}$，恒非负。**
 
 ### 伪代码
 

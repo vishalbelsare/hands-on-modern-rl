@@ -79,7 +79,7 @@ $$
 
 ### One-Line Memory
 
-> Don't compute log(softmax) in two steps — use log-sum-exp and factor out the max.
+> Don't softmax then log — $\log\text{softmax}_i = x_i - \text{LSE}(x)$, with max subtracted inside LSE to avoid overflow.
 
 ### Python Implementation
 
@@ -124,7 +124,7 @@ $$
 
 ### One-Line Memory
 
-> Pick the log-probability at the target position, negate it, average.
+> `-log_softmax(logits)[target].mean()` — one step.
 
 ### Pseudocode
 

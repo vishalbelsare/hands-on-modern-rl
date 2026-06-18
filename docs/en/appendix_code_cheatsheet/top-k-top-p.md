@@ -69,7 +69,7 @@ def sample_with_temperature(logits, temperature=1.0):
 
 ### One-Line Memory
 
-> Keep the k most likely tokens; set the rest to -inf; re-normalize and sample.
+> Keep the top k logits, set the rest to $-\infty$, softmax re-normalizes automatically.
 
 ### Pseudocode
 
@@ -127,7 +127,7 @@ def top_k_sample(logits, k, temperature=1.0):
 
 ### One-Line Memory
 
-> Sort by probability descending; accumulate until the running total reaches p; sample only from that group.
+> Sort by probability descending, accumulate until the running total reaches p, mask the rest with $-\infty$.
 
 ### Pseudocode
 

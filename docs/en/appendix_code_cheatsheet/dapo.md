@@ -22,7 +22,7 @@ GRPO training of long-chain reasoning models hits four issues: symmetric clippin
 
 ## One-Line Memory
 
-> **Four cuts on GRPO: decouple the upper/lower clip ε, drop all-correct/all-wrong prompts, flatten the loss to token level, and softly dock overlong answers proportionally.**
+> **Four cuts: clip with asymmetric ε (upper vs lower), drop all-correct/all-wrong prompts, flatten loss to token level, soft linear penalty for overlong answers.**
 
 ---
 
@@ -45,7 +45,7 @@ Symmetric clipping `clip(r, 1-ε, 1+ε)` uses the same ε on both sides. But goo
 
 ### One-Line Memory
 
-> **Loosen the upper bound $\varepsilon_{high}$ for positive advantages, keep the lower bound $\varepsilon_{low}$ for negative ones; the formula is still PPO's min-clipped, just with asymmetric clip bounds.**
+> **Same min-clipped as PPO, but with asymmetric $\varepsilon$: wide upper $\varepsilon_{high}$, tight lower $\varepsilon_{low}$.**
 
 ### Pseudocode
 
@@ -109,7 +109,7 @@ GRPO's advantage is a within-group z-score. If all G completions under one promp
 
 ### One-Line Memory
 
-> **Within-group reward variance 0 (all correct or all wrong) → no discrimination → skip this prompt and keep sampling to fill the batch.**
+> **Within-group reward variance 0 (all correct / all wrong) → no gradient signal → skip and keep sampling to fill the batch.**
 
 ### Pseudocode
 
@@ -143,7 +143,7 @@ GRPO aggregates loss at sequence level: first average tokens within each sequenc
 
 ### One-Line Memory
 
-> **Don't average within sequences first — flatten all tokens, sum and divide by total token count, long answers are not discounted.**
+> **Don't average within sequences first — flatten all tokens, sum and divide by total count; long answers aren't under-weighted.**
 
 ### Pseudocode
 
@@ -180,7 +180,7 @@ GRPO zeroes the reward of any answer exceeding the max length, leaving no gradie
 
 ### One-Line Memory
 
-> **Past the soft threshold (max_len - buffer_len) deduct linearly by overflow ratio, cap at -penalty_factor, no binary zeroing.**
+> **Past `max_len − buffer_len`, deduct linearly by overflow ratio, cap at `-penalty_factor` — no binary zeroing.**
 
 ### Pseudocode
 

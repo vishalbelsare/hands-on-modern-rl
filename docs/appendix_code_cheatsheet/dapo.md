@@ -18,7 +18,7 @@ GRPO 训练长链推理模型时遇到四个问题：对称裁剪把好动作的
 
 ## 一句话记忆
 
-> **GRPO 四处动刀：裁剪解耦上下 ε、全对全错全扔掉、loss 拉平到 token 级、超长按比例慢慢扣。**
+> **四刀：clip 上下用不同 ε、全对/全错的 prompt 跳过、loss 拉平 token 级、超长线性软扣。**
 
 ---
 
@@ -41,7 +41,7 @@ GRPO 训练长链推理模型时遇到四个问题：对称裁剪把好动作的
 
 ### 一句话记忆
 
-> **正方向上界放宽 $\varepsilon_{high}$，负方向下界保留 $\varepsilon_{low}$；公式还是 PPO 的 min-clipped，只是 clip 上下用不同 $\varepsilon$。**
+> **PPO 同款 min-clipped，但上下用不同 $\varepsilon$：上界 $\varepsilon_{high}$ 宽、下界 $\varepsilon_{low}$ 紧。**
 
 ### 伪代码
 
@@ -105,7 +105,7 @@ GRPO 的 advantage 是组内 z-score。若某 prompt 下 G 条回答全对或全
 
 ### 一句话记忆
 
-> **组内 reward 方差为 0（全对或全错）→ 没区分度 → 跳过这个题，继续采到填满 batch。**
+> **组内 reward 方差为 0（全对/全错）→ 没梯度信号 → 跳过，继续采到填满 batch。**
 
 ### 伪代码
 
@@ -139,7 +139,7 @@ GRPO 默认按序列级聚合 loss：先对每条回答的 token 求平均得到
 
 ### 一句话记忆
 
-> **别先序列内求平均——所有 token 拉平，求和除以总 token 数，长回答不被打折。**
+> **别先 seq-mean——所有 token 拉平求和除以总数，长回答不被压低。**
 
 ### 伪代码
 
@@ -176,7 +176,7 @@ GRPO 对超过最大长度的回答一刀切置零，边界处无梯度信号—
 
 ### 一句话记忆
 
-> **超出软阈值（max_len - buffer_len）后按超出比例线性扣，扣到 -penalty_factor 封顶，不一刀切零。**
+> **超过 `max_len − buffer_len` 后按比例线性扣，`-penalty_factor` 封顶——不一刀切零。**
 
 ### 伪代码
 

@@ -97,7 +97,7 @@ def compute_gae(rewards, values, dones, gamma=0.99, lam=0.95):
 
 ### One-Line Memory
 
-> New policy / old policy = ratio. If the ratio leaves $[1-\epsilon, 1+\epsilon]$, clip it; take the smaller of the two surrogate targets.
+> Ratio $r_t = \pi_{new}/\pi_{old}$, clipped to $[1-\epsilon, 1+\epsilon]$; take min of the raw and clipped surrogate — trust only the more conservative one.
 
 $$L^{CLIP} = -\min\big(r_t(\theta) \cdot A_t,\;\text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \cdot A_t\big)$$
 
@@ -161,7 +161,7 @@ def ppo_policy_loss(new_logps, old_logps, advantages, clip_eps=0.2):
 
 ### One-Line Memory
 
-> How far the prediction is from the return: square and average. Optional value clipping: don't let the new prediction stray from the old one.
+> $(V_{pred} - R)^2$ averaged; optional clip: don't let the new prediction stray past $\epsilon$ from the old one.
 
 ### Pseudocode
 

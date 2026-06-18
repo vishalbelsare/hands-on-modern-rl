@@ -8,63 +8,65 @@ title: C.4 GRPO and Reward Models
 
 ## GRPO Loss
 
+**Core problem**: PPO requires training a critic as large as the policy itself to estimate $V(s)$ as a baseline. GRPO exploits the natural control group formed by sampling $G$ answers per prompt — it uses the within-group reward normalization directly as the advantage, removing the critic.
+
+**Core variables**:
+
+- `rewards`: rewards of $G$ completions for the same prompt (from RM or rule verifier), shape `[G]`
+- `advantages`: within-group normalized advantages, $A_i = (r_i - \bar r)/\mathrm{std}(r)$
+- `old_log_probs` / `new_log_probs`: log-probs of completions under sampling policy and current policy
+- `ref_log_probs`: log-probs under the reference policy, used for KL penalty
+- `clip_eps`, `kl_coeff`: same hyperparameters as PPO
+
 ### One-Line Memory
 
-> Sample G answers for one prompt; z-score the rewards within each group as the advantage; copy PPO from there (clipped loss + KL); no critic.
+> Sample G answers per prompt; z-score the rewards within each group as the advantage; copy PPO from there (clipped loss + KL); no critic.
 
 ### Pseudocode
 
 ```
-# Step 1: for one prompt, let the model generate G completions
-completions = [generate(prompt) for _ in range(G)]
+# Step 1: sample G completions for one prompt, score each
+rewards = [reward_fn(generate(prompt)) for _ in range(G)]   # [G]
 
-# Step 2: score every completion
-rewards = [reward_fn(c) for c in completions]   # [G]
+# Step 2: within-group normalization (subtract mean, divide by std) -> advantage
+advantages = (rewards - mean(rewards)) / (std(rewards) + eps)
 
-# Step 3: normalize inside the group (subtract mean, divide by std) -> treat as the advantage
-advantages = (rewards - mean(rewards)) / (std(rewards) + eps)  # [G]
-
-# Step 4: PPO clipped loss (advantage comes from step 3, not a critic)
+# Step 3: PPO clipped loss (advantage comes from step 2, not a critic)
 ratio = exp(new_logp - old_logp)
 surr1 = ratio * advantages
 surr2 = clip(ratio, 1-eps, 1+eps) * advantages
 policy_loss = -min(surr1, surr2).mean()
 
-# Step 5: add a KL penalty (pull back, don't drift too far from the reference model)
-kl = kl_penalty(log_probs, ref_log_probs)
+# Step 4: k3 KL penalty (pull back, don't drift too far from reference)
+log_ratio = ref_logp - new_logp
+kl = (exp(log_ratio) - 1 - log_ratio).mean()
 
-# Step 6: total loss
+# Step 5: total loss
 loss = policy_loss + kl_coeff * kl
 ```
 
-### What To Say In An Interview
+### PPO vs GRPO
 
-GRPO stands for **G**roup **R**elative **P**olicy **O**ptimization. Compared to PPO:
-
-|                              | PPO                                              | GRPO                                         |
-| ---------------------------- | ------------------------------------------------ | -------------------------------------------- |
-| Where advantages come from   | critic value $V(s)$ + GAE                        | group-wise normalized rewards                |
-| How many models are involved | often 4 (actor, critic, reference, reward model) | often 2-3 (actor, reference, RM or verifier) |
-| KL penalty                   | optional                                         | almost always used                           |
-| Sampling style               | single rollout per prompt                        | $G$ samples for the same prompt              |
-
-Mnemonic: "PPO without the critic; replace advantages with group-wise z-score; everything else is basically copied."
+|                  | PPO                        | GRPO                              |
+| ---------------- | -------------------------- | --------------------------------- |
+| Advantage source | Critic $V(s)$ + GAE        | within-group reward normalization |
+| Number of models | 4 (actor, critic, ref, rm) | 2~3 (actor, ref, rm/verifier)     |
+| KL penalty       | optional                   | almost always used                |
+| Sampling         | single rollout per prompt  | $G$ samples per prompt            |
 
 ### Python (NumPy) Implementation
 
 ```python
 import numpy as np
 
-
 def grpo_advantages(rewards):
     """
-    rewards: [num_prompts, G]
-    returns: [num_prompts, G] z-scored within each prompt group
+    rewards: [num_prompts, G]  rewards of G completions per prompt
+    returns within-group z-score normalized advantages
     """
     mean = rewards.mean(axis=1, keepdims=True)
     std = rewards.std(axis=1, keepdims=True)
     return (rewards - mean) / (std + 1e-8)
-
 
 def grpo_policy_loss(new_logps, old_logps, advantages, clip_eps=0.2):
     """Identical to PPO's clipped surrogate loss."""
@@ -78,44 +80,29 @@ def grpo_policy_loss(new_logps, old_logps, advantages, clip_eps=0.2):
 
 ```python
 import torch
+import torch.nn.functional as F
 
-
-def grpo_loss(
-    log_probs,
-    old_log_probs,
-    ref_log_probs,
-    rewards,
-    clip_eps=0.2,
-    kl_coeff=0.05,
-):
+def grpo_loss(log_probs, old_log_probs, ref_log_probs,
+              rewards, clip_eps=0.2, kl_coeff=0.05):
     """
-    log_probs:     [B, G, seq_len] current policy
-    old_log_probs: [B, G, seq_len] behavior policy (used during sampling)
-    ref_log_probs: [B, G, seq_len] reference policy
-    rewards:       [B, G]          group-wise rewards
-
-    B = number of prompts, G = group size
+    log_probs:     [B, G]  current policy's per-completion sequence-level log_prob
+    old_log_probs: [B, G]  behavior policy (used during sampling)
+    ref_log_probs: [B, G]  reference policy
+    rewards:       [B, G]  group rewards
+    B = num_prompts, G = group_size
     """
-    B, G = rewards.shape
+    # 1. Within-group normalization (grouped by prompt)
+    advantages = (rewards - rewards.mean(dim=1, keepdim=True)) \
+                 / (rewards.std(dim=1, keepdim=True) + 1e-8)   # [B, G]
 
-    # 1) Group-wise normalization
-    advantages = (rewards - rewards.mean(dim=1, keepdim=True)) / (rewards.std(dim=1, keepdim=True) + 1e-8)
-    advantages = advantages.unsqueeze(-1)  # [B, G, 1], broadcast over seq_len if needed
-
-    # 2) Sequence-level log-prob sums (one per completion)
-    seq_logp = log_probs.sum(dim=-1)  # [B, G]
-    seq_old = old_log_probs.sum(dim=-1)
-    seq_ref = ref_log_probs.sum(dim=-1)
-
-    # 3) Clipped policy loss
-    ratio = torch.exp(seq_logp - seq_old)
-    adv = advantages.squeeze(-1)  # [B, G]
-    surr1 = ratio * adv
-    surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * adv
+    # 2. Clipped policy loss (identical to PPO)
+    ratio = torch.exp(log_probs - old_log_probs)
+    surr1 = ratio * advantages
+    surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * advantages
     policy_loss = -torch.min(surr1, surr2).mean()
 
-    # 4) KL penalty (k3 estimator: r = π_ref / π_θ, samples from π_θ)
-    log_ratio = seq_ref - seq_logp
+    # 3. KL penalty (k3 estimator: log_ratio = log(π_ref/π_θ), samples from π_θ)
+    log_ratio = ref_log_probs - log_probs
     kl = (torch.exp(log_ratio) - 1 - log_ratio).mean()
 
     return policy_loss + kl_coeff * kl
@@ -125,40 +112,35 @@ def grpo_loss(
 
 ## Reward Model (Bradley-Terry)
 
+**Core problem**: RLHF-PPO needs a scalar reward $r \in \mathbb{R}$ to drive policy optimization, but human preferences only provide relative ordering ("A is better than B"). The RM compresses preference pairs into absolute scores, maximizing the probability that good answers score higher than bad ones.
+
+**Core variables**:
+
+- `r_chosen` / `r_rejected`: scalar scores the RM assigns to the good / bad answer
+- Bradley-Terry assumption: $P(y_w \succ y_l) = \sigma(r_w - r_l)$, preference probability is proportional to the sigmoid of the score difference
+
 ### One-Line Memory
 
-> Train the reward model to score good answers higher than bad ones. One line: `-log_sigmoid(r_chosen - r_rejected)`.
+> Make the RM score good answers higher than bad ones; one line: `-log_sigmoid(r_chosen - r_rejected)`.
 
 ### Pseudocode
 
 ```
-# Step 1: reward model scores both answers
-r_w = reward_model(chosen_input)      # score for the good answer
-r_l = reward_model(rejected_input)    # score for the bad answer
+# Step 1: the RM assigns a scalar score to each answer
+r_w = reward_model(chosen_input)     # score for the good answer
+r_l = reward_model(rejected_input)   # score for the bad answer
 
-# Step 2: we want the good score higher than the bad one; sigmoid + negative log
+# Step 2: we want r_w > r_l; sigmoid the diff and take the negative log
 loss = -log(sigmoid(r_w - r_l))
 ```
-
-### Intuition
-
-The Bradley-Terry model assumes the probability that humans prefer $y_w$ over $y_l$ is:
-
-$$P(y_w \succ y_l) = \sigma(r(x, y_w) - r(x, y_l))$$
-
-Maximizing the log probability is equivalent to minimizing `-log_sigmoid(diff)`.
-
-Mnemonic: "Reward model training is pairwise cross-entropy."
 
 ### Python (NumPy) Implementation
 
 ```python
 import numpy as np
 
-
 def log_sigmoid(x):
-    return -np.logaddexp(0, -x)
-
+    return -np.logaddexp(0, -x)   # numerically stable log σ(x)
 
 def reward_model_loss(r_chosen, r_rejected):
     """r_chosen, r_rejected: [B]"""
@@ -170,42 +152,37 @@ def reward_model_loss(r_chosen, r_rejected):
 ```python
 import torch.nn.functional as F
 
-
 def reward_model_loss(r_chosen, r_rejected):
     """
-    r_chosen:   [B] reward scores for chosen
-    r_rejected: [B] reward scores for rejected
+    r_chosen:   [B]  RM score for chosen
+    r_rejected: [B]  RM score for rejected
     """
     return -F.logsigmoid(r_chosen - r_rejected).mean()
 ```
 
 ---
 
-## Interview Follow-Up: DPO vs RLHF-PPO
+## Interview Follow-Up: GRPO, PPO-RLHF, and RLVR
 
-Interviewers often ask: "What are the pros/cons of DPO compared to PPO-based RLHF?" This table is a good answer:
+|                  | PPO-RLHF     | GRPO                       | RLVR                       |
+| ---------------- | ------------ | -------------------------- | -------------------------- |
+| Advantage source | Critic + GAE | within-group normalization | within-group normalization |
+| Critic           | required     | not needed                 | not needed                 |
+| Reward source    | trained RM   | RM or verifier             | rule verifier (math/code)  |
+| Online sampling  | required     | required (G per prompt)    | required (G per prompt)    |
 
-| Dimension               | PPO-RLHF                      | DPO                                |
-| ----------------------- | ----------------------------- | ---------------------------------- |
-| Needs a reward model    | yes                           | no (implicit)                      |
-| Needs a critic          | yes                           | no                                 |
-| Needs a reference model | optional                      | required                           |
-| Online vs offline       | online (requires sampling)    | offline (preference data only)     |
-| Training cost           | high (often 4 models)         | lower (often 2 models)             |
-| Reward hacking risk     | present (RM can be exploited) | lower (no explicit RM in training) |
-| Theoretical optimum     | stronger (can keep exploring) | limited by offline data quality    |
-| Best-fit use case       | large-scale online training   | when preference data is abundant   |
+RLVR is a special case of GRPO: rewards do not come from a learned RM but from rule-based verification of the answer (math answer equality, code test pass), so there is no reward hacking risk.
 
 ---
 
 ## Common Pitfalls
 
-| Pitfall                                           | Explanation                                                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| GRPO advantages are group-wise                    | Not global normalization. Compare only the $G$ completions from the **same prompt**.                    |
-| No value loss in GRPO                             | There is no critic, so there is no value loss. That is the key difference from PPO.                     |
-| Reward model must be frozen during policy updates | When training the RM, you backprop through it; when training the policy, RM is usually frozen.          |
-| KL is sequence-level in practice                  | Commonly compute KL after summing token log-probs over the completion, not per-token.                   |
-| DPO implicitly learns a reward difference         | `log_ratio_w - log_ratio_l` acts like an implicit reward delta.                                         |
-| Choosing $G$                                      | Typical range is 4-16. Too small gives noisy advantages; too large increases sampling cost.             |
-| RLVR case                                         | Rewards may come from a rule-based verifier (code execution, math answer check), not from a learned RM. |
+| Pitfall                                 | Explanation                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| GRPO advantage is within-group          | Not global normalization; only compare the $G$ completions of the **same prompt**                             |
+| GRPO has no value loss                  | No critic means no value loss — the core difference from PPO                                                  |
+| Two normalizer variants exist           | Most implementations use std (z-score); some use only `rewards - mean` (no std). Note the difference          |
+| RM must be frozen during policy updates | When training the RM, rewards are differentiable; when training the policy, the RM is usually detached/frozen |
+| KL is sequence-level                    | Typically sum token log-probs per completion first, then compute KL — not per token                           |
+| Direction of the k3 KL estimator        | `log_ratio = log(π_ref/π_θ)`, samples drawn from the current policy $\pi_\theta$                              |
+| RLVR case                               | Rewards come from a rule verifier (code execution, math answer check), not from RM                            |

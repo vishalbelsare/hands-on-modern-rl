@@ -1,64 +1,33 @@
 # C.3 DPO 及其变体
 
-DPO Loss 是后训练岗位面试中考查频率**最高**的手写代码题。几乎每场面试都会考。
+DPO Loss 是后训练岗位面试中考查频率**最高**的手写代码题，几乎每场都会考。本节给出 DPO、IPO、KTO、SimPO 四个变体的速记。
 
 ---
 
 ## DPO Loss
 
-**核心问题**：把 RLHF 的"训练 reward model + PPO"流程绕开，直接用偏好对 $(y_w, y_l)$ 监督微调策略，等价于在隐式 reward 上做最大化，但无需在线采样和 critic。
+**核心问题**：绕开 RLHF 中"训 reward model + PPO"的整套流程，直接用偏好对 $(y_w, y_l)$ 监督微调策略，等价于在隐式 reward 上做 Bradley-Terry 最大似然，无需在线采样和 critic。
 
 **核心变量**：
 
 - `pi_chosen` / `pi_rejected`：当前策略 $\pi_\theta$ 对好/坏回答的 log 概率
-- `ref_chosen` / `ref_rejected`：参考策略 $\pi_{ref}$ 对好/坏回答的 log 概率
-- `log_ratio_w` / `log_ratio_l`：$\log(\pi_\theta/\pi_{ref})$，每个回答的"对数几率比"
-- `beta`（$\beta$）：KL 正则强度，控制策略别偏离参考太远
+- `ref_chosen` / `ref_rejected`：参考策略 $\pi_{ref}$ 对好/坏回答的 log 概率（需 `detach`）
+- `log_ratio_w` / `log_ratio_l`：$\log\frac{\pi_\theta}{\pi_{ref}}$，每个回答的隐式奖励（除以 $\beta$）
+- `beta`（$\beta$）：温度，控制策略偏离 reference 的强度；越大越敏感，典型 0.1~0.5
 
 ### 一句话记忆
 
-> **4 个 log 概率（2 模型 × 2 回答）：每个算"当前 − 参考"，好回答的比值减坏回答的比值，乘 β 过 sigmoid 取负 log。**
+> **4 条 log-prob（2 模型 × 2 回答），每条算"当前 − 参考"，好减坏，乘 β，过 sigmoid 取负 log。**
 
-$$\mathcal{L}_{DPO} = -\mathbb{E}\Big[\log\sigma\Big(\beta\big(\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}\big)\Big)\Big]$$
+$$\mathcal{L}_{DPO} = -\mathbb{E}\Big[\log\sigma\Big(\beta\Big(\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}\Big)\Big)\Big]$$
 
 ### 伪代码
 
 ```
-# 第 1 步：拿 4 条 log 概率 —— 两个模型 × 两个回答
-pi_chosen   = log_pi_theta(y_w | x)        # 当前模型对好回答
-pi_rejected = log_pi_theta(y_l | x)        # 当前模型对坏回答
-ref_chosen  = log_pi_ref(y_w | x)          # 参考模型对好回答
-ref_rejected = log_pi_ref(y_l | x)         # 参考模型对坏回答
-
-# 第 2 步：每个回答算"当前 vs 参考"的对数比
-log_ratio_w = pi_chosen  - ref_chosen      # 好回答：当前比参考高多少
-log_ratio_l = pi_rejected - ref_rejected   # 坏回答：当前比参考高多少
-
-# 第 3 步：希望好回答的比值比坏回答高，过 sigmoid 取负对数
-loss = -log_sigmoid(beta * (log_ratio_w - log_ratio_l))
-```
-
-### 记忆方法
-
-四步拆解法：
-
-1. **两个模型**：当前策略 $\pi_\theta$ 和参考策略 $\pi_{ref}$
-2. **两个样本**：chosen（$y_w$）和 rejected（$y_l$）
-3. **两两做差**：每个样本算 $\log\frac{\pi_\theta}{\pi_{ref}}$，这是"对数几率比"
-4. **chosen 减 rejected**：鼓励 chosen 的几率比高于 rejected
-
-口诀：**"四条 logprob，先减 ref 再减对，乘 beta 过 sigmoid，取负号"**
-
-面试画图法：
-
-```
-π_θ(chosen)  ──┐
-               ├── 差1 = log_θ_w - log_ref_w
-π_ref(chosen) ─┘
-                    差1 - 差2 → β × → sigmoid → -log
-π_θ(rej)     ──┐
-               ├── 差2 = log_θ_l - log_ref_l
-π_ref(rej)   ─┘
+log_ratio_w = log_pi_theta(y_w|x) - log_pi_ref(y_w|x)   # 好回答的隐式奖励
+log_ratio_l = log_pi_theta(y_l|x) - log_pi_ref(y_l|x)   # 坏回答的隐式奖励
+logits      = beta * (log_ratio_w - log_ratio_l)        # 好坏优势 × 温度
+loss        = -log_sigmoid(logits)                       # 最大化优势 → 等价 BT 似然
 ```
 
 ### Python 实现
@@ -66,24 +35,19 @@ loss = -log_sigmoid(beta * (log_ratio_w - log_ratio_l))
 ```python
 import numpy as np
 
-def sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-np.clip(x, -500, 500)))
-
 def log_sigmoid(x):
-    # 数值稳定: log(sigmoid(x)) = -log(1 + exp(-x))
-    return -np.logaddexp(0, -x)
+    return -np.logaddexp(0, -x)  # 数值稳定
 
 def dpo_loss(logp_chosen, logp_rejected,
              logp_ref_chosen, logp_ref_rejected,
              beta=0.1):
     """
-    所有参数: scalar 或 [B]
-    返回: scalar loss
+    所有参数: scalar 或 [B]，返回标量 loss
     """
     log_ratio_w = logp_chosen - logp_ref_chosen
     log_ratio_l = logp_rejected - logp_ref_rejected
-    loss = -log_sigmoid(beta * (log_ratio_w - log_ratio_l))
-    return loss.mean()
+    logits = beta * (log_ratio_w - log_ratio_l)
+    return -log_sigmoid(logits).mean()
 ```
 
 ### PyTorch 实现
@@ -95,43 +59,35 @@ import torch.nn.functional as F
 def dpo_loss(policy_chosen_logps, policy_rejected_logps,
              ref_chosen_logps, ref_rejected_logps,
              beta=0.1):
-    """
-    所有参数: [B]
-    """
+    """所有参数: [B]"""
     log_ratio_w = policy_chosen_logps - ref_chosen_logps
     log_ratio_l = policy_rejected_logps - ref_rejected_logps
-
     logits = beta * (log_ratio_w - log_ratio_l)
-    loss = -F.logsigmoid(logits).mean()
-    return loss
+    return -F.logsigmoid(logits).mean()
 ```
 
 ---
 
-## IPO（DPO 的替代损失）
+## IPO
 
-**核心问题**：DPO 的 log-sigmoid 损失在偏好差距很大时会"饱和"——梯度趋零、停止学习。IPO 改用平方损失回归到一个固定间隔，避免饱和、训练更稳。
+**核心问题**：DPO 的 $-\log\sigma$ 损失在偏好差距很大时梯度饱和，且对噪声偏好过拟合。IPO 改用平方损失，把好坏优势推向固定目标 $\frac{1}{2\beta}$，惩罚双向偏离，训练更稳。
 
 **核心变量**：
 
-- `log_ratio_w` / `log_ratio_l`：好/坏回答的 $\log(\pi_\theta/\pi_{ref})$
-- `delta`：两个对数比的差，即好回答相对坏回答的优势
-- `beta`（$\beta$）：控制目标间隔大小，固定间隔为 $1/(2\beta)$
+- `delta`：$\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}$，不带 β 的好坏优势
+- 目标间隔 $\frac{1}{2\beta}$，由最优性条件推出
 
 ### 一句话记忆
 
-> **把 DPO 的 sigmoid 换成平方差：好和坏的差距要接近一个固定值。**
+> **把 DPO 的 $-\log\sigma$ 换成平方差：好坏优势要接近固定目标 $\frac{1}{2\beta}$，不饱和。**
 
-IPO 不用 log-sigmoid，而是直接回归到 0.5 的间隔。
+$$\mathcal{L}_{IPO} = \Big(\Delta - \frac{1}{2\beta}\Big)^2, \quad \Delta = \log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)}$$
 
 ### 伪代码
 
 ```
-# 第 1 步：好回答和坏回答的"当前 vs 参考"差距
-delta = log_ratio_chosen - log_ratio_rejected
-
-# 第 2 步：希望 delta 接近固定值 1/(2β)，算平方误差
-loss = (delta - 1 / (2 * beta))^2
+delta = log_ratio_w - log_ratio_l     # 不带 β 的好坏优势
+loss  = (delta - 1 / (2 * beta)) ** 2 # 推向固定目标
 ```
 
 ### PyTorch 实现
@@ -144,97 +100,83 @@ def ipo_loss(log_ratio_w, log_ratio_l, beta=0.1):
 
 ---
 
-## KTO（只需好/坏标签，不需要配对）
+## KTO
 
-**核心问题**：DPO/IPO 必须有 chosen-rejected 配对数据，但实际业务中往往是"用户点赞/点踩"这种**单条二元反馈**。KTO 把对齐损失改造为单样本形式，无需配对。
+**核心问题**：DPO/IPO 必须有 chosen-rejected 配对，但实际业务常只有"用户点赞/点踩"这种**单条二元反馈**。KTO 借用前景理论改造为单样本损失，无需配对，且对坏样本加权更高（损失厌恶）。
 
 **核心变量**：
 
-- `log_ratio`：单条样本的 $\log(\pi_\theta/\pi_{ref})$
-- `is_desirable`：本条样本是好（True）还是坏（False）标签
-- `z_ref`：KL 估计的基线项，衡量当前策略与参考的平均距离
-- `beta`（$\beta$）：KL 正则强度
-- `w_desirable` / `w_undesirable`：两类样本的权重，平衡样本比例
+- `log_ratio`：单条样本的 $\log\frac{\pi_\theta(y|x)}{\pi_{ref}(y|x)}$
+- `z_ref`：基线，是 desirable 样本 logit 比的 EMA，即 $z_{ref} \approx \beta \mathbb{E}[\log\frac{\pi_\theta}{\pi_{ref}}]$，需 `detach`
+- `lambda_D` / `lambda_U`：好/坏样本权重，通常 $\lambda_U > \lambda_D$（损失厌恶）
 
 ### 一句话记忆
 
-> **不需要配对。好样本推高，坏样本压低，各自过 sigmoid。**
-
-KTO 不需要 chosen-rejected 配对，只需要知道单条样本是好还是坏。
+> **不需要配对。好样本推高 log-ratio 高于 $z_{ref}$，坏样本压低低于 $z_{ref}$，各自过 sigmoid。**
 
 ### 伪代码
 
 ```
-# 第 1 步：算单条样本的"当前 vs 参考"对数比
-log_ratio = log_pi(y|x) - log_pi_ref(y|x)
-
-# 第 2 步：好样本 → 推高 log_ratio（让它超过基线 z_ref）
-loss_desirable = -log_sigmoid(beta * (log_ratio - z_ref))
-
-# 第 3 步：坏样本 → 压低 log_ratio（让它低于基线）
-loss_undesirable = -log_sigmoid(-beta * (log_ratio - z_ref))
-
-# 第 4 步：两类样本加权求和
-loss = w_desirable * loss_desirable + w_undesirable * loss_undesirable
+logit = beta * log_ratio                  # 单条样本的隐式奖励 × 温度
+loss_desirable   = -log_sigmoid(logit - z_ref)        # 好样本: logit 超过基线
+loss_undesirable = -log_sigmoid(z_ref - logit)        # 坏样本: logit 低于基线
+loss = lambda_D * loss_desirable + lambda_U * loss_undesirable
 ```
-
-其中 `z_ref` 是 KL 估计的基线项。
 
 ### PyTorch 实现
 
 ```python
-def kto_loss(log_ratio, is_desirable, z_ref=0.0, beta=0.1):
+import torch
+import torch.nn.functional as F
+
+def kto_loss(log_ratio, is_desirable, z_ref=0.0,
+             beta=0.1, lambda_D=1.0, lambda_U=1.33):
     """
-    log_ratio: [B]  = log_pi(y|x) - log_ref(y|x)
-    is_desirable: [B] bool  True = 好样本
+    log_ratio: [B] = log_pi(y|x) - log_ref(y|x)
+    is_desirable: [B] bool; z_ref 已含 β（TRL 约定）
     """
+    logit = beta * log_ratio
     loss = torch.zeros_like(log_ratio)
-
-    desirable = is_desirable
-    undesirable = ~is_desirable
-
-    if desirable.any():
-        loss[desirable] = -F.logsigmoid(
-            beta * (log_ratio[desirable] - z_ref)
-        )
-    if undesirable.any():
-        loss[undesirable] = -F.logsigmoid(
-            -beta * (log_ratio[undesirable] - z_ref)
-        )
+    d = is_desirable
+    u = ~is_desirable
+    if d.any():
+        loss[d] = lambda_D * -F.logsigmoid(logit[d] - z_ref)
+    if u.any():
+        loss[u] = lambda_U * -F.logsigmoid(z_ref - logit[u])
     return loss.mean()
 ```
 
 ---
 
-## SimPO（不需要 reference model）
+## SimPO
 
-**核心问题**：DPO 需要在显存里同时驻留当前策略和参考策略，开销大；而且长回答天然 log 概率更低，会被不公平地惩罚。SimPO 用**长度归一化**代替参考模型，去掉 ref 同时消除长度偏差。
+**核心问题**：DPO 需要在显存里同时驻留当前策略和参考策略，开销大；且长回答天然 log 概率更低，会被不公平地惩罚。SimPO 用**长度归一化**代替参考模型，去掉 ref 同时消除长度偏差。
 
 **核心变量**：
 
-- `chosen_logps` / `rejected_logps`：当前策略对好/坏回答的 log 概率（标量和）
-- `chosen_lengths` / `rejected_lengths`：好/坏回答的 token 数，用于长度归一化
-- `beta`（$\beta$）：偏好差距的放大系数（SimPO 典型值 2.0，比 DPO 大）
-- `gamma`（$\gamma$）：目标奖励间隔，相当于把"好回答需要比坏回答高出多少"做成可学阈值
+- `chosen_logps` / `rejected_logps`：当前策略对好/坏回答的 log 概率（序列求和）
+- `chosen_lengths` / `rejected_lengths`：好/坏回答的 token 数
+- `beta`（$\beta$）：偏好差距放大系数（SimPO 典型 2.0，比 DPO 大）
+- `gamma`（$\gamma$）：目标 margin，相当于可学的"好回答要比坏回答高出多少"阈值
 
 ### 一句话记忆
 
-> **DPO 不要参考模型。log 概率除以回答长度，再加一个偏移 gamma。**
+> **DPO 不要参考模型。log 概率除以回答长度，再减一个 margin $\gamma$。**
 
 ### 伪代码
 
 ```
-# 第 1 步：log 概率除以长度（长回答不吃亏）
-logp_w = log_pi(chosen) / len(chosen)
+logp_w = log_pi(chosen)  / len(chosen)   # 长度归一化
 logp_l = log_pi(rejected) / len(rejected)
-
-# 第 2 步：好减坏，乘 beta，再减一个偏移 gamma
-loss = -log_sigmoid(beta * (logp_w - logp_l) - gamma)
+logits = beta * (logp_w - logp_l) - gamma # 减 margin
+loss   = -log_sigmoid(logits)
 ```
 
 ### PyTorch 实现
 
 ```python
+import torch.nn.functional as F
+
 def simpo_loss(chosen_logps, rejected_logps,
                chosen_lengths, rejected_lengths,
                beta=2.0, gamma=0.5):
@@ -248,23 +190,26 @@ def simpo_loss(chosen_logps, rejected_logps,
 
 ## DPO 家族对比速查
 
-| 算法  | 需要 ref? | 需要配对?            | 核心区别                    |
-| ----- | --------- | -------------------- | --------------------------- |
-| DPO   | 是        | 是 (chosen/rejected) | log-sigmoid，经典版         |
-| IPO   | 是        | 是                   | 平方损失替代 log-sigmoid    |
-| KTO   | 是        | 否 (好/坏标签)       | 单样本级别优化              |
-| SimPO | **否**    | 是                   | 长度归一化 + 隐式奖励偏移   |
-| ORPO  | **否**    | 是                   | odds ratio，合并 SFT + 对齐 |
+| 算法  | 需要 ref? | 需要配对?            | 核心区别                                           |
+| ----- | --------- | -------------------- | -------------------------------------------------- |
+| DPO   | 是        | 是 (chosen/rejected) | $-\log\sigma(\beta\Delta)$，经典版                 |
+| IPO   | 是        | 是                   | 平方损失 $(\Delta - \frac{1}{2\beta})^2$，避免饱和 |
+| KTO   | 是        | 否（好/坏标签）      | 单样本 $\pm$ sigmoid + 基线 $z_{ref}$，损失厌恶    |
+| SimPO | **否**    | 是                   | 长度归一化 log-prob + margin $\gamma$              |
+
+注：$\Delta$ 为好减坏的 log-ratio 差。
 
 ---
 
 ## 易错点
 
-| 易错                   | 说明                                                                  |
-| ---------------------- | --------------------------------------------------------------------- |
-| 四条 log_prob 搞混     | 记住：每个模型出两条（chosen + rejected），一共四条                   |
-| `log_sigmoid` 数值溢出 | PyTorch 的 `F.logsigmoid` 内置处理；手写时用 `logaddexp`              |
-| DPO 的 beta            | beta 越大，对偏好差距越敏感，一般 0.1~0.5                             |
-| 忘了 detach ref        | `ref_chosen_logps` 和 `ref_rejected_logps` 要 `.detach()`，不参与梯度 |
-| chosen/rejected 反了   | 检查数据集：chosen 是人类偏好的那条                                   |
-| IPO 没有 sigmoid       | IPO 用平方损失，不需要 sigmoid，这是和 DPO 的关键区别                 |
+| 易错                   | 说明                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| 四条 log_prob 搞混     | 记住：每个模型出两条（chosen + rejected），一共四条；ref 要 `detach`                             |
+| log-prob 用错          | DPO/IPO/KTO 用的是 $\log\frac{\pi_\theta}{\pi_{ref}}$，**不是** raw log-prob                     |
+| `log_sigmoid` 数值溢出 | PyTorch 的 `F.logsigmoid` 内置处理；手写时用 `logaddexp`                                         |
+| $\beta$ 含义           | $\beta$ 是温度，越大对偏好差距越敏感；不是学习率                                                 |
+| IPO 没有 sigmoid       | IPO 用平方损失回归到 $\frac{1}{2\beta}$，不用 sigmoid                                            |
+| KTO 的 $z_{ref}$ 约定  | TRL 中 $z_{ref}$ 已带 $\beta$（是 logit 的 EMA）；写成 $\beta \cdot \text{log\_ratio} - z_{ref}$ |
+| SimPO 忘除长度         | 长度归一化是 SimPO 的核心，长回答 log-prob 更小要除掉                                            |
+| chosen/rejected 反了   | 检查数据集：chosen 是人类偏好的那条                                                              |

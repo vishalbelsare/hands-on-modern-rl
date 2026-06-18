@@ -4,243 +4,245 @@ title: C.8 DAPO
 
 # C.8 DAPO
 
-DAPO (Decoupled Clip and Dynamic Sampling Policy Optimization) is a GRPO improvement proposed by ByteDance in 2025, and its interview frequency has been rising quickly.
+DAPO (Decoupled Clip and Dynamic sAmpling Policy Optimization), proposed by ByteDance in 2025, improves GRPO for long-chain reasoning RL with four orthogonal tricks: decoupled clipping, dynamic sampling, token-level loss, and soft overlong punishment. Frequently asked in interviews.
 
 ---
 
-## DAPO vs GRPO: Three Improvements
+## Core Problem
 
-| Improvement      | GRPO                                  | DAPO                                                                     |
-| ---------------- | ------------------------------------- | ------------------------------------------------------------------------ |
-| clipping         | symmetric `clip(ratio, 1-eps, 1+eps)` | **decoupled clipping**: clip positive/negative advantages separately     |
-| sampling         | fixed prompts                         | **dynamic sampling**: filter prompts that are all-correct or all-wrong   |
-| overlong penalty | binary (overlong -> reward = 0)       | **progressive penalty**: the longer the excess, the larger the deduction |
+GRPO training of long-chain reasoning models hits four issues: symmetric clipping suppresses exploration of good actions; all-correct / all-wrong prompts waste sampling compute yet give no gradient; sequence-level loss under-weights long answers; binary overlong truncation zeroes the reward at the boundary with no gradient signal. DAPO addresses each with one independent modification.
+
+## Core Variables
+
+- `ratio`: new/old policy probability ratio $r = \exp(\text{new\_logp} - \text{old\_logp})$
+- `advantage`: group-wise z-score $\hat{A}_{i,t} = (R_i - \bar R)/\mathrm{std}(R)$ (same as GRPO)
+- `ε_{low}`, `ε_{high}`: decoupled clipping lower / upper bounds (paper typical 0.2 / 0.28)
+- `reward_std`: within-group reward std, used by dynamic sampling filter
+- `max_len`, `buffer_len`, `penalty_factor`: soft overlong threshold, buffer width, max deduction
+
+## One-Line Memory
+
+> **Four cuts on GRPO: decouple the upper/lower clip ε, drop all-correct/all-wrong prompts, flatten the loss to token level, and softly dock overlong answers proportionally.**
 
 ---
 
-## Decoupled Clipping
+## Four Modifications at a Glance
+
+| Modification     | GRPO                                      | DAPO                                                                            |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------------------------------- |
+| clipping         | symmetric `clip(r, 1-ε, 1+ε)`             | decoupled `clip(r, 1-ε_{low}, 1+ε_{high})`, looser upper bound                  |
+| sampling         | keep all prompts                          | filter prompts whose within-group reward variance is 0                          |
+| loss granularity | sequence-level (token-mean then seq-mean) | token-level (sum all tokens, divide by total token count)                       |
+| overlong answer  | reward=0 (binary cliff)                   | soft penalty: linear deduction past soft threshold, capped at `-penalty_factor` |
+
+---
+
+## Decoupled Clipping (Clip-Higher)
+
+### Core Problem
+
+Symmetric clipping `clip(r, 1-ε, 1+ε)` uses the same ε on both sides. But good actions with positive advantage deserve larger steps (upper ε should be bigger); bad actions with negative advantage should move more cautiously (lower ε can be smaller). DAPO decouples the two bounds so each direction's exploration strength is tuned independently.
 
 ### One-Line Memory
 
-> Don't be greedy on the good, don't be vengeful on the bad: positive advantages clip the upper bound only, negative advantages clip the lower bound only.
+> **Loosen the upper bound $\varepsilon_{high}$ for positive advantages, keep the lower bound $\varepsilon_{low}$ for negative ones; the formula is still PPO's min-clipped, just with asymmetric clip bounds.**
 
 ### Pseudocode
 
 ```
-# Step 1: compute the new/old policy ratio
 ratio = exp(new_logp - old_logp)
 
-# Step 2: positive advantage — clip only the upper bound (don't let the ratio run too high)
-pos_surr = min(ratio, 1 + eps) * advantage    # advantage > 0
-
-# Step 3: negative advantage — clip only the lower bound (let the ratio bounce back)
-neg_surr = max(ratio, 1 - eps) * advantage    # advantage < 0
-
-# Step 4: combine and average
-loss = -mean(pos_surr + neg_surr)
+# Same min-clipped as PPO, but clip with asymmetric ε
+surr1  = ratio * advantage
+surr2  = clip(ratio, 1 - eps_low, 1 + eps_high) * advantage
+loss_t = -min(surr1, surr2)            # per-token loss
 ```
 
-### Intuition
+> Note: when advantage > 0 the lower bound is inactive (consumed by min); when advantage < 0 the upper bound is inactive. So the effect equals "clip only the upper bound for A>0, only the lower bound for A<0" — but writing it as PPO's min-clipped stays closer to the paper.
 
-Compare to symmetric clipping:
-
-```
-GRPO (symmetric):
-  advantage > 0:  min(ratio, 1+eps) * A
-  advantage < 0:  max(ratio, 1-eps) * A
-
-DAPO (decoupled):
-  advantage > 0:  min(ratio, 1+eps_high) * A
-  advantage < 0:  max(ratio, 1-eps_low)  * A
-```
-
-This makes it possible to tune exploration differently in the positive and negative directions (for example, more aggressive improvements but more conservative punishment).
-
-### Python (NumPy) Implementation
+### Python (NumPy)
 
 ```python
 import numpy as np
 
-
-def dapo_policy_loss(new_logp, old_logp, advantages, clip_high=0.28, clip_low=0.28):
+def dapo_policy_loss(new_logp, old_logp, advantages,
+                     eps_low=0.2, eps_high=0.28):
     """
-    new_logp:     [T]
-    old_logp:     [T]
-    advantages:   [T]
-    clip_high:    upper-bound clipping for positive advantages
-    clip_low:     lower-bound clipping for negative advantages
+    new_logp:   [T]
+    old_logp:   [T]
+    advantages: [T]
+    Returns token-level loss (sum divided by token count).
     """
     ratio = np.exp(new_logp - old_logp)
-
-    pos_mask = advantages >= 0
-    neg_mask = ~pos_mask
-
-    loss = np.zeros_like(advantages)
-
-    # positive: clip only the upper bound
-    if pos_mask.any():
-        clipped_ratio = np.minimum(ratio[pos_mask], 1 + clip_high)
-        loss[pos_mask] = -(clipped_ratio * advantages[pos_mask])
-
-    # negative: clip only the lower bound
-    if neg_mask.any():
-        clipped_ratio = np.maximum(ratio[neg_mask], 1 - clip_low)
-        loss[neg_mask] = -(clipped_ratio * advantages[neg_mask])
-
-    return loss.mean()
+    surr1 = ratio * advantages
+    surr2 = np.clip(ratio, 1 - eps_low, 1 + eps_high) * advantages
+    loss_per_token = -np.minimum(surr1, surr2)
+    return loss_per_token.sum() / len(loss_per_token)
 ```
 
-### PyTorch Implementation
+### PyTorch
 
 ```python
 import torch
 
-
-def dapo_policy_loss(new_logps, old_logps, advantages, clip_high=0.28, clip_low=0.28):
+def dapo_policy_loss(new_logps, old_logps, advantages,
+                     eps_low=0.2, eps_high=0.28):
     """
-    new_logps:    [B, seq_len]
-    old_logps:    [B, seq_len]
-    advantages:   [B, seq_len]
+    new_logps:  [B, seq_len]
+    old_logps:  [B, seq_len]
+    advantages: [B, seq_len]
     """
     ratio = torch.exp(new_logps - old_logps)
-
-    pos_mask = advantages >= 0
-    neg_mask = ~pos_mask
-
-    loss = torch.zeros_like(advantages)
-
-    # positive: min(ratio, 1 + clip_high) * advantage
-    if pos_mask.any():
-        clipped = torch.clamp(ratio[pos_mask], max=1 + clip_high)
-        loss[pos_mask] = -(clipped * advantages[pos_mask])
-
-    # negative: max(ratio, 1 - clip_low) * advantage
-    if neg_mask.any():
-        clipped = torch.clamp(ratio[neg_mask], min=1 - clip_low)
-        loss[neg_mask] = -(clipped * advantages[neg_mask])
-
-    return loss.mean()
+    surr1 = ratio * advantages
+    surr2 = torch.clamp(ratio, 1 - eps_low, 1 + eps_high) * advantages
+    loss_per_token = -torch.minimum(surr1, surr2)
+    return loss_per_token.sum() / loss_per_token.numel()
 ```
 
 ---
 
 ## Dynamic Sampling
 
+### Core Problem
+
+GRPO's advantage is a within-group z-score. If all G completions under one prompt are correct or all wrong, the within-group reward variance is 0 and the z-score degenerates, giving no gradient signal yet wasting sampling compute. DAPO filters these invalid prompts at the data level and keeps sampling until the batch is full of valid samples.
+
 ### One-Line Memory
 
-> If a whole group of answers is all-correct or all-wrong, there is nothing to compare, so skip that question.
+> **Within-group reward variance 0 (all correct or all wrong) → no discrimination → skip this prompt and keep sampling to fill the batch.**
 
 ### Pseudocode
 
 ```
-# Walk every prompt one at a time
-for each prompt:
-    # score each completion under this prompt
-    rewards = [get_reward(completion) for completion in group]
+# Sample G completions per prompt and score them
+rewards = [get_reward(c) for c in group]      # [G]
 
-    # if every reward is identical (all right or all wrong) there is no signal -> skip
-    if all rewards are the same:
-        skip this prompt
+# All rewards identical → skip and resample a fresh prompt
+if std(rewards) == 0:
+    skip this prompt and resample
 ```
 
-### PyTorch Implementation
+### PyTorch
 
 ```python
-import torch
-
-
 def dynamic_sampling_filter(rewards):
     """
-    rewards: [B, G] where B prompts, each with G completions
-    returns: bool mask [B], True means keep this prompt
+    rewards: [B, G]  B prompts, each with G completion rewards
+    Returns bool mask [B], True = keep.
     """
-    reward_std = rewards.std(dim=1)
-    return reward_std > 1e-6
+    return rewards.std(dim=1) > 1e-6
 ```
-
-### Intuition
-
-GRPO uses group-wise z-score normalization. If all rewards in a group are identical, then `std=0` and advantages are undefined or all zeros. DAPO filters those samples at the data level instead of discovering the problem later in the loss computation.
 
 ---
 
-## Overlong Reward Shaping
+## Token-Level Loss
+
+### Core Problem
+
+GRPO aggregates loss at sequence level: first average tokens within each sequence to get a per-sequence loss, then average across sequences. This makes a long answer (more tokens) carry the same weight as a short one, under-weighting the detailed tokens inside long answers. DAPO switches to token-level aggregation: sum every token of every answer, then divide by total token count, so long answers naturally contribute more gradient.
 
 ### One-Line Memory
 
-> Don't zero out overlong answers all at once — deduct gradually based on how much they overflow.
+> **Don't average within sequences first — flatten all tokens, sum and divide by total token count, long answers are not discounted.**
 
 ### Pseudocode
 
 ```
-# Step 1: only penalize responses that exceed the max length
-if response_length > max_length:
-    # Step 2: the more it overflows, the more we deduct (proportional to the overflow)
-    penalty_ratio = (response_length - max_length) / max_length
-    # Step 3: subtract from the original reward
-    reward = reward - penalty_weight * penalty_ratio
+loss_mat = -min(ratio*A, clip(ratio, 1-eps_low, 1+eps_high)*A)   # [B, T]
+
+# GRPO: token-mean then seq-mean → long sequences are flattened
+seq_loss = mean(loss_mat, dim=token)        # one value per sequence
+loss_grpo = mean(seq_loss)
+
+# DAPO: flatten all tokens
+loss_dapo = sum(loss_mat) / total_num_tokens
 ```
 
-### Python (NumPy) Implementation
+### PyTorch
 
 ```python
-def overlong_reward_shaping(reward, response_length, max_length, penalty_weight=0.1):
-    if response_length <= max_length:
-        return reward
-    penalty = penalty_weight * (response_length - max_length) / max_length
-    return reward - penalty
+def token_level_loss(loss_mat, loss_mask):
+    """
+    loss_mat:  [B, T]  per-token policy loss
+    loss_mask: [B, T]  1 for valid token, 0 for padding
+    Returns token-level aggregated loss.
+    """
+    return (loss_mat * loss_mask).sum() / loss_mask.sum()
 ```
 
-### Intuition
+---
 
-Compare to GRPO:
+## Soft Overlong Punishment
 
-- GRPO: overlong -> reward = 0 (binary, discontinuous)
-- DAPO: overlong -> reward decreases linearly (smooth signal)
+### Core Problem
 
-From an RL view, a binary reward provides little directional signal at the boundary. A linear penalty tells the policy: "shorter would be better."
+GRPO zeroes the reward of any answer exceeding the max length, leaving no gradient at the boundary — the policy only knows "I was penalized", not "shorter would be better". DAPO introduces a buffer: lengths inside `[max_len - buffer_len, max_len]` are not penalized, beyond `max_len - buffer_len` a linear deduction kicks in, capped at `-penalty_factor`, giving the policy a smooth, differentiable directional signal.
+
+### One-Line Memory
+
+> **Past the soft threshold (max_len - buffer_len) deduct linearly by overflow ratio, cap at -penalty_factor, no binary zeroing.**
+
+### Pseudocode
+
+```
+expected_len = max_len - buffer_len
+exceed_len   = response_length - expected_len
+
+if exceed_len > 0:
+    # Linear penalty: the more overflow, the more deduction, capped at -penalty_factor
+    penalty = max(-penalty_factor, -(exceed_len / buffer_len) * penalty_factor)
+    reward = reward + penalty        # penalty ≤ 0
+```
+
+### Python (NumPy)
+
+```python
+def soft_overlong_penalty(response_length, max_len,
+                          buffer_len, penalty_factor=1.0):
+    """Returns the penalty (≤0); add it to the raw reward."""
+    expected_len = max_len - buffer_len
+    exceed_len = response_length - expected_len
+    if exceed_len <= 0:
+        return 0.0
+    linear = -(exceed_len / buffer_len) * penalty_factor
+    return max(-penalty_factor, linear)        # capped, no infinite deduction
+```
 
 ---
 
 ## DAPO Total Loss (Sketch)
 
 ```
-# 1) group-wise normalization (same as GRPO)
-advantages = (rewards - mean) / (std + eps)
+# 1. within-group z-score normalization (same as GRPO)
+advantages = (rewards - rewards.mean(dim=G)) / (rewards.std(dim=G) + eps)
 
-# 2) dynamic sampling filter
-valid_mask = dynamic_sampling_filter(rewards)
+# 2. dynamic sampling filter
+valid = dynamic_sampling_filter(rewards)        # drop all-correct / all-wrong prompts
 
-# 3) decoupled-clipping policy loss
-policy_loss = dapo_policy_loss(new_logp, old_logp, advantages, clip_high, clip_low)
+# 3. decoupled clipping + token-level loss
+ratio = exp(new_logp - old_logp)
+surr1 = ratio * advantages
+surr2 = clip(ratio, 1 - eps_low, 1 + eps_high) * advantages
+loss_mat = -minimum(surr1, surr2)               # per-token
 
-# 4) KL penalty
-kl = kl_penalty(log_probs, ref_log_probs)
+# 4. token-level aggregation (key change: long answers not under-weighted)
+policy_loss = (loss_mat * mask)[valid].sum() / mask[valid].sum()
 
-# 5) total
-loss = policy_loss[valid_mask].mean() + kl_coeff * kl
+# 5. KL penalty (same as GRPO)
+kl = ((exp(ref_logp - new_logp) - 1) - (ref_logp - new_logp)).mean()
+
+loss = policy_loss + kl_coeff * kl
 ```
-
----
-
-## Full Comparison: GRPO vs DAPO
-
-| Dimension               | GRPO                              | DAPO                                                                          |
-| ----------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
-| clipping                | symmetric `clip(r, 1-eps, 1+eps)` | decoupled; one epsilon for each sign of advantage                             |
-| invalid data            | not handled (std=0 -> NaN)        | filtered via dynamic sampling                                                 |
-| overlong reward         | binary (0/1 style)                | progressive linear penalty                                                    |
-| exploration flexibility | fixed                             | can be more aggressive for positive direction, more conservative for negative |
-| representative work     | DeepSeek-R1                       | ByteDance / Tsinghua DAPO                                                     |
 
 ---
 
 ## Common Pitfalls
 
-| Pitfall                                     | Explanation                                                                          |
-| ------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Decoupled clipping is not “no clipping”     | Clipping still exists; the positive/negative sides are tuned independently.          |
-| Wrong condition for dynamic sampling        | It is not "reward below a threshold"; it is "group reward variance is (near) zero."  |
-| Overlong shaping is linear, not exponential | Simple `(len - max_len) / max_len` is enough.                                        |
-| Advantages are still group-wise normalized  | This part is exactly the same as GRPO.                                               |
-| `clip_high` and `clip_low` can differ       | In interviews: "you can tune exploration strength separately in the two directions." |
+| Pitfall                                   | Explanation                                                                             |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| Decoupled clipping ≠ no clipping          | Still PPO's `min(r*A, clip(r,lo,hi)*A)`, just with asymmetric ε                         |
+| Each sign of advantage binds only one ε   | For A>0 the lower bound is inactive; for A<0 the upper bound is inactive (eaten by min) |
+| Dynamic sampling criterion                | Not "reward below threshold", but "**within-group reward variance is 0**"               |
+| Token-level loss is the fourth key change | GRPO aggregates at sequence level, DAPO at token level — long answers carry more weight |
+| Soft overlong penalty is linear, not exp  | Simple `exceed_len / buffer_len`, capped at `-penalty_factor`                           |
+| Advantage is still group-wise normalized  | This part is identical to GRPO; DAPO does not change it                                 |

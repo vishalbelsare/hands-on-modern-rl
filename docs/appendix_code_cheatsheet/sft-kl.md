@@ -2,37 +2,28 @@
 
 ## SFT Loss（自回归交叉熵）
 
-**核心问题**：让模型学会在每个位置预测下一个 token，且只在回答部分（非 prompt）计算 loss。
+**核心问题**：在每个位置预测下一个 token，且只在回答部分计算 loss。
 
 **核心变量**：
 
-- `logits`：模型输出，形状 `[B, seq_len, vocab_size]`，每个位置是对下一个 token 的预测分布
-- `input_ids` / `labels`：真实 token 序列；prompt 部分通常被标为 `ignore_index=-100`
-- `ignore_index`：告诉交叉熵跳过这些位置（默认 `-100`）
+- `logits`：模型输出，形状 `[B, seq_len, vocab_size]`，位置 $t$ 预测 $t+1$
+- `labels`：真实 token 序列，prompt 部分标 `ignore_index=-100`
+- `ignore_index`：交叉熵跳过该位置（默认 `-100`）
 
 ### 一句话记忆
 
-> **模型预测下一个词：每个位置的预测目标，是它后面那个真实词；只在回答部分（`label != -100`）算交叉熵。**
+> **位置 $t$ 预测 $t+1$：logits 砍尾、labels 砍头；只在 `label != -100` 上算交叉熵。**
 
 ### 伪代码
 
 ```
-# 第 1 步：模型读完整句，每个位置都给出"下一个词"的预测分布
-logits = model(input_ids)
-
-# 第 2 步：错位对齐——位置 t 的预测 ↔ 位置 t+1 的真实词
-#   砍掉 logits 最后一位：句末没有"下一个"了
-#   砍掉 labels 第一位：句首没人预测它
-shift_logits = logits[:, :-1, :]   # 砍尾
-shift_labels = input_ids[:, 1:]    # 砍头
-
-# 第 3 步：算预测和真实词的差距；提问 token 标 -100 自动跳过
+logits = model(input_ids)                # 位置 t 预测 t+1
+shift_logits = logits[:, :-1, :]         # 砍尾：句末无"下一个"
+shift_labels = labels[:, 1:]             # 砍头：句首无人预测
 loss = cross_entropy(shift_logits, shift_labels, ignore_index=-100)
 ```
 
-### 为什么 shift right？
-
-自回归模型在每个位置 $t$ 预测 $t+1$ 的 token。所以 logits 的第 $t$ 个位置对应 labels 的第 $t+1$ 个位置。"左砍 logits 尾，右砍 labels 头"。
+自回归模型在位置 $t$ 预测 $t+1$，故 logits 的第 $t$ 位对齐 labels 的第 $t+1$ 位。
 
 ### Python 实现
 
@@ -41,26 +32,24 @@ import numpy as np
 
 def softmax(x, axis=-1):
     x_max = np.max(x, axis=axis, keepdims=True)
-    e_x = np.exp(x - x_max)
+    e_x = np.exp(x - x_max)  # 先减 max，防溢出
     return e_x / np.sum(e_x, axis=axis, keepdims=True)
 
 def sft_loss(logits, labels, ignore_index=-100):
     """
     logits: [seq_len, vocab_size]
-    labels:  [seq_len]  (已 shift)
+    labels: [seq_len]  (未 shift)
     """
-    shift_logits = logits[:-1]   # 去尾
-    shift_labels = labels[1:]    # 去头
+    shift_logits = logits[:-1]
+    shift_labels = labels[1:]
 
     probs = softmax(shift_logits, axis=-1)
     total, count = 0.0, 0
-
     for t in range(len(shift_labels)):
         if shift_labels[t] == ignore_index:
             continue
         total += -np.log(probs[t, shift_labels[t]] + 1e-12)
         count += 1
-
     return total / max(count, 1)
 ```
 
@@ -73,49 +62,42 @@ import torch.nn.functional as F
 def sft_loss(logits, labels, ignore_index=-100):
     """
     logits: [B, seq_len, vocab_size]
-    labels: [B, seq_len]  (原始 input_ids，函数内部做 shift)
+    labels: [B, seq_len]
     """
     shift_logits = logits[:, :-1, :].contiguous()
     shift_labels = labels[:, 1:].contiguous()
 
-    loss = F.cross_entropy(
+    return F.cross_entropy(
         shift_logits.view(-1, shift_logits.size(-1)),
         shift_labels.view(-1),
         ignore_index=ignore_index,
     )
-    return loss
 ```
 
 ---
 
 ## KL 散度估计
 
-**核心问题**：估计"当前策略 $p$"与"参考策略 $q$"之间的分布差异，用于 PPO / GRPO 的 KL 惩罚，防止策略跑偏。
+**核心问题**：估计当前策略 $p$ 与参考策略 $q$ 的差异，用于 PPO / GRPO 的 KL 惩罚。
 
 **核心变量**：
 
 - `log_probs`：当前策略 $p$ 对采样 token 的 log 概率
-- `ref_log_probs`：参考策略 $q$（一般是 SFT 后冻结的模型）对同一批 token 的 log 概率
-- `log_ratio`：$\log(q/p)$，k3 估计器的核心中间量
+- `ref_log_probs`：参考策略 $q$（通常冻结的 SFT 模型）对同一批 token 的 log 概率
+- `log_ratio`：$\log(q/p)$，k3 的核心量
 
 ### 一句话记忆
 
-> **量两个模型差多远：k1 = log(p/q) 取平均（直接，可能负）；k3 = exp(ref − cur) − 1 − (ref − cur)（恒非负，方向别反）。**
-
-面试常考：PPO 里怎么算 KL？GRPO 里怎么算 KL？两种估计有何区别？
+> **k1 = mean(log p − log q)，直接但样本少时可能为负；k3 = mean(exp(ref−cur) − 1 − (ref−cur))，恒非负，ratio 方向是 $q/p$。**
 
 ### 伪代码
 
 ```
-# 方法一：k1（简单版，PPO 常用）
-# 思路：直接把 (当前 - 参考) 取平均
-# 缺点：样本少时可能算出负数
-kl = (log_prob - ref_log_prob).mean()
+# k1（PPO 常用）：直接平均，无偏但高方差，样本少时可能为负
+kl = (log_probs - ref_log_probs).mean()
 
-# 方法二：k3（保险版，GRPO / trl 默认）
-# 第 1 步：算 log(参考 / 当前)，注意方向反过来
-log_ratio = ref_log_prob - log_prob
-# 第 2 步：套公式 exp(x) - 1 - x，这个式子保证恒 ≥ 0
+# k3（GRPO / trl 默认）：恒非负，ratio 方向 q/p
+log_ratio = ref_log_probs - log_probs        # log(q/p)
 kl = (exp(log_ratio) - 1 - log_ratio).mean()
 ```
 
@@ -125,11 +107,11 @@ kl = (exp(log_ratio) - 1 - log_ratio).mean()
 import numpy as np
 
 def kl_k1(log_p, log_q):
-    """k1：E_p[log p - log q]，无偏但高方差，样本少时可能为负"""
+    """E_p[log p - log q]：无偏，高方差，样本少时可能为负"""
     return np.mean(log_p - log_q)
 
 def kl_k3(log_p, log_q):
-    """k3：E_p[exp(log q - log p) - 1 - (log q - log p)]，无偏且恒非负"""
+    """E_p[exp(log q - log p) - 1 - (log q - log p)]：无偏且恒非负"""
     log_ratio = log_q - log_p
     return np.mean(np.exp(log_ratio) - 1 - log_ratio)
 ```
@@ -141,39 +123,38 @@ import torch
 
 def kl_penalty(log_probs, ref_log_probs, mode="k3"):
     """
-    log_probs:     [B, seq_len]  当前策略的 log 概率
-    ref_log_probs: [B, seq_len]  参考策略的 log 概率
+    log_probs:     [B, seq_len]  当前策略 p
+    ref_log_probs: [B, seq_len]  参考策略 q
     """
     if mode == "k1":
-        # k1：无偏但高方差，样本少时可能为负
         return (log_probs - ref_log_probs).mean()
 
-    # k3：无偏且恒非负（trl / GRPO 默认）
-    log_ratio = ref_log_probs - log_probs     # ratio = q/p
+    log_ratio = ref_log_probs - log_probs   # log(q/p)
     return (torch.exp(log_ratio) - 1 - log_ratio).mean()
 ```
 
-### 两种估计的区别
+### 两种估计的对比
 
-样本来自当前策略 $p$，目标 $\text{KL}(p \| q)$，$q$ 是参考策略：
+样本来自 $p$，目标 $\text{KL}(p \| q)$：
 
-| 估计器 | 公式                                               | 特点                           |
-| ------ | -------------------------------------------------- | ------------------------------ |
-| k1     | $\mathbb{E}_p[\log \frac{p}{q}]$                   | 无偏，简单，但样本少时可能为负 |
-| k3     | $\mathbb{E}_p[\frac{q}{p} - 1 - \log \frac{q}{p}]$ | 无偏，且恒 $\geq 0$，GRPO 默认 |
+| 估计器 | 公式                                               | 特点                         |
+| ------ | -------------------------------------------------- | ---------------------------- |
+| k1     | $\mathbb{E}_p[\log \frac{p}{q}]$                   | 无偏，简单，样本少时可能为负 |
+| k3     | $\mathbb{E}_p[\frac{q}{p} - 1 - \log \frac{q}{p}]$ | 无偏，恒 $\geq 0$，GRPO 默认 |
 
 ::: warning 易错点
-k3 里 ratio 必须是 $q/p$（ref/current），不是 $p/q$。写反了期望变成 $\chi^2(p\|q) - \text{KL}(p\|q)$，虽然有界非负但偏离真值，且与第 9 章公式不一致。
+k3 中 ratio 必须是 $q/p$（ref/current）。由 $e^x - 1 - x \geq 0$ 对所有实数 $x$ 成立，保证非负；写反成 $p/q$ 后虽仍非负，但期望不再是 $\text{KL}(p \| q)$。
 :::
 
 ---
 
 ## 易错点
 
-| 易错                | 说明                                                             |
-| ------------------- | ---------------------------------------------------------------- |
-| shift 方向反了      | logits 砍**尾**，labels 砍**头**。口诀："预测看左边，目标看右边" |
-| 忘了 `ignore_index` | prompt 部分的 token 不参与 loss，设为 `-100`                     |
-| KL 符号搞反         | KL(p \|\| q) 里 p 是当前策略、q 是参考策略，写反了变成负数       |
-| softmax 溢出        | 先减 `max(x)` 再 `exp`，面试手写必加                             |
-| `contiguous()`      | PyTorch 里 slice 后 view 会报错，加 `.contiguous()`              |
+| 易错                | 说明                                                  |
+| ------------------- | ----------------------------------------------------- |
+| shift 方向反了      | logits 砍**尾**，labels 砍**头**：位置 $t$ 预测 $t+1$ |
+| 忘了 `ignore_index` | prompt 部分 token 标 `-100`，不计入 loss              |
+| k3 ratio 方向反     | 必须是 $q/p$（ref/current）；写反期望偏离真值         |
+| k1 样本太少         | 单批样本可能算出负数，是估计噪声，非 bug              |
+| softmax 溢出        | 先减 `max(x)` 再 `exp`                                |
+| `.contiguous()`     | PyTorch slice 后 `view` 可能报错，加 `.contiguous()`  |

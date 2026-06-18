@@ -2,13 +2,23 @@
 title: C.7 Attention Mechanism
 ---
 
-# C.7 Attention Mechanism
+# C.7 Self-Attention, MHA, MQA, and GQA
 
-Strictly speaking, this is not an RL algorithm. But it is one of the top three most frequent “handwrite the code” questions in LLM interviews, and RL interviews often use it as prerequisite knowledge.
+Strictly speaking this is not an RL algorithm, but it is one of the top three most frequent "handwrite the code" questions in LLM interviews, and RL interviews often use it as prerequisite knowledge.
 
 ---
 
 ## Scaled Dot-Product Attention
+
+**Core question**: let every position in a sequence aggregate context information weighted by relevance.
+
+**Core variables**:
+
+- `Q` (query): "what am I looking for" at the current position, shape $[seq_q, d_k]$
+- `K` (key): "how can I be matched" at each position, shape $[seq_k, d_k]$
+- `V` (value): "what information I carry" at each position, shape $[seq_k, d_v]$
+- `d_k`: dimension of query/key; dot product is divided by $\sqrt{d_k}$ to prevent softmax saturation
+- `mask`: a causal mask pushes "future" positions to $-\infty$, which softmax turns into zero
 
 ### One-Line Memory
 
@@ -16,61 +26,39 @@ Strictly speaking, this is not an RL algorithm. But it is one of the top three m
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
 
-### Symbols
-
-- $Q$: queries
-- $K$: keys
-- $V$: values
-- $d_k$: per-head key/query dimension
+Here $QK^T$ has shape $[seq_q, d_k]\times[d_k, seq_k]=[seq_q, seq_k]$, and softmax normalizes along the last dimension (the key dimension).
 
 ### Pseudocode
 
 ```
-# Step 1: dot product of Q and K scores how similar each Q is to each K; divide by sqrt(d_k) to keep numbers tame
-scores = Q @ K^T / sqrt(d_k)
-
-# Step 2: add the mask to push "future" positions to -inf (a language model can only look left)
-scores = scores + mask
-
-# Step 3: softmax turns scores into weights that sum to 1
-attn_weights = softmax(scores, dim=-1)
-
-# Step 4: weight V by these attention weights to get the output
-output = attn_weights @ V
+scores = Q @ K^T / sqrt(d_k)      # score + scale, [seq_q, seq_k]
+if mask: scores = scores + mask    # push future positions to -inf
+attn = softmax(scores, dim=-1)     # normalize over key dim
+output = attn @ V                  # weighted aggregate, [seq_q, d_v]
 ```
 
-### Intuition
-
-Three steps:
-
-1. Score: dot product between $Q$ and $K$ measures similarity. Divide by $\sqrt{d_k}$ to prevent overly large dot products that saturate softmax.
-2. Mask: a causal mask sets "future" positions to $-\infty$ (an autoregressive LM can only look left).
-3. Weight: softmax weights are used to take a weighted sum of $V$.
-
-### Python (NumPy) Implementation
+### Python Implementation
 
 ```python
 import numpy as np
 
-
 def scaled_dot_product_attention(Q, K, V, mask=None):
     """
-    Q: [seq_len, d_k]
-    K: [seq_len, d_k]
-    V: [seq_len, d_v]
-    mask: [seq_len, seq_len] where 0=keep, -inf=mask
+    Q: [seq_q, d_k], K: [seq_k, d_k], V: [seq_k, d_v]
+    mask: [seq_q, seq_k], 0=keep, -inf=mask
     """
     d_k = Q.shape[-1]
-    scores = Q @ K.T / np.sqrt(d_k)
+    scores = Q @ K.T / np.sqrt(d_k)        # [seq_q, seq_k]
 
     if mask is not None:
         scores = scores + mask
 
-    scores_max = scores.max(axis=-1, keepdims=True)
-    exp_scores = np.exp(scores - scores_max)
+    # numerically stable softmax along the last dim (key dim)
+    scores = scores - scores.max(axis=-1, keepdims=True)
+    exp_scores = np.exp(scores)
     attn_weights = exp_scores / exp_scores.sum(axis=-1, keepdims=True)
 
-    return attn_weights @ V
+    return attn_weights @ V                # [seq_q, d_v]
 ```
 
 ### PyTorch Implementation
@@ -79,32 +67,37 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
 import torch
 import torch.nn.functional as F
 
-
 def scaled_dot_product_attention(Q, K, V, mask=None):
     """
-    Q: [B, heads, seq_len, d_k]
-    K: [B, heads, seq_len, d_k]
-    V: [B, heads, seq_len, d_v]
-    mask: [1, 1, seq_len, seq_len] or [B, 1, 1, seq_len]
+    Q/K/V: [B, heads, seq, d_k]
+    mask: [B, 1, seq_q, seq_k], 1=keep, 0=mask
     """
     d_k = Q.size(-1)
-    scores = torch.matmul(Q, K.transpose(-2, -1)) / (d_k**0.5)
+    scores = torch.matmul(Q, K.transpose(-2, -1)) / (d_k ** 0.5)
 
     if mask is not None:
-        scores = scores.masked_fill(mask == 0, float("-inf"))
+        scores = scores.masked_fill(mask == 0, float('-inf'))
 
     attn_weights = F.softmax(scores, dim=-1)
     return torch.matmul(attn_weights, V)
 
 
 def causal_mask(seq_len):
-    """Causal mask: lower triangle is 1 (keep), upper triangle is 0 (mask)."""
+    """Lower triangle = 1 (keep), upper triangle = 0 (mask future)."""
     return torch.tril(torch.ones(seq_len, seq_len)).unsqueeze(0).unsqueeze(0)
 ```
 
 ---
 
 ## Multi-Head Attention (MHA)
+
+**Core question**: a single attention head can only learn one relation pattern. MHA splits $d_{model}$ into $h$ slices, each running attention independently, letting the model attend to multiple subspaces in parallel.
+
+**Core variables**:
+
+- `d_model`: model hidden dimension
+- `n_heads` / $h$: number of heads, each with $d_k = d_{model}/h$
+- `W_Q` / `W_K` / `W_V` / `W_O`: four linear projections
 
 ### One-Line Memory
 
@@ -113,30 +106,14 @@ def causal_mask(seq_len):
 ### Pseudocode
 
 ```
-# Step 1: pass x through three linear layers to get Q, K, V (each still [B, seq, d_model])
-Q = x @ W_Q
-K = x @ W_K
-V = x @ W_V
-
-# Step 2: split the last dim d_model into h heads
-#   [B, seq, d_model] -> [B, heads, seq, d_k]
-Q = Q.view(B, seq, heads, d_k).transpose(1, 2)
-K = K.view(B, seq, heads, d_k).transpose(1, 2)
-V = V.view(B, seq, heads, d_k).transpose(1, 2)
-
-# Step 3: each head does its own attention in parallel
-attn_out = scaled_dot_product_attention(Q, K, V, mask)
-
-# Step 4: glue the heads back into d_model, then apply the output linear layer
-attn_out = attn_out.transpose(1, 2).contiguous().view(B, seq, d_model)
-output = attn_out @ W_O
+Q, K, V = x @ W_Q, x @ W_K, x @ W_V      # [B, seq, d_model]
+Q, K, V = split_heads(Q, K, V)           # [B, h, seq, d_k]
+attn = scaled_dot_product_attention(Q, K, V, mask)
+attn = merge_heads(attn)                  # [B, seq, d_model]
+output = attn @ W_O
 ```
 
-### Intuition
-
-A single attention head can focus on one kind of relation pattern. Multiple heads let the model attend to different patterns and different subspaces in parallel.
-
-Shape mnemonic: "view to split heads, transpose to move head dimension, attention, transpose back, view to merge."
+Shape mnemonic: **view to split heads -> transpose to move head dim -> attention -> transpose back -> view to merge**.
 
 ### PyTorch Implementation
 
@@ -144,10 +121,10 @@ Shape mnemonic: "view to split heads, transpose to move head dimension, attentio
 import torch
 import torch.nn as nn
 
-
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, n_heads):
         super().__init__()
+        assert d_model % n_heads == 0
         self.n_heads = n_heads
         self.d_k = d_model // n_heads
 
@@ -159,12 +136,11 @@ class MultiHeadAttention(nn.Module):
     def forward(self, x, mask=None):
         B, seq_len, d_model = x.shape
 
-        # linear projections + split heads
+        # projections + split heads: [B, seq, d_model] -> [B, n_heads, seq, d_k]
         Q = self.W_Q(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
         K = self.W_K(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
         V = self.W_V(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
 
-        # attention
         attn_out = scaled_dot_product_attention(Q, K, V, mask)
 
         # merge heads + output projection
@@ -176,18 +152,27 @@ class MultiHeadAttention(nn.Module):
 
 ## MQA and GQA
 
+**Core question**: in MHA the number of K/V heads equals the number of Q heads, so KV cache is large at inference. MQA makes all Q heads share one set of K/V (smallest cache); GQA is the middle ground — Q heads are grouped, each group shares one set of K/V, trading off cache and quality.
+
+**Core variables**:
+
+- `n_heads`: number of Q heads
+- `n_kv_heads`: number of K/V heads (MQA=1, GQA=$g$, $1<g<h$)
+- `n_groups`: $= n_{heads}/n_{kv\_heads}$, the number of Q heads sharing one set of K/V
+
 ### Quick Comparison
 
-| Variant | # Q heads | # K/V heads       | K/V parameter size     | Example models     |
-| ------- | --------- | ----------------- | ---------------------- | ------------------ |
-| MHA     | $h$       | $h$               | $3 \times d_{model}^2$ | GPT-2, BERT        |
-| MQA     | $h$       | 1                 | much smaller           | PaLM, StarCoder    |
-| GQA     | $h$       | $g$ where $g < h$ | tradeoff               | LLaMA 2/3, Mistral |
+| Variant | # Q heads | # K/V heads     | KV cache | Example models     |
+| ------- | --------- | --------------- | -------- | ------------------ |
+| MHA     | $h$       | $h$             | largest  | GPT-2, BERT        |
+| MQA     | $h$       | **1**           | smallest | PaLM, StarCoder    |
+| GQA     | $h$       | **$g$** ($g<h$) | middle   | LLaMA 2/3, Mistral |
 
 ### One-Line Memory
 
-- **MQA**: all Q heads share the same set of K/V. Smallest memory footprint, but the model can get dumber.
-- **GQA**: split the Q heads into groups; each group shares one set of K/V. Saves memory without dumbing it down too much.
+- **MQA**: all Q heads share the **same** set of K/V. Smallest cache, but quality may drop.
+- **GQA**: split Q heads into $g$ groups; each group shares one set of K/V. Saves cache without dumbing down too much.
+- **MQA is a special case of GQA** ($n_{kv\_heads}=1$).
 
 ### PyTorch Implementation (GQA)
 
@@ -195,15 +180,14 @@ class MultiHeadAttention(nn.Module):
 import torch
 import torch.nn as nn
 
-
 class GroupedQueryAttention(nn.Module):
     def __init__(self, d_model, n_heads, n_kv_heads):
         """
         n_heads: number of query heads (e.g. 32)
-        n_kv_heads: number of key/value heads (e.g. 8)
-        n_heads must be divisible by n_kv_heads
+        n_kv_heads: number of key/value heads (e.g. 8); must divide n_heads
         """
         super().__init__()
+        assert n_heads % n_kv_heads == 0
         self.n_heads = n_heads
         self.n_kv_heads = n_kv_heads
         self.n_groups = n_heads // n_kv_heads
@@ -217,13 +201,12 @@ class GroupedQueryAttention(nn.Module):
     def forward(self, x, mask=None):
         B, seq_len, _ = x.shape
 
-        # Q: [B, seq, n_heads*d_k] -> [B, n_heads, seq, d_k]
         Q = self.W_Q(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
-        # K/V: [B, seq, n_kv_heads*d_k] -> [B, n_kv_heads, seq, d_k]
         K = self.W_K(x).view(B, seq_len, self.n_kv_heads, self.d_k).transpose(1, 2)
         V = self.W_V(x).view(B, seq_len, self.n_kv_heads, self.d_k).transpose(1, 2)
 
-        # Expand K/V to match Q head count: [B, n_kv_heads, seq, d_k] -> [B, n_heads, seq, d_k]
+        # expand along head dim: [B, n_kv_heads, seq, d_k] -> [B, n_heads, seq, d_k]
+        # adjacent n_groups Q heads share one set of K/V
         K = K.repeat_interleave(self.n_groups, dim=1)
         V = V.repeat_interleave(self.n_groups, dim=1)
 
@@ -236,20 +219,21 @@ class GroupedQueryAttention(nn.Module):
 
 ## Follow-Up: Complexity
 
-| Component          | Complexity         | Notes                                      |
-| ------------------ | ------------------ | ------------------------------------------ |
-| self-attention     | $O(n^2 \cdot d)$   | $n$ is sequence length, $d$ is hidden size |
-| linear projections | $O(n \cdot d^2)$   | per-token linear layers                    |
-| total (MHA)        | $O(n^2 d + n d^2)$ | when $n$ is large, $n^2$ dominates         |
+| Item           | Complexity         | Notes                                |
+| -------------- | ------------------ | ------------------------------------ |
+| self-attention | $O(n^2 \cdot d)$   | $n$ sequence length, $d$ hidden size |
+| linear layers  | $O(n \cdot d^2)$   | per-token linear projections         |
+| total (MHA)    | $O(n^2 d + n d^2)$ | when $n$ is large, $n^2$ dominates   |
 
 ---
 
 ## Common Pitfalls
 
-| Pitfall                                        | Explanation                                                                      |
-| ---------------------------------------------- | -------------------------------------------------------------------------------- |
-| Divide by $\sqrt{d_k}$, not $\sqrt{d_{model}}$ | Use per-head dimension, not full model dimension.                                |
-| Causal mask direction                          | `tril` creates a lower triangle of ones (keep) and upper triangle (mask future). |
-| `view` after `transpose`                       | `transpose` makes tensors non-contiguous; call `.contiguous()` before `view`.    |
-| Using the wrong repeat API for GQA             | Use `repeat_interleave` so adjacent Q heads share the same K/V head.             |
-| MQA is a special case of GQA                   | When `n_kv_heads=1`, GQA reduces to MQA.                                         |
+| Pitfall                                        | Explanation                                                           |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| Divide by $\sqrt{d_k}$, not $\sqrt{d_{model}}$ | Use per-head dimension $d_k = d_{model}/h$.                           |
+| softmax along the last dimension               | Normalize over the key dim; each row (each query) sums to 1.          |
+| Causal mask direction                          | `tril` lower triangle = keep, upper triangle = mask future.           |
+| `view` after `transpose`                       | `transpose` makes tensors non-contiguous; call `.contiguous()` first. |
+| Use `repeat_interleave` for GQA                | Not `repeat`; this makes adjacent $n_{groups}$ Q heads share one K/V. |
+| MQA is a special case of GQA                   | When $n_{kv\_heads}=1$, GQA reduces to MQA.                           |

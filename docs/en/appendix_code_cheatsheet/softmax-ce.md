@@ -4,34 +4,33 @@ title: C.5 Softmax and Cross-Entropy
 
 # C.5 Softmax and Cross-Entropy
 
-This is a common warm-up question. Before you write DPO or PPO on the whiteboard, an interviewer may ask you to handwrite a numerically stable softmax and cross-entropy.
+A common warm-up question. Before you write DPO or PPO on the whiteboard, an interviewer may ask you to handwrite a numerically stable softmax and cross-entropy.
 
 ---
 
 ## Numerically Stable Softmax
 
+**Core problem**: map arbitrary real-valued logits to a probability distribution (summing to 1) while avoiding overflow such as $\exp(1000)=\text{inf}$.
+
+**Core variables**:
+
+- `x` / `logits`: the model's real-valued output vector
+- `m = max(x)`: the shift constant; every element subtracts it
+- `axis`: the normalization axis, the last dim (vocab) in LLMs
+
 ### One-Line Memory
 
-> Subtract the max, then exp, then sum, then divide — stops the numbers from blowing up.
+> Subtract the max, then exp, then sum, then divide.
 
 ### Pseudocode
 
 ```
-# Step 1: subtract the max from every number (largest becomes 0; exp can't overflow)
-x_shifted = x - max(x)
-
-# Step 2: exponentiate each value
-exp_x = exp(x_shifted)
-
-# Step 3: divide by the total sum to normalize into probabilities (they sum to 1)
+m = max(x)
+exp_x = exp(x - m)
 softmax = exp_x / sum(exp_x)
 ```
 
-### Why This Works
-
-You cannot safely compute `exp(x) / sum(exp(x))` when `x` can be large, because `exp(1000)` overflows to `inf`. After subtracting the maximum element, the largest exponent becomes `exp(0) = 1`, and the rest are in `(0, 1]`, avoiding overflow.
-
-### Python (NumPy) Implementation
+### Python Implementation
 
 ```python
 import numpy as np
@@ -62,20 +61,29 @@ def manual_softmax(x, dim=-1):
 
 ---
 
-## The Log-Sum-Exp Trick
+## Log-Sum-Exp and Log-Softmax
+
+**Core problem**: LLM training needs log-probabilities, not probabilities. Computing softmax first and then taking log loses precision, and tiny probabilities can underflow to 0 before log turns them into `-inf`. Log-sum-exp merges the subtract-max and log into one step, yielding numerically stable log-probabilities.
+
+**Core variables**:
+
+- `m = max(x)`: same shift constant as softmax
+- `lse = m + log(sum(exp(x - m)))`: the log of the logistic normalizer
+- Output: `log_softmax(x)_i = x_i - m - log(sum(exp(x - m)))`
+
+The identity is:
+
+$$
+\log\sum_j \exp(x_j) = m + \log\sum_j \exp(x_j - m), \quad m = \max(x)
+$$
 
 ### One-Line Memory
 
-> Don't compute log(softmax) in two steps — use log-sum-exp directly and factor out the max first.
+> Don't compute log(softmax) in two steps — use log-sum-exp and factor out the max.
 
-Follow-up question: how do you compute `log(softmax(x))` without overflow? Answer: do not compute softmax first and then take log; use log-softmax directly.
-
-### Python (NumPy) Implementation
+### Python Implementation
 
 ```python
-import numpy as np
-
-
 def log_softmax(x, axis=-1):
     x_shifted = x - np.max(x, axis=axis, keepdims=True)
     return x_shifted - np.log(np.sum(np.exp(x_shifted), axis=axis, keepdims=True))
@@ -99,30 +107,35 @@ def manual_log_softmax(x, dim=-1):
 
 ## Cross-Entropy Loss
 
+**Core problem**: classification / SFT tasks need a scalar loss that measures the gap between the predicted distribution and the true label. Cross-entropy reduces it to "the negative log-probability at the target position" — the better the prediction, the smaller the loss.
+
+**Core variables**:
+
+- `logits`: model output of shape `[N, C]`, N samples and C classes
+- `targets`: true class indices of shape `[N]`
+- `ignore_index`: positions to skip (e.g. padding / prompt), default `-100`
+- `log_probs`: log-probabilities after log_softmax, used to pick the target position
+
+When $p$ is one-hot (1 at the label position), cross-entropy collapses to:
+
+$$
+H(p, q) = -\sum_i p_i \log q_i \;=\; -\log q_{\text{label}}
+$$
+
 ### One-Line Memory
 
-> How much probability the model gave to the right answer: take that probability, log it, negate.
+> Pick the log-probability at the target position, negate it, average.
 
 ### Pseudocode
 
 ```
-# Step 1: pass logits through log_softmax to get each class's log-probability
 log_probs = log_softmax(logits)
-
-# Step 2: pick out the log-prob at the "correct answer" position, negate, and average
 loss = -log_probs[target].mean()
 ```
 
-### Intuition
-
-Cross-entropy measures how much probability the model assigns to the correct class. If the model is confident and correct, $p_y$ is large, so $-\log p_y$ is small. Smaller loss means better predictions.
-
-### Python (NumPy) Implementation
+### Python Implementation
 
 ```python
-import numpy as np
-
-
 def cross_entropy(logits, targets, ignore_index=-100):
     """
     logits:  [N, C]
@@ -141,10 +154,6 @@ def cross_entropy(logits, targets, ignore_index=-100):
 ### PyTorch Implementation
 
 ```python
-import torch
-import torch.nn.functional as F
-
-
 def manual_cross_entropy(logits, targets, ignore_index=-100):
     """
     logits:  [B, C]
@@ -162,10 +171,10 @@ def manual_cross_entropy(logits, targets, ignore_index=-100):
 
 ## Common Pitfalls
 
-| Pitfall                           | Explanation                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Forgot to subtract max in softmax | This is the first thing interviewers look for.                                                                  |
-| Softmax then log                  | Numerically unstable. Use `log_softmax` directly.                                                               |
-| Computing CE from probabilities   | Do not do `softmax -> log -> CE` manually in real code; use `F.cross_entropy(logits, targets)` which is stable. |
-| `ignore_index` handling           | In SFT loss questions, interviewers often ask how you handle padding/prompt tokens.                             |
-| Temperature scaling               | Do `logits / temperature` before softmax. Larger $T$ produces a flatter distribution.                           |
+| Pitfall                         | Explanation                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| Forgot to subtract max          | The first thing interviewers look for.                                          |
+| Softmax then log                | Numerically unstable. Use `log_softmax` directly.                               |
+| Computing CE from probabilities | Do not do `softmax -> log -> CE`; use `F.cross_entropy(logits, targets)`.       |
+| `ignore_index` handling         | In SFT loss questions, interviewers ask how you handle padding/prompt tokens.   |
+| Temperature scaling             | Do `logits / temperature` before softmax. Larger $T$ flattens the distribution. |

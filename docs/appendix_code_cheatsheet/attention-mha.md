@@ -1,20 +1,20 @@
 # C.7 Self-Attention、MHA、MQA 与 GQA
 
-严格来说这不是 RL 算法，但它是大模型岗面试中**出现频率前三**的手写代码题。RL 岗面试也经常作为前置知识考查。
+严格来说不属于 RL 算法，但它是大模型岗面试中**出现频率前三**的手写代码题，RL 岗面试也常作为前置知识考查。
 
 ---
 
 ## Scaled Dot-Product Attention
 
-**核心问题**：序列建模需要让每个位置"看到"上下文中所有相关位置，并按相关度加权聚合信息。Scaled Dot-Product Attention 用 query 和 key 的相似度作为权重，对 value 做加权求和，是 Transformer 的核心算子。
+**核心问题**：让序列中每个位置按相关度加权聚合上下文信息。
 
 **核心变量**：
 
-- `Q`（query）：当前位置"我要查什么"
-- `K`（key）：每个位置"我能被怎样匹配"
-- `V`（value）：每个位置"我携带的信息"
+- `Q`（query）：当前位置"我要查什么"，形状 $[seq_q, d_k]$
+- `K`（key）：每个位置"我能被怎样匹配"，形状 $[seq_k, d_k]$
+- `V`（value）：每个位置"我携带的信息"，形状 $[seq_k, d_v]$
 - `d_k`：query/key 的维度，点积后除以 $\sqrt{d_k}$ 防止 softmax 饱和
-- `mask`：遮挡矩阵，causal mask 把"未来"位置置 $-\infty$
+- `mask`：causal mask 把"未来"位置置 $-\infty$，softmax 后归零
 
 ### 一句话记忆
 
@@ -22,29 +22,16 @@
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
 
+其中 $QK^T$ 形状为 $[seq_q, d_k]\times[d_k, seq_k]=[seq_q, seq_k]$，softmax 沿最后一维（key 维度）归一化。
+
 ### 伪代码
 
 ```
-# 第 1 步：Q 和 K 点积 = 每个 Q 看每个 K 的相似度，除根号 d_k 防止数值过大
-scores = Q @ K^T / sqrt(d_k)
-
-# 第 2 步：加 mask，把"未来"位置压成 -inf（语言模型只能看左边）
-scores = scores + mask
-
-# 第 3 步：softmax 转成权重（加起来等于 1）
-attn_weights = softmax(scores, dim=-1)
-
-# 第 4 步：权重乘 V，得到加权后的输出
-output = attn_weights @ V
+scores = Q @ K^T / sqrt(d_k)      # 打分 + 缩放，[seq_q, seq_k]
+if mask: scores = scores + mask    # 遮未来位置为 -inf
+attn = softmax(scores, dim=-1)     # 沿 key 维归一化
+output = attn @ V                  # 加权聚合，[seq_q, d_v]
 ```
-
-### 记忆方法
-
-三步走：
-
-1. **打分**：Q 和 K 的点积衡量相似度，除 $\sqrt{d_k}$ 防止点积过大导致 softmax 饱和
-2. **遮掩**：causal mask 把"未来"位置设为 $-\infty$（语言模型只能看左边）
-3. **加权**：softmax 后的权重乘 V，得到加权表示
 
 ### Python 实现
 
@@ -53,23 +40,21 @@ import numpy as np
 
 def scaled_dot_product_attention(Q, K, V, mask=None):
     """
-    Q: [seq_len, d_k]
-    K: [seq_len, d_k]
-    V: [seq_len, d_v]
-    mask: [seq_len, seq_len]  0=保留, -inf=遮掩
+    Q: [seq_q, d_k], K: [seq_k, d_k], V: [seq_k, d_v]
+    mask: [seq_q, seq_k], 0=保留, -inf=遮掩
     """
     d_k = Q.shape[-1]
-    scores = Q @ K.T / np.sqrt(d_k)
+    scores = Q @ K.T / np.sqrt(d_k)        # [seq_q, seq_k]
 
     if mask is not None:
         scores = scores + mask
 
-    # softmax
-    scores_max = scores.max(axis=-1, keepdims=True)
-    exp_scores = np.exp(scores - scores_max)
+    # 数值稳定的 softmax，沿最后一维（key 维）
+    scores = scores - scores.max(axis=-1, keepdims=True)
+    exp_scores = np.exp(scores)
     attn_weights = exp_scores / exp_scores.sum(axis=-1, keepdims=True)
 
-    return attn_weights @ V
+    return attn_weights @ V                # [seq_q, d_v]
 ```
 
 ### PyTorch 实现
@@ -80,10 +65,8 @@ import torch.nn.functional as F
 
 def scaled_dot_product_attention(Q, K, V, mask=None):
     """
-    Q: [B, heads, seq_len, d_k]
-    K: [B, heads, seq_len, d_k]
-    V: [B, heads, seq_len, d_v]
-    mask: [1, 1, seq_len, seq_len]  或 [B, 1, 1, seq_len]
+    Q/K/V: [B, heads, seq, d_k]
+    mask: [B, 1, seq_q, seq_k], 1=保留, 0=遮掩
     """
     d_k = Q.size(-1)
     scores = torch.matmul(Q, K.transpose(-2, -1)) / (d_k ** 0.5)
@@ -94,8 +77,9 @@ def scaled_dot_product_attention(Q, K, V, mask=None):
     attn_weights = F.softmax(scores, dim=-1)
     return torch.matmul(attn_weights, V)
 
+
 def causal_mask(seq_len):
-    """生成因果遮掩：上三角为 0（遮掩），下三角为 1（保留）"""
+    """下三角 = 1（保留），上三角 = 0（遮未来）。"""
     return torch.tril(torch.ones(seq_len, seq_len)).unsqueeze(0).unsqueeze(0)
 ```
 
@@ -103,46 +87,29 @@ def causal_mask(seq_len):
 
 ## Multi-Head Attention (MHA)
 
-**核心问题**：单头 attention 只能学到一种"关系模式"（如局部依赖或长程依赖）。MHA 把 $d_{model}$ 切成 $h$ 份，每个头独立做 attention，让模型在不同表示子空间里同时建模多种关系，再拼接融合。
+**核心问题**：单头 attention 只能学到一种关系模式。MHA 把 $d_{model}$ 切成 $h$ 份，每个头独立做 attention，让模型在不同子空间同时建模多种关系。
 
 **核心变量**：
 
-- `d_model`：模型隐藏维度（如 768/4096）
-- `n_heads` / `h`：头数，每头维度 $d_k = d_{model}/h$
-- `W_Q` / `W_K` / `W_V`：输入到 Q/K/V 的线性投影
-- `W_O`：多头拼接后的输出投影
+- `d_model`：模型隐藏维度
+- `n_heads` / $h$：头数，每头维度 $d_k = d_{model}/h$
+- `W_Q` / `W_K` / `W_V` / `W_O`：四个线性投影
 
 ### 一句话记忆
 
-> **总维度切成 h 份，每份单独做一次 attention，最后拼回去过线性层。**
+> **总维度切 h 份，每份单独做 attention，最后 concat 过线性层。**
 
 ### 伪代码
 
 ```
-# 第 1 步：x 过三个线性层，得到 Q、K、V（每个仍是 [B, seq, d_model]）
-Q = x @ W_Q
-K = x @ W_K
-V = x @ W_V
-
-# 第 2 步：把最后一维 d_model 切成 h 个头
-#   [B, seq, d_model] → [B, heads, seq, d_k]
-Q = Q.view(B, seq, heads, d_k).transpose(1, 2)
-K = K.view(B, seq, heads, d_k).transpose(1, 2)
-V = V.view(B, seq, heads, d_k).transpose(1, 2)
-
-# 第 3 步：每个头独立做 attention
-attn_out = scaled_dot_product_attention(Q, K, V, mask)
-
-# 第 4 步：把头拼回 d_model，再过输出线性层
-attn_out = attn_out.transpose(1, 2).contiguous().view(B, seq, d_model)
-output = attn_out @ W_O
+Q, K, V = x @ W_Q, x @ W_K, x @ W_V      # [B, seq, d_model]
+Q, K, V = split_heads(Q, K, V)           # [B, h, seq, d_k]
+attn = scaled_dot_product_attention(Q, K, V, mask)
+attn = merge_heads(attn)                  # [B, seq, d_model]
+output = attn @ W_O
 ```
 
-### 记忆方法
-
-一个头的 attention 只能看一种"关系模式"。多头让模型同时关注不同位置的 不同表示子空间。
-
-维度变换口诀：**"view 切头，transpose 换位，attention 计算，transpose 回来，view 合头"**
+维度变换口诀：**view 切头 → transpose 换位 → attention → transpose 回 → view 合头**。
 
 ### PyTorch 实现
 
@@ -153,6 +120,7 @@ import torch.nn as nn
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, n_heads):
         super().__init__()
+        assert d_model % n_heads == 0
         self.n_heads = n_heads
         self.d_k = d_model // n_heads
 
@@ -164,12 +132,11 @@ class MultiHeadAttention(nn.Module):
     def forward(self, x, mask=None):
         B, seq_len, d_model = x.shape
 
-        # 线性投影 + 切头
+        # 投影 + 切头: [B, seq, d_model] -> [B, n_heads, seq, d_k]
         Q = self.W_Q(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
         K = self.W_K(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
         V = self.W_V(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
 
-        # Attention
         attn_out = scaled_dot_product_attention(Q, K, V, mask)
 
         # 合头 + 输出投影
@@ -181,42 +148,45 @@ class MultiHeadAttention(nn.Module):
 
 ## MQA 与 GQA
 
-**核心问题**：MHA 里 K/V 的头数和 Q 相同（都是 h），推理时 KV cache 占用大、显存吃紧。MQA 让所有 Q 头共用一组 K/V（最省显存但可能掉点），GQA 折中：Q 分组、组内共用 K/V，在显存和质量之间取得平衡。
+**核心问题**：MHA 中 K/V 的头数与 Q 相同，推理时 KV cache 占用大。MQA 让所有 Q 头共用一组 K/V，最省显存；GQA 折中——Q 分组、组内共用 K/V，平衡显存与质量。
 
 **核心变量**：
 
-- `n_heads`：Q 的头数（与 MHA 一致）
-- `n_kv_heads`：K/V 的头数，MQA 时为 1，GQA 时为 $g$（$1<g<h$）
-- `n_groups`：每组共享同一组 K/V 的 Q 头数，$= n_{heads}/n_{kv\_heads}$
-- KV cache 占用：随 `n_kv_heads` 线性下降，这是 GQA/MQA 的核心收益
+- `n_heads`：Q 的头数
+- `n_kv_heads`：K/V 的头数（MQA=1，GQA=$g$，$1<g<h$）
+- `n_groups`：$= n_{heads}/n_{kv\_heads}$，每组共享同一组 K/V 的 Q 头数
 
 ### 对比速查
 
-| 变体 | Q 的头数 | K/V 的头数    | K/V 参数量             | 代表模型           |
-| ---- | -------- | ------------- | ---------------------- | ------------------ |
-| MHA  | h        | h             | $3 \times d_{model}^2$ | GPT-2、BERT        |
-| MQA  | h        | **1**         | 大幅减少               | PaLM、StarCoder    |
-| GQA  | h        | **g** (g < h) | 折中                   | LLaMA 2/3、Mistral |
+| 变体 | Q 头数 | K/V 头数        | KV cache | 代表模型           |
+| ---- | ------ | --------------- | -------- | ------------------ |
+| MHA  | $h$    | $h$             | 最大     | GPT-2、BERT        |
+| MQA  | $h$    | **1**           | 最小     | PaLM、StarCoder    |
+| GQA  | $h$    | **$g$** ($g<h$) | 折中     | LLaMA 2/3、Mistral |
 
 ### 一句话记忆
 
-- **MQA**：所有 Q 头共用**同一组** K/V。最省显存，但可能变笨。
-- **GQA**：Q 头分几组，组内共用 K/V。省显存又不至于太笨。
+- **MQA**：所有 Q 头共用**同一组** K/V。最省显存，但可能掉点。
+- **GQA**：Q 头分 $g$ 组，组内共用 K/V。省显存又不至于太笨。
+- **MQA 是 GQA 的特例**（$n_{kv\_heads}=1$）。
 
 ### PyTorch 实现（GQA）
 
 ```python
+import torch
+import torch.nn as nn
+
 class GroupedQueryAttention(nn.Module):
     def __init__(self, d_model, n_heads, n_kv_heads):
         """
-        n_heads: Q 的头数 (如 32)
-        n_kv_heads: K/V 的头数 (如 8)
-        n_heads 必须能被 n_kv_heads 整除
+        n_heads: Q 头数（如 32）
+        n_kv_heads: K/V 头数（如 8），必须整除 n_heads
         """
         super().__init__()
+        assert n_heads % n_kv_heads == 0
         self.n_heads = n_heads
         self.n_kv_heads = n_kv_heads
-        self.n_groups = n_heads // n_kv_heads  # 每组几个 Q 头
+        self.n_groups = n_heads // n_kv_heads
         self.d_k = d_model // n_heads
 
         self.W_Q = nn.Linear(d_model, n_heads * self.d_k)
@@ -227,13 +197,12 @@ class GroupedQueryAttention(nn.Module):
     def forward(self, x, mask=None):
         B, seq_len, _ = x.shape
 
-        # Q: [B, seq, n_heads * d_k] → [B, n_heads, seq, d_k]
         Q = self.W_Q(x).view(B, seq_len, self.n_heads, self.d_k).transpose(1, 2)
-        # K/V: [B, seq, n_kv_heads * d_k] → [B, n_kv_heads, seq, d_k]
         K = self.W_K(x).view(B, seq_len, self.n_kv_heads, self.d_k).transpose(1, 2)
         V = self.W_V(x).view(B, seq_len, self.n_kv_heads, self.d_k).transpose(1, 2)
 
-        # 扩展 K/V 以匹配 Q 的头数: [B, n_kv_heads, seq, d_k] → [B, n_heads, seq, d_k]
+        # 沿 head 维扩展: [B, n_kv_heads, seq, d_k] -> [B, n_heads, seq, d_k]
+        # 相邻 n_groups 个 Q 头共享同一组 K/V
         K = K.repeat_interleave(self.n_groups, dim=1)
         V = V.repeat_interleave(self.n_groups, dim=1)
 
@@ -246,20 +215,21 @@ class GroupedQueryAttention(nn.Module):
 
 ## 面试追问：计算复杂度
 
-|                | 复杂度            | 说明                       |
-| -------------- | ----------------- | -------------------------- |
-| Self-Attention | $O(n^2 \cdot d)$  | $n$ 是序列长度，$d$ 是维度 |
-| 线性投影       | $O(n \cdot d^2)$  | 每个token 过线性层         |
-| 总计（MHA）    | $O(n^2 d + nd^2)$ | 长序列时 $n^2$ 项主导      |
+| 项             | 复杂度             | 说明                   |
+| -------------- | ------------------ | ---------------------- |
+| Self-Attention | $O(n^2 \cdot d)$   | $n$ 序列长度，$d$ 维度 |
+| 线性投影       | $O(n \cdot d^2)$   | 每个 token 过线性层    |
+| 总计（MHA）    | $O(n^2 d + n d^2)$ | 长序列时 $n^2$ 项主导  |
 
 ---
 
 ## 易错点
 
-| 易错                                    | 说明                                                             |
-| --------------------------------------- | ---------------------------------------------------------------- |
-| 除 $\sqrt{d_k}$ 不是 $\sqrt{d_{model}}$ | 是每个头的维度，不是总维度                                       |
-| causal mask 方向                        | `tril` 生成下三角 = 保留，上三角 = 遮掩（未来）                  |
-| view 前 contiguous                      | transpose 后内存不连续，必须先 `.contiguous()` 再 view           |
-| GQA 的 repeat_interleave                | 不是 repeat，是 `repeat_interleave`，保证相邻 Q 头共享同一组 K/V |
-| MQA 是 GQA 的特例                       | 当 `n_kv_heads=1` 时 GQA 退化为 MQA                              |
+| 易错                                    | 说明                                                         |
+| --------------------------------------- | ------------------------------------------------------------ |
+| 除 $\sqrt{d_k}$ 不是 $\sqrt{d_{model}}$ | 用每个头的维度 $d_k = d_{model}/h$                           |
+| softmax 沿最后一维                      | 沿 key 维归一化，每行（每个 query）权重和为 1                |
+| causal mask 方向                        | `tril` 下三角 = 保留，上三角 = 遮未来                        |
+| view 前 contiguous                      | `transpose` 后内存不连续，`.contiguous()` 再 `view`          |
+| GQA 用 `repeat_interleave`              | 不是 `repeat`；前者让相邻 $n_{groups}$ 个 Q 头共享同一组 K/V |
+| MQA 是 GQA 的特例                       | $n_{kv\_heads}=1$ 时 GQA 退化为 MQA                          |

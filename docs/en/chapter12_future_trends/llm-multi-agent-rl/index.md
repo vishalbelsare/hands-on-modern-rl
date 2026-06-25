@@ -66,7 +66,7 @@ Let us now break down the core problems, typical architectures, and frontier adv
 
 This is the most intuitive architecture -- multiple LLM Agents play different roles, each responsible for sub-tasks they excel at, collaborating to complete a complex goal. **ChatDev**, jointly proposed by Tsinghua University and Tsinghua-affiliated startup ModelBest, is a representative work of this architecture.
 
-![ChatDev Architecture](../../../chapter12_future_trends/llm-multi-agent-rl/images/chatdev.png)
+![ChatDev Architecture](../../../chapter32_selfplay/llm-multi-agent-rl/images/chatdev.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: ChatDev virtual software company architecture. By assigning LLMs different roles (CEO, CTO, Programmer, Reviewer, etc.) and using multi-agent collaboration flows (design, coding, testing, documentation), the model can automatically complete software development like a human team. Source: <a href="https://arxiv.org/abs/2307.07924" target="_blank" rel="noopener noreferrer">ChatDev Paper</a></em>
@@ -92,7 +92,7 @@ where $R^{\text{outcome}}$ is the shared task outcome reward (did the tests pass
 
 Another representative work, **MetaGPT**, encodes Standardized Operating Procedures (SOPs) into system prompts. From an RL perspective, SOPs act as a **strong prior constraint** -- restricting the policy space, greatly reducing search difficulty and improving training stability, similar to the KL constraint from the reference model in PPO (Chapter 7).
 
-![MetaGPT Pipeline](../../../chapter12_future_trends/llm-multi-agent-rl/images/metagpt.png)
+![MetaGPT Pipeline](../../../chapter32_selfplay/llm-multi-agent-rl/images/metagpt.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: MetaGPT architecture. It not only encapsulates agents in different roles but also introduces Standardized Operating Procedures (SOPs) to constrain agent workflows and communication protocols, greatly alleviating the "information hallucination" problem during multi-agent communication. Source: <a href="https://arxiv.org/abs/2308.01432" target="_blank" rel="noopener noreferrer">MetaGPT Paper</a></em>
@@ -188,7 +188,7 @@ The RL training of memory mechanisms faces a special challenge: **memory updates
 
 ### MAPoRL: A New Paradigm for Multi-Agent Collaborative Training
 
-![MAPoRL Architecture](../../../chapter12_future_trends/llm-multi-agent-rl/images/maporl.png)
+![MAPoRL Architecture](../../../chapter32_selfplay/llm-multi-agent-rl/images/maporl.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: MAPoRL architecture. A multi-agent RL reinforcement post-training (Post-Co-Training) framework designed specifically for collaborative LLMs. It not only evaluates each model's quality on its independent task, but also designs a "Collaboration Reward" to evaluate the coordination between different roles (e.g., Coder and Reviewer), using RL to directly optimize multi-model interaction efficiency. Source: <a href="https://arxiv.org/abs/2502.18439" target="_blank" rel="noopener noreferrer">MAPoRL Paper</a></em>

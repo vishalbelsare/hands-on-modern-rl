@@ -27,7 +27,7 @@ With a larger model and longer training, the effect is more pronounced:
 
 This hands-on lab focuses on the 3B model—a single 24GB GPU is sufficient, letting you personally verify that "RL training does make a code agent stronger."
 
-![DeepCoder score progression on LiveCodeBench; the 14B model with 64K inference reaches 60.6%, matching o3-mini](../../chapter10_agentic_rl/images/deepcoder-verl-arch.png)
+![DeepCoder score progression on LiveCodeBench; the 14B model with 64K inference reaches 60.6%, matching o3-mini](../../chapter22_agentic/images/deepcoder-verl-arch.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: DeepCoder score progression on LiveCodeBench. DeepCoder-14B-Preview (64K inference) achieves 60.6% Pass@1, matching o3-mini. Source: <a href="https://pretty-radio-b75.notion.site/DeepCoder-A-Fully-Open-Source-14B-Coder-at-O3-mini-Level-1cf81902c14680b3bee5eb349a512a51" target="_blank" rel="noopener noreferrer">Agentica Blog</a></em>
@@ -54,7 +54,7 @@ rLLM has been validated on multiple tasks:
 | **DeepSWE**    | 32B        | SWEBench-Verified 59%, open-source SOTA [^deepswe]                |
 | **FinQA**      | 4B         | Financial analysis surpasses Qwen3-235B (59.7% vs 51.4%) [^finqa] |
 
-![DeepCoder training pipeline: the complete workflow from data sampling to sandbox verification to GRPO updates](../../chapter10_agentic_rl/images/deepcoder-training-pipeline.png)
+![DeepCoder training pipeline: the complete workflow from data sampling to sandbox verification to GRPO updates](../../chapter22_agentic/images/deepcoder-training-pipeline.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: DeepCoder RL training pipeline. The complete loop from data sampling, model generation, sandbox verification to GRPO policy update. Source: <a href="https://pretty-radio-b75.notion.site/DeepCoder-A-Fully-Open-Source-14B-Coder-at-O3-mini-Level-1cf81902c14680b3bee5eb349a512a51" target="_blank" rel="noopener noreferrer">Agentica Blog</a></em>
@@ -719,13 +719,13 @@ For each problem:
      - Updated via LoRA, modifying only a small number of parameters
 ```
 
-![GRPO+ vs GRPO average reward comparison during training](../../chapter10_agentic_rl/images/deepcoder-grpo-rewards.png)
+![GRPO+ vs GRPO average reward comparison during training](../../chapter22_agentic/images/deepcoder-grpo-rewards.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: Training reward curves comparing GRPO+ and standard GRPO. GRPO+ achieves higher average reward with the same amount of data through improved within-group advantage estimation. Source: <a href="https://pretty-radio-b75.notion.site/DeepCoder-A-Fully-Open-Source-14B-Coder-at-O3-mini-Level-1cf81902c14680b3bee5eb349a512a51" target="_blank" rel="noopener noreferrer">Agentica Blog</a></em>
 </div>
 
-![LiveCodeBench score progression during training, showing the effect of 16K->32K context length extension](../../chapter10_agentic_rl/images/deepcoder-lcb-scores.png)
+![LiveCodeBench score progression during training, showing the effect of 16K->32K context length extension](../../chapter22_agentic/images/deepcoder-lcb-scores.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4: LiveCodeBench Pass@1 score vs. training steps. From 16K to 32K context length extension, problem-solving ability continues to improve. Source: <a href="https://pretty-radio-b75.notion.site/DeepCoder-A-Fully-Open-Source-14B-Coder-at-O3-mini-Level-1cf81902c14680b3bee5eb349a512a51" target="_blank" rel="noopener noreferrer">Agentica Blog</a></em>

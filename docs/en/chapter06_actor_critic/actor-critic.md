@@ -10,17 +10,17 @@ In the previous two sections we met the [advantage function](./advantage-functio
 
 - [Advantage function $A(s,a) = Q(s,a) - V(s)$](./advantage-function) -- "How much better is this action than the average?"
 - [TD Error $\delta = r + \gamma V(s') - V(s)$](./critic-training) -- a practical estimate of the advantage
-- [Policy gradient $\nabla_\theta J \approx \nabla_\theta \log \pi(a|s) \cdot G_t$](../chapter05_policy_gradient/reinforce) -- the Actor's update formula
-- [REINFORCE and baselines](../chapter05_policy_gradient/pg-improvements) -- motivation for going from $G_t$ to $G_t - V(s)$
+- [Policy gradient $\nabla_\theta J \approx \nabla_\theta \log \pi(a|s) \cdot G_t$](../chapter08_policy_gradient/reinforce) -- the Actor's update formula
+- [REINFORCE and baselines](../chapter08_policy_gradient/pg-improvements) -- motivation for going from $G_t$ to $G_t - V(s)$
   :::
 
 ## From REINFORCE to Actor-Critic
 
-Recall the gradient formula of REINFORCE from Chapter 5 (review: [policy gradient theorem](../chapter05_policy_gradient/reinforce)):
+Recall the gradient formula of REINFORCE from Chapter 5 (review: [policy gradient theorem](../chapter08_policy_gradient/reinforce)):
 
 $$\nabla_\theta J \approx \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot G_t$$
 
-$G_t$ is the cumulative return over the full trajectory -- this is precisely why REINFORCE has high variance. The [baseline analysis](../chapter05_policy_gradient/pg-improvements) in Chapter 5 showed that subtracting $V(s)$ reduces variance. In the previous section we also found that we need not wait for the episode to end -- the [TD Error](./critic-training) $\delta = r + \gamma V(s') - V(s)$ can replace $G_t - V(s)$ as an advantage estimate:
+$G_t$ is the cumulative return over the full trajectory -- this is precisely why REINFORCE has high variance. The [baseline analysis](../chapter08_policy_gradient/pg-improvements) in Chapter 5 showed that subtracting $V(s)$ reduces variance. In the previous section we also found that we need not wait for the episode to end -- the [TD Error](./critic-training) $\delta = r + \gamma V(s') - V(s)$ can replace $G_t - V(s)$ as an advantage estimate:
 
 $$\nabla_\theta J \approx \nabla_\theta \log \pi_\theta(a_t|s_t) \cdot \delta$$
 
@@ -509,10 +509,10 @@ Actor-Critic is not the destination; it is a skeleton. In later chapters you wil
 
 | Chapter                                                              | Variant                          | Key improvement                                                                                  |
 | -------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [Chapter 7 PPO](../chapter07_ppo/intro)                              | PPO-Clip                         | Limit the size of policy updates to avoid "taking steps that are too big"                        |
-| [Chapter 7 GAE](../chapter07_ppo/gae-reward-model)                   | Generalized Advantage Estimation | Exponentially weighted sum of multi-step TD errors; precisely control the bias-variance tradeoff |
-| [Chapter 9 DPO](../chapter09_alignment/intro)                        | Implicit Actor-Critic            | Replace the Critic with preference data; remove the on-policy constraint                         |
-| [Chapter 9 GRPO](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) | Remove the Critic                | Replace $V(s)$ with an in-group mean; save one network                                           |
+| [Chapter 7 PPO](../chapter10_ppo/intro)                              | PPO-Clip                         | Limit the size of policy updates to avoid "taking steps that are too big"                        |
+| [Chapter 7 GAE](../chapter10_ppo/gae-reward-model)                   | Generalized Advantage Estimation | Exponentially weighted sum of multi-step TD errors; precisely control the bias-variance tradeoff |
+| [Chapter 9 DPO](../chapter17_dpo/intro)                        | Implicit Actor-Critic            | Replace the Critic with preference data; remove the on-policy constraint                         |
+| [Chapter 9 GRPO](../chapter18_grpo/grpo-practice-and-mechanism) | Remove the Critic                | Replace $V(s)$ with an in-group mean; save one network                                           |
 
 All variants share the same skeleton: one network responsible for choosing, plus one signal responsible for evaluating. What changes is only "where the evaluation signal comes from" and "how the selection network is updated."
 

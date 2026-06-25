@@ -26,7 +26,7 @@ The **rLLM-FinQA** case we dissect in this section is exactly such a financial A
 
 This experiment is well-suited as a first business case for Agentic RL, because it simultaneously has three properties: the task comes from real financial reports, the tool-calling path is clear, and both training and evaluation are fully reproducible.
 
-![Snorkel × rLLM collaborate on financial analysis Agent training](../../chapter10_agentic_rl/images/finqa-snorkel-rllm-banner.png)
+![Snorkel × rLLM collaborate on financial analysis Agent training](../../chapter22_agentic/images/finqa-snorkel-rllm-banner.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: Snorkel and rLLM collaborate on a financial analysis Agent post-training solution. A 4B model surpasses a 235B general-purpose model on the Snorkel Finance Benchmark. Source: <a href="https://snorkel.ai/" target="_blank" rel="noopener noreferrer">Snorkel AI</a></em>
@@ -99,7 +99,7 @@ flowchart TD
     style A fill:#e8f5e9,stroke:#388e3c,color:#000
 ```
 
-![rLLM-FinQA financial Agent environment: the model interacts with SEC financial tables through four tools](../../chapter10_agentic_rl/images/finqa-snorkel-env-diagram.png)
+![rLLM-FinQA financial Agent environment: the model interacts with SEC financial tables through four tools](../../chapter22_agentic/images/finqa-snorkel-env-diagram.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: The rLLM-FinQA Agent environment. Facing a financial question, the model interacts with SEC 10-K financial tables through four tools — get_table_names, get_table_info, sql_query, and calculator — to complete multi-step reasoning and computation. Source: <a href="https://snorkel.ai/" target="_blank" rel="noopener noreferrer">Snorkel AI</a></em>
@@ -294,7 +294,7 @@ The core result reported by the official project:
 | Gemini 2.5 Pro | Not disclosed | 60.6%                              |
 | Qwen3-235B     | 235B          | 51.4%                              |
 
-![Snorkel Finance Benchmark model comparison](../../chapter10_agentic_rl/images/finqa-benchmark-comparison.png)
+![Snorkel Finance Benchmark model comparison](../../chapter22_agentic/images/finqa-benchmark-comparison.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: Snorkel Finance Benchmark evaluation metric comparison across models. rLLM-FinQA-4B reaches 59.7% on financial analysis, close to Gemini 2.5 Pro's 60.6%, far exceeding Qwen3-235B's 51.4%. Source: <a href="https://snorkel.ai/" target="_blank" rel="noopener noreferrer">Snorkel AI</a></em>

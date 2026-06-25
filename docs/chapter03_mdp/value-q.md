@@ -215,7 +215,7 @@ $$
 
 <span id="numerical-example"></span>
 
-## GridWorld：从数值示例到代码实现
+## GridWorld 数值示例与实现
 
 以 4×4 GridWorld 为例，每步奖励 $-1$，折扣因子 $\gamma=0.9$，Q 表初始全为 0。智能体在起点 $(0,0)$ 向右走，到达 $(0,1)$，获得 $r=-1$。
 

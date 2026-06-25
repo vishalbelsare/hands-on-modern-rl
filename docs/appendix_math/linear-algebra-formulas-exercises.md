@@ -8,7 +8,7 @@
 
 现在你有了向量、矩阵、点积、范数、特征值这些工具。回头看看第 3 章学过的东西，会发现很多"当时只是接受"的公式，其实都有更简洁的矩阵表达。
 
-### 贝尔曼方程：从逐个手写到一行矩阵
+### 贝尔曼方程 与 从逐个手写到一行矩阵
 
 第 3 章里，贝尔曼期望方程写成：
 
@@ -24,7 +24,7 @@ $$
 
 闭式解是 $\boldsymbol{v} = (I-\gamma P)^{-1}\boldsymbol{r}$。第 3 章的 DP 方法反复做 $v_{k+1} = r + \gamma Pv_k$，本质上是在迭代逼近这个闭式解。
 
-### TD Error：增量更新与矩阵方程的关系
+### TD Error 与 增量更新与矩阵方程的关系
 
 第 3 章的 TD 更新是：
 
@@ -40,11 +40,11 @@ $$
 
 其中 $\boldsymbol{e}_s$ 是状态 $s$ 的 one-hot 向量（只有第 $s$ 个位置为 $1$，其余为 $0$），$\delta = r + \gamma V(s') - V(s)$ 是 TD Error。这和 E.1.2 的贝尔曼矩阵形式 $\boldsymbol{v} = \boldsymbol{r} + \gamma P\boldsymbol{v}$ 是同一个东西的两种表达——前者是逐步增量更新（每次只改一个分量），后者是整体方程（所有分量同时满足）。
 
-### Q-Learning 表格法：one-hot + 点积的特例
+### Q-Learning 表格法 与 one-hot + 点积的特例
 
 第 3 章的 Q-Learning 为每个 (状态, 动作) 对存一个数。从线性代数的视角看，这就是用了 one-hot 特征的线性近似：$Q(s,a) = \boldsymbol{w}^\top \boldsymbol{x}(s,a)$，其中 $\boldsymbol{x}(s,a)$ 是 one-hot 向量。查表是线性近似的特例。
 
-### 策略梯度更新：范数和信任域的舞台
+### 策略梯度更新 与 范数和信任域的舞台
 
 第 3 章路线二定义了策略目标 $J(\theta)$。更新参数时，梯度裁剪限制 $\|\boldsymbol{g}\|_2 \leq c$，信任域约束 $\Delta\theta^\top F\,\Delta\theta \leq \delta$——这些都是在用线性代数工具保证训练安全。
 

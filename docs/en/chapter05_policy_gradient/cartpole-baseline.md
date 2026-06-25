@@ -6,18 +6,18 @@ title: '5.5 Hands-On: Policy Gradient with Baseline'
 
 > **Goal of this section**: On `CartPole-v1`, compare vanilla REINFORCE against REINFORCE + Value Baseline, and observe how $V(s)$ can make policy-gradient training faster and more stable.
 
-> **Code for this section**: [reinforce_with_baseline.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter05_policy_gradient/reinforce_with_baseline.py) · [render_cartpole_baseline.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter05_policy_gradient/render_cartpole_baseline.py) · [reinforce_cartpole.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter05_policy_gradient/reinforce_cartpole.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter05_policy_gradient/requirements.txt)
+> **Code for this section**: [reinforce_with_baseline.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter08_policy_gradient/reinforce_with_baseline.py) · [render_cartpole_baseline.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter08_policy_gradient/render_cartpole_baseline.py) · [reinforce_cartpole.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter08_policy_gradient/reinforce_cartpole.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter08_policy_gradient/requirements.txt)
 
 In the previous two sections, we (1) ran vanilla REINFORCE end-to-end, and (2) derived, mathematically, why introducing a baseline reduces variance. In this section, we put them side by side and look at the practical effect of replacing $G_t$ with $G_t - V(s_t)$.
 
 ## Run The Comparison Experiment
 
 ```bash
-pip install -r code/chapter05_policy_gradient/requirements.txt
+pip install -r code/chapter08_policy_gradient/requirements.txt
 ```
 
 ```bash
-python code/chapter05_policy_gradient/reinforce_with_baseline.py
+python code/chapter08_policy_gradient/reinforce_with_baseline.py
 ```
 
 This script trains two policies:
@@ -39,14 +39,14 @@ After the script finishes, it will produce two figures:
 If you also want to export replay GIFs:
 
 ```bash
-python code/chapter05_policy_gradient/render_cartpole_baseline.py \
+python code/chapter08_policy_gradient/render_cartpole_baseline.py \
   --episodes 500 \
   --seed 0
 ```
 
 ## Read The Reward Curve
 
-![Reward-curve comparison on CartPole between vanilla REINFORCE and REINFORCE + Value Baseline. With the value baseline, the agent approaches the 500-step cap earlier; vanilla REINFORCE learns more slowly and fluctuates more.](../../chapter05_policy_gradient/images/reinforce-baseline-cartpole-reward.png)
+![Reward-curve comparison on CartPole between vanilla REINFORCE and REINFORCE + Value Baseline. With the value baseline, the agent approaches the 500-step cap earlier; vanilla REINFORCE learns more slowly and fluctuates more.](../../chapter08_policy_gradient/images/reinforce-baseline-cartpole-reward.png)
 
 In the plot, the light line is the raw return of each episode, and the dark line is a moving average.
 
@@ -61,18 +61,18 @@ The reward curve tells you the average trend; replays tell you what the policy i
 **Vanilla REINFORCE: it can hold for a while, but it still drifts off and over-corrects easily.**
 In this rendering, the return is `166`. The policy is no longer random, but once the pole deviates, the corrections are not stable enough.
 
-![CartPole replay after training with vanilla REINFORCE: the policy has learned part of the balancing behavior, but it still gradually becomes unstable.](../../chapter05_policy_gradient/images/cartpole-vanilla-reinforce.gif)
+![CartPole replay after training with vanilla REINFORCE: the policy has learned part of the balancing behavior, but it still gradually becomes unstable.](../../chapter08_policy_gradient/images/cartpole-vanilla-reinforce.gif)
 
 **REINFORCE + Value Baseline: it pulls the pole back toward the center more consistently.**
 In this rendering, the return is `355`. The corrective actions are visibly more coherent; when the pole deviates, it is more likely to be brought back.
 
-![CartPole replay after training with REINFORCE + Value Baseline: the policy corrects the pole angle more stably.](../../chapter05_policy_gradient/images/cartpole-reinforce-baseline.gif)
+![CartPole replay after training with REINFORCE + Value Baseline: the policy corrects the pole angle more stably.](../../chapter08_policy_gradient/images/cartpole-reinforce-baseline.gif)
 
 ## Read The Variance Curve
 
 The reward curve answers “does the policy get better?” The variance curve answers another question: why does the value baseline make training more stable?
 
-![Variance comparison of the policy-gradient estimator on CartPole between vanilla REINFORCE and REINFORCE + Value Baseline. After converting returns into advantages, the gradient signal becomes more concentrated.](../../chapter05_policy_gradient/images/reinforce-baseline-cartpole-variance.png)
+![Variance comparison of the policy-gradient estimator on CartPole between vanilla REINFORCE and REINFORCE + Value Baseline. After converting returns into advantages, the gradient signal becomes more concentrated.](../../chapter08_policy_gradient/images/reinforce-baseline-cartpole-variance.png)
 
 This figure plots the variance of the gradient estimator within a sliding window. A larger value means different episodes suggest very different update directions; a smaller value means each policy update is more consistent.
 

@@ -87,7 +87,7 @@ PPO is an online method for solving this objective. It first lets the current mo
 
 DPO enters from a different angle. The DPO paper first points out that RLHF is often complex and unstable, then proposes a new reward parameterization that turns the standard RLHF problem into a **"simple classification loss"** and reduces the need to sample from the model during fine-tuning. In other words, DPO does not reject PPO. It says: **if we already have preference pairs $(x,y_w,y_l)$, some online RL steps can be replaced by mathematical derivation**.
 
-![DPO simplified from RLHF and PPO](../../chapter09_alignment/images/dpo-from-ppo.svg)
+![DPO simplified from RLHF and PPO](../../chapter17_dpo/images/dpo-from-ppo.svg)
 
 Read the figure this way:
 
@@ -481,7 +481,7 @@ In code, this is exactly the step where we compute the answer log probabilities 
 
 ### Step 3: Substitute into the Bradley-Terry Model
 
-Recall the Bradley-Terry preference model from [the previous RLHF chapter](../chapter08_rlhf/reward-function-design) and [Chapter 7 on GAE](../chapter07_ppo/gae-reward-model):
+Recall the Bradley-Terry preference model from [the previous RLHF chapter](../chapter15_rlhf/reward-function-design) and [Chapter 7 on GAE](../chapter10_ppo/gae-reward-model):
 
 $$P(y_w > y_l \mid x) = \sigma\left( r(x, y_w) - r(x, y_l) \right)$$
 
@@ -520,7 +520,7 @@ Substituting the preference probability above gives the full DPO loss:
 
 $$\mathcal{L}_{\text{DPO}} = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w\mid x)}{\pi_{\text{ref}}(y_w\mid x)} - \beta \log \frac{\pi_\theta(y_l\mid x)}{\pi_{\text{ref}}(y_l\mid x)} \right) \right]$$
 
-This is the true form behind the `DPOTrainer` you used in [Chapter 2](../chapter02_dpo/intro):
+This is the true form behind the `DPOTrainer` you used in [Chapter 2](../chapter17_dpo/intro):
 
 <DpoCodeFocus focus="loss" />
 
@@ -658,7 +658,7 @@ print(f"Reward gap: {r_good - r_bad:.4f}")
 The meaning of implicit reward is this: **DPO does not lack a reward model; it hides the reward model inside the policy model**. You do not need to train and maintain a separate RM. The policy model itself can score its own answers. This is what "Direct" means in DPO: it learns the policy **directly** from preference data and **skips** the intermediate step of explicitly training an RM.
 
 <details>
-<summary>Question: What is the relationship between DPO's implicit reward $r(x,y) = \beta \log(\pi_\theta / \pi_{\text{ref}})$ and the KL penalty in [Chapter 7 PPO](../chapter07_ppo/trust-region-clipping)?</summary>
+<summary>Question: What is the relationship between DPO's implicit reward $r(x,y) = \beta \log(\pi_\theta / \pi_{\text{ref}})$ and the KL penalty in [Chapter 7 PPO](../chapter10_ppo/trust-region-clipping)?</summary>
 
 They are two sides of the same object. PPO's objective includes the term $-\beta \cdot D_{\text{KL}}(\pi_\theta \| \pi_{\text{ref}})$, which prevents the policy from moving too far away from the reference model. DPO's implicit reward $\beta \log(\pi_\theta / \pi_{\text{ref}})$ is exactly the logarithmic term inside the KL divergence. It is the "pointwise version" of the KL divergence.
 
@@ -795,4 +795,4 @@ There is also a more advanced approach: **mixed training**. First use DPO to lea
 
 </details>
 
-The DPO family solves the question of "how to bypass the RM". But what if we look from another angle: **instead of bypassing the RM, what if we do not need an RM at all?** In domains with objective answers, such as mathematical reasoning and code generation, we can directly use rules to verify whether an answer is correct. Next, let us enter [GRPO training and core mechanisms](../chapter09_grpo_rlvr/grpo-practice-and-mechanism).
+The DPO family solves the question of "how to bypass the RM". But what if we look from another angle: **instead of bypassing the RM, what if we do not need an RM at all?** In domains with objective answers, such as mathematical reasoning and code generation, we can directly use rules to verify whether an answer is correct. Next, let us enter [GRPO training and core mechanisms](../chapter18_grpo/grpo-practice-and-mechanism).

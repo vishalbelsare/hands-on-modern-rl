@@ -356,4 +356,4 @@ It is worth noting that these two directions are not mutually exclusive. The mos
 
 </details>
 
-Here, the three directions of RL Scaling have been covered. But there is one important post-training approach we have not yet discussed — **knowledge distillation**: using the teacher model's log-prob as training signals to achieve results comparable to RL at 1/10 the compute. Let us move to the next section — [Knowledge Distillation and On-Policy Distillation](../chapter09_grpo_rlvr/on-policy-distillation).
+Here, the three directions of RL Scaling have been covered. But there is one important post-training approach we have not yet discussed — **knowledge distillation**: using the teacher model's log-prob as training signals to achieve results comparable to RL at 1/10 the compute. Let us move to the next section — [Knowledge Distillation and On-Policy Distillation](../chapter18_grpo/on-policy-distillation).

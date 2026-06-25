@@ -92,7 +92,7 @@ The objective is to make the model assign higher probability to the chosen respo
 }
 ```
 
-Returning to [3-train_dpo.py](../../code/chapter02_dpo/3-train_dpo.py) from the previous section, the `preference_data.json` loaded by the code is in exactly this format. The data loading part parses the JSON file into `prompt`, `chosen`, and `rejected` fields, corresponding to $x$, $y_w$, and $y_l$ in the notation:
+Returning to [3-train_dpo.py](../../code/chapter17_dpo/3-train_dpo.py) from the previous section, the `preference_data.json` loaded by the code is in exactly this format. The data loading part parses the JSON file into `prompt`, `chosen`, and `rejected` fields, corresponding to $x$, $y_w$, and $y_l$ in the notation:
 
 ```python
 data_dict = {
@@ -191,7 +191,7 @@ That is, a response's reward score $r(x,y)$ is proportional to the log of the ra
 
 Based on this insight, DPO takes preference data (a good and a bad response to the same question) and directly adjusts model parameters to increase the probability of the good response and decrease the probability of the bad one. The entire process requires only one language model plus a static copy of the reference model, skipping the reward model training and PPO's reinforcement learning loop, reducing the problem to optimizing a contrastive loss function.
 
-Returning to the code in [3-train_dpo.py](../../code/chapter02_dpo/3-train_dpo.py), `DPOTrainer` receives only a `model` parameter at initialization:
+Returning to the code in [3-train_dpo.py](../../code/chapter17_dpo/3-train_dpo.py), `DPOTrainer` receives only a `model` parameter at initialization:
 
 ```python
 trainer = DPOTrainer(
@@ -250,7 +250,7 @@ $$ \sigma(x) = \frac{1}{1 + e^{-x}} $$
 
 Sigmoid maps any real number $x$ to $(0, 1)$: as $x$ increases, $\sigma(x)$ approaches 1; as $x$ decreases, $\sigma(x)$ approaches 0; at $x = 0$, $\sigma(0) = 0.5$. On this basis, taking $-\ln$ gives the loss function. The following figure shows both the sigmoid curve and the corresponding loss curve:
 
-![Correspondence between the sigmoid function and DPO loss: blue is sigma(x), red is -log sigma(x)](../../chapter02_dpo/images/sigmoid-dpo-loss.svg)
+![Correspondence between the sigmoid function and DPO loss: blue is sigma(x), red is -log sigma(x)](../../chapter17_dpo/images/sigmoid-dpo-loss.svg)
 
 The figure has two curves: blue is the sigmoid $\sigma(x)$, red is the loss $-\ln\sigma(x)$. The horizontal axis is the reward margin; the two curves correspond to different vertical axis scales (left scale for the blue line, right scale for the red line). Note two key regions of the red line:
 

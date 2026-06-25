@@ -581,4 +581,4 @@ Chapter 3 establishes the basic structure of reinforcement learning theory:
 7. Distinguish algorithm families by how data is collected (on/off-policy, online/offline).
 8. Use reward design to explain where the objective comes from and why the objective definition itself shapes learning outcomes.
 
-The next chapter starts from $Q(s,a)$ and introduces the first complete algorithm family: [Chapter 4: Deep Q-Networks](../chapter04_dqn/intro).
+The next chapter starts from $Q(s,a)$ and introduces the first complete algorithm family: [Chapter 4: Deep Q-Networks](../chapter07_dqn/intro).

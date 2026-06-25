@@ -8,7 +8,7 @@ In the previous section we ran the VLM GRPO experiment and saw the model evolve 
 
 These three questions are not independent minor annoyances — they are the core theoretical challenges of VLM RL. How well they are solved directly determines whether the system can work in real scenarios.
 
-![VISTA-Gym Main Results](../../chapter11_vlm_rl/images/ref-vista-gym-workflow.png)
+![VISTA-Gym Main Results](../../chapter26_vlm/images/ref-vista-gym-workflow.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: VISTA-Gym / VISTA-R1 main results table. The w/o Tools and w/o Reasoning ablations show that capability gains in visual tasks come not only from scaling the model but also from the combined effect of tool verification, reasoning trajectories, and reward design. Source: <a href="https://www.eigenai.com/blog/vista-gym-vista-r1" target="_blank" rel="noopener noreferrer">VISTA-Gym / VISTA-R1 Blog</a></em>

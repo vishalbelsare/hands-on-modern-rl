@@ -35,7 +35,7 @@ The two paths are not mutually exclusive. Frontier projects tend to combine both
 
 Deep Research Agent reasoning did not arrive in one step. Over the past two years, this direction has evolved through roughly three levels:
 
-![Deep Research Agent multiple technical path comparison](../../chapter10_agentic_rl/images/tongyi_iter_research.webp)
+![Deep Research Agent multiple technical path comparison](../../chapter24_deep_research/images/tongyi_iter_research.webp)
 _Figure: Deep Research Agent multiple technical path comparison (Source: [Tongyi DeepResearch](https://tongyi-agent.github.io/blog/introducing-tongyi-deep-research/))_
 
 1. **ReAct: The basic closed loop of thinking while doing**
@@ -46,7 +46,7 @@ _Figure: Deep Research Agent multiple technical path comparison (Source: [Tongyi
 2. **Iterative Research: Iterative research for long-horizon tasks**
    - When the task goes from "find one answer" to "write a credible research report," simple ReAct is no longer enough.
 
-   ![Tongyi DeepResearch iterative research paradigm](../../chapter10_agentic_rl/images/tongyi_iter_research.webp)
+   ![Tongyi DeepResearch iterative research paradigm](../../chapter24_deep_research/images/tongyi_iter_research.webp)
    _Figure: Tongyi DeepResearch iterative research paradigm (Source: [Tongyi DeepResearch](https://tongyi-agent.github.io/blog/introducing-tongyi-deep-research/))_
    - The model needs to repeatedly execute the cycle of "retrieve → read → compare sources → revise hypothesis → retrieve again."
    - The key at this level is no longer just tool calling itself, but long-horizon planning, cross-validation, and context compression.
@@ -68,7 +68,7 @@ DeepResearcher is the first framework to conduct end-to-end RL training in a **r
 
 Its architecture uses multi-agent collaboration: dedicated "Browsing Agents" extract information from complex webpage structures, while the main agent plans research strategies and synthesizes information. The training objective is pure answer correctness (RLVR), with no process rewards.
 
-![DeepResearcher emergent planning, cross-verification, and self-reflection behaviors after RL training](../../chapter10_agentic_rl/images/deepresearcher_case.png)
+![DeepResearcher emergent planning, cross-verification, and self-reflection behaviors after RL training](../../chapter24_deep_research/images/deepresearcher_case.png)
 _Figure: DeepResearcher emergent high-level behavior cases after RL training (Source: [GAIR-NLP/DeepResearcher](https://github.com/GAIR-NLP/DeepResearcher))_
 
 **Core finding: Behavioral emergence.** This is DeepResearcher's most surprising result — through RL training, the model spontaneously emerged multiple categories of high-level behaviors that were **never explicitly trained**:
@@ -84,7 +84,7 @@ This shows RL's value in agent training is not just "optimizing known strategies
 
 Alibaba Tongyi Lab's Tongyi DeepResearch is one of the strongest open-source Deep Research models [^tongyi_dr]. It surpasses OpenAI o3, DeepSeek-V3.1 (671B), and other much larger models on multiple benchmarks, with only 30.5B total parameters — the key is the MoE (Mixture of Experts) architecture, which activates only 3.3B parameters per inference, achieving extreme parameter efficiency.
 
-![Tongyi DeepResearch asynchronous RL training architecture](../../chapter10_agentic_rl/images/tongyi_rl_arch.webp)
+![Tongyi DeepResearch asynchronous RL training architecture](../../chapter24_deep_research/images/tongyi_rl_arch.webp)
 _Figure: Tongyi DeepResearch asynchronous RL training architecture (Source: [Tongyi DeepResearch](https://tongyi-agent.github.io/blog/introducing-tongyi-deep-research/))_
 
 **Two-stage training paradigm.** Tongyi DeepResearch's core innovation is proposing the **Agentic Mid-training + Post-training** two-stage pipeline:
@@ -578,7 +578,7 @@ Paper: Jin et al. "Search-R1: Training LLMs to Reason and Leverage Search Engine
 
 Search-R1 is the first open-source framework to let LLMs **autonomously learn** to call search engines during RL training. Its core idea is not using prompts to teach the model "search when uncertain," but letting the model discover optimal search strategies through **trial-and-error + reward signals**.
 
-![Search-R1 system architecture: model autonomously calls search engine during reasoning](../../chapter10_agentic_rl/images/searchr1_arch.webp)
+![Search-R1 system architecture: model autonomously calls search engine during reasoning](../../chapter24_deep_research/images/searchr1_arch.webp)
 _Figure: Search-R1 system architecture (Source: [PeterGriffinJin/Search-R1](https://github.com/PeterGriffinJin/Search-R1))_
 
 Before training, the model blindly answers questions; after training, the model spontaneously produces behaviors like:
@@ -599,7 +599,7 @@ Model's thinking process (after training):
 
 The key point: **the model was never explicitly taught the "search author first, then search awards" strategy** — it learned it through repeated rollout + reward feedback during RL training. This is consistent with DeepResearcher's[^deepresearcher] "behavioral emergence" finding.
 
-![Qwen2.5-7B-Base learns multi-turn search and reasoning after RL training](../../chapter10_agentic_rl/images/searchr1_multiturn.webp)
+![Qwen2.5-7B-Base learns multi-turn search and reasoning after RL training](../../chapter24_deep_research/images/searchr1_multiturn.webp)
 _Figure: Qwen2.5-7B-Base learns multi-turn search and reasoning (Source: [PeterGriffinJin/Search-R1](https://github.com/PeterGriffinJin/Search-R1))_
 
 ### Why Choose Search-R1 for Reproduction?
@@ -816,7 +816,7 @@ Search-R1 evaluates on 7 QA benchmarks:
 
 Paper's core results (compared with RAG baseline):
 
-![LLaMA3.2-3B-Base learns to call search engines and improves performance after RL training](../../chapter10_agentic_rl/images/searchr1_llama3b.webp)
+![LLaMA3.2-3B-Base learns to call search engines and improves performance after RL training](../../chapter24_deep_research/images/searchr1_llama3b.webp)
 _Figure: LLaMA3.2-3B-Base performance comparison before and after RL training (Source: [PeterGriffinJin/Search-R1](https://github.com/PeterGriffinJin/Search-R1))_
 
 | Model       | Baseline (RAG) | Search-R1 (RL) | Improvement |

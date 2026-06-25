@@ -10,7 +10,7 @@ In the previous two sections we ran VLM GRPO experiments and analyzed the unique
 
 VisPlay is a creative VLM RL framework whose core idea is to let two models **play against each other and co-evolve** through RL — one generates questions (Questioner), the other answers them (Reasoner). This follows the Self-Play idea discussed in Chapter 8, but is specifically designed for visual scenarios.
 
-![VisPlay Framework](../../chapter11_vlm_rl/images/ref-visplay-framework.png)
+![VisPlay Framework](../../chapter26_vlm/images/ref-visplay-framework.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: VisPlay training framework. The Image-Conditioned Questioner generates questions, the Multimodal Reasoner answers them, and the system updates both through uncertainty rewards, pseudo-labels, and GRPO. Source: <a href="https://bruno686.github.io/VisPlay/" target="_blank" rel="noopener noreferrer">VisPlay Project Page</a></em>
@@ -32,7 +32,7 @@ The Reasoner's reward is similar to the previous section — answer correctness,
 
 VISTA-Gym's design philosophy is "let VLMs not just look and talk, but also act." It incorporates a Python interpreter, search engine, image annotation tools, and more into the VLM's action space — the model can not only generate text answers but also call tools to verify and improve its reasoning.
 
-![VISTA-Gym Overview](../../chapter11_vlm_rl/images/ref-vista-gym-overview.png)
+![VISTA-Gym Overview](../../chapter26_vlm/images/ref-vista-gym-overview.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: VISTA-Gym puts visual questions, tool sets, VLM Agent, trajectory sampling, and policy updates in a unified interaction environment. The focus is not single-turn QA but letting the model iteratively try and revise within a verifiable tool chain. Source: <a href="https://www.eigenai.com/blog/vista-gym-vista-r1" target="_blank" rel="noopener noreferrer">VISTA-Gym / VISTA-R1 Blog</a></em>
@@ -61,7 +61,7 @@ VISTA-Gym combines naturally with GRPO. For the same image-question pair, the mo
 
 Putting VisPlay, VISTA-Gym, and the VLM GRPO experiment from the previous section side by side:
 
-![VISTA-R1 Results](../../chapter11_vlm_rl/images/ref-vista-gym-results.png)
+![VISTA-R1 Results](../../chapter26_vlm/images/ref-vista-gym-results.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: VISTA-R1 ablation experiments. Tools, RL algorithms, reward design, and reasoning trajectory quality all affect final performance, showing that the key to VLM RL frameworks is the combination of "environment + tools + reward + algorithm." Source: <a href="https://www.eigenai.com/blog/vista-gym-vista-r1" target="_blank" rel="noopener noreferrer">VISTA-Gym / VISTA-R1 Blog</a></em>
@@ -201,9 +201,9 @@ VLM RL produces "models that can understand images." But in real scenarios, user
 
 ### Special Challenges in Multimodal Agent RL
 
-Combining this chapter's VLM RL with [Chapter 10's](../chapter10_agentic_rl/intro) Agent RL introduces three additional challenges:
+Combining this chapter's VLM RL with [Chapter 10's](../chapter22_agentic/intro) Agent RL introduces three additional challenges:
 
-**1. Error misattribution.** When a multimodal Agent produces wrong results, the error may come from visual understanding ("misread" a value in the chart) or tool calling ("made a mistake" passing wrong parameters). These two types of errors require completely different fixes — the former needs more VLM RL training (this chapter's methods), the latter needs more [Agent RL training](../chapter10_agentic_rl/tool-use-and-trajectory). In practice, **staged verification** is needed: first check if visual understanding is correct, then check if tool calls are reasonable.
+**1. Error misattribution.** When a multimodal Agent produces wrong results, the error may come from visual understanding ("misread" a value in the chart) or tool calling ("made a mistake" passing wrong parameters). These two types of errors require completely different fixes — the former needs more VLM RL training (this chapter's methods), the latter needs more [Agent RL training](../chapter22_agentic/tool-use-and-trajectory). In practice, **staged verification** is needed: first check if visual understanding is correct, then check if tool calls are reasonable.
 
 **2. Cross-modal reward design.** A text-only Agent's reward only considers text quality, while a multimodal Agent's reward must cover both visual understanding accuracy and tool-use correctness:
 
@@ -216,13 +216,13 @@ def multimodal_agent_reward(trajectory, task):
     return 0.2 * visual_reward + 0.3 * tool_reward + 0.5 * outcome_reward
 ```
 
-**3. Cross-modal credit assignment.** In a 10-turn trajectory, a visual understanding error at turn 2 may cause a tool-call failure at turn 5. This is harder than credit assignment in text-only Agents, because the cross-modal error propagation chain is longer and more subtle. The ORM vs PRM tradeoff discussed in [Chapter 10](../chapter10_agentic_rl/multi-turn-rl) is even more prominent here.
+**3. Cross-modal credit assignment.** In a 10-turn trajectory, a visual understanding error at turn 2 may cause a tool-call failure at turn 5. This is harder than credit assignment in text-only Agents, because the cross-modal error propagation chain is longer and more subtle. The ORM vs PRM tradeoff discussed in [Chapter 10](../chapter22_agentic/multi-turn-rl) is even more prominent here.
 
 ### Representative Work
 
 **GUI Agents.** Training models through RL to understand UI elements (buttons, input fields) in screenshots and perform clicks, typing, scrolling, and other operations. Representative work includes CRAFT-GUI (desktop GUI operations) and MobileRL (mobile touch-screen operations). GUI Agents have a natural RLVR advantage — whether an operation succeeded is objectively verifiable.
 
-**Multimodal Deep Research.** [Tongyi DeepResearch](../chapter10_agentic_rl/deep-research-agent) already supports multimodal input, analyzing charts and images in search results and extracting chart data from PDF papers. This is a frontier direction integrating VLM RL and Agent RL.
+**Multimodal Deep Research.** [Tongyi DeepResearch](../chapter22_agentic/deep-research-agent) already supports multimodal input, analyzing charts and images in search results and extracting chart data from PDF papers. This is a frontier direction integrating VLM RL and Agent RL.
 
 **Creative Agents.** Receive user requirements and reference images, then call image generation/editing tools to create. The challenge lies in the subjectivity of reward — "how good is a style transfer" has no objective standard and requires LLM-as-Judge evaluation.
 
@@ -231,7 +231,7 @@ def multimodal_agent_reward(trajectory, task):
 If you want to train multimodal Agents, the recommended path is:
 
 1. **Train visual understanding first**: Use this chapter's VLM GRPO to build basic visual ability.
-2. **Then train tool use**: Use [Chapter 10's tool-use RL](../chapter10_agentic_rl/tool-use-and-trajectory) to establish basic tool-use patterns.
+2. **Then train tool use**: Use [Chapter 10's tool-use RL](../chapter22_agentic/tool-use-and-trajectory) to establish basic tool-use patterns.
 3. **Finally, joint training**: Do end-to-end RL on multimodal Agent tasks, with reward design following the composite reward function above.
 
 Key principle: **verify that visual understanding and tool use each meet baseline independently before attempting end-to-end joint training.** If the underlying components have problems, joint training will not rescue them.

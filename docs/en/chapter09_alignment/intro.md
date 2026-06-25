@@ -4,7 +4,7 @@ title: 9. Post-Training Alignment
 
 # Alignment and Reasoning RL
 
-In the previous chapter, we walked through the full [RLHF pipeline](../chapter08_rlhf/standard-rlhf-pipeline). If you actually ran that pipeline, a few numbers probably stayed with you:
+In the previous chapter, we walked through the full [RLHF pipeline](../chapter15_rlhf/standard-rlhf-pipeline). If you actually ran that pipeline, a few numbers probably stayed with you:
 
 - four models may live in memory at the same time: Actor, Reference, Critic, and Reward Model
 - each training round needs many on-policy generations
@@ -74,11 +74,11 @@ In industrial practice, these methods are usually combined. A system may use SFT
 | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | [DPO theory and method selection](./dpo-theory-and-family)                      | How does DPO derive a classification loss from a KL-regularized RL objective? When should we use DPO/KTO/SimPO? | Understand DPO mathematically and choose variants by scenario    |
 | [Hands-on: DPO alignment](./dpo-hands-on)                                       | How do we read DPO metrics such as reward accuracy, margin, and beta sensitivity?                               | Diagnose DPO training logs                                       |
-| [Hands-on: GRPO mechanisms](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) | How does GRPO replace the Critic with group normalization? How much memory does it save?                        | Run GRPO training and understand the difference from PPO         |
-| [DeepSeek-R1 and DAPO](../chapter09_grpo_rlvr/deepseek-dapo)                    | Can pure RL work without SFT? What do SimpleRL and DAPO teach us?                                               | Understand R1-Zero, SimpleRL reproduction, and DAPO improvements |
-| [RLVR: verifiable rewards](../chapter09_grpo_rlvr/rlvr)                         | Can verifiable rewards replace reward models? Why does 1-shot RLVR work?                                        | Understand verifier design and RLVR training                     |
-| [RL scaling outlook](../chapter12_future_trends/rl-scaling-outlook)             | When should we choose online vs offline RL? Where are the scaling limits?                                       | Build global judgment about RL training paradigms                |
-| [On-policy distillation](../chapter09_grpo_rlvr/on-policy-distillation)         | Why can distillation be more effective than RL for small models? How can teacher log-probs act like rewards?    | Understand the RL nature of distillation                         |
+| [Hands-on: GRPO mechanisms](../chapter18_grpo/grpo-practice-and-mechanism) | How does GRPO replace the Critic with group normalization? How much memory does it save?                        | Run GRPO training and understand the difference from PPO         |
+| [DeepSeek-R1 and DAPO](../chapter18_grpo/deepseek-dapo)                    | Can pure RL work without SFT? What do SimpleRL and DAPO teach us?                                               | Understand R1-Zero, SimpleRL reproduction, and DAPO improvements |
+| [RLVR: verifiable rewards](../chapter18_grpo/rlvr)                         | Can verifiable rewards replace reward models? Why does 1-shot RLVR work?                                        | Understand verifier design and RLVR training                     |
+| [RL scaling outlook](../chapter32_selfplay/rl-scaling-outlook)             | When should we choose online vs offline RL? Where are the scaling limits?                                       | Build global judgment about RL training paradigms                |
+| [On-policy distillation](../chapter18_grpo/on-policy-distillation)         | Why can distillation be more effective than RL for small models? How can teacher log-probs act like rewards?    | Understand the RL nature of distillation                         |
 | [Industrial post-training practice](./industrial-post-training)                 | How do major labs combine SFT, RLHF, DPO, RLVR, and Agentic RL in real systems?                                 | Connect papers to production post-training pipelines             |
 
 Ready? We begin with the mathematical structure of DPO:

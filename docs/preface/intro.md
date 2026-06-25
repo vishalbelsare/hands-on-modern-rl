@@ -1,4 +1,4 @@
-# 写在开头
+# 强化学习导论
 
 ::: info Note
 希望本开源教程能够让更多人拥有向智能上限发起攀登的勇气，解决更多通往 AGI 道路上的问题。
@@ -10,7 +10,36 @@
 由于资源稀缺问题，我们正在寻求显卡支持，如果您有显卡使用方式愿意支持非常欢迎联系 [physicoada@gmail.com](mailto:physicoada@gmail.com)。
 :::
 
-## 为什么需要强化学习？
+## 从 CartPole 开始
+
+许多教科书开篇先讲 70 页数学，再允许你碰一行代码。这本书不同——**你将从第一页就开始训练一个智能体**。
+
+CartPole 是控制理论里的"Hello World"：一根杆子通过关节连在小车上，智能体控制小车左右移动，目标是让杆子保持竖直平衡。这个任务的计算需求极低，普通笔记本的 CPU 就能在 30 秒内训练出能稳定立杆的策略。
+
+![CartPole 倒立摆环境：小车通过左右移动来保持杆子竖直平衡](./images/cartpole.gif)
+
+<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
+  <em>图：CartPole 倒立摆环境。小车通过左右移动来保持杆子竖直平衡。图源：<a href="https://gymnasium.farama.org/environments/classic_control/cart_pole/" target="_blank" rel="noopener noreferrer">Gymnasium</a></em>
+</div>
+
+正式动手前，你可以从下面三种入口任选一个，先建立"训练一个智能体是什么体验"的直觉：
+
+- **① 浏览器一键体验**（部署中）：无需本地环境，直接在网页里点按钮启动训练。主源 ModelScope 创空间、副源 HuggingFace Space（链接待补）。
+- **② 本地跑通训练**：30 秒内用 CPU 训出能稳定立杆的策略，详见 [第 1 章 · CartPole 入门](../chapter01_cartpole/intro)——那一章会给出完整的 `pip install`、运行脚本、看板查看方法。
+- **③ 视觉预览**：上面那张 CartPole GIF 已经展示了"小车左右移动 → 杆子保持竖直"的目标；训练初期 reward 在 20 附近震荡，约 30 秒后稳定上升到 500 满分并保持。
+
+无论选哪一层，**此刻你已经"见过"一个智能体学会一件事**——后续章节会回头解释刚才发生了什么。
+
+## 本书内容概览
+
+CartPole 是 RL 的过去（1990s 起的经典任务），本书的真正主角是 LLM 时代的现代 RL。序章末尾用四个剧透**剧透读完本书你能做到什么**——经典入口已能玩，现代入口先看见。
+
+- **剧透一：DPO 让大模型学会"不盲从用户"**。用户让模型帮忙写恶意代码，训练前的模型照单全收，训练后的模型婉拒并解释风险。你将在[第 18 章 DPO 家族](../chapter17_dpo/dpo-theory-and-family)亲手用 200 行代码完成这个微调。
+- **剧透二：DeepSeek-R1 的推理能力涌现**。一个未经任何推理数据训练的基座模型，仅靠强化学习就能自发产生反思、验证、纠错的长思维链。你将在[第 19 章 GRPO 家族](../chapter18_grpo/grpo-practice-and-mechanism)复现这一范式的核心，在[第 20 章 Reasoning Models](../chapter19_reasoning/intro)理解 Test-time Scaling 的全景。
+- **剧透三：Computer Use 智能体操作浏览器**。模型读取屏幕像素、点击按钮、填写表单，像人类一样完成多步 GUI 任务。你将在[第 28 章 Computer Use 与多智能体协作](../construction)理解 UI-TARS-2、AutoGLM 等代表性工作的训练原理。
+- **剧透四：SWE-Agent 自主修 Bug**。智能体读代码仓库、定位缺陷、修改代码、运行测试，全自动通过 SWE-bench 评测。你将在[第 26 章 RL-based SWE](../chapter23_rl_based_swe/intro)用 Meta 的 SWE-RL 算法、Code World Model、Self-play SSR 训练一个开源版本。
+
+## 强化学习的应用价值
 
 2019 年，强化学习领域的奠基人之一理查德·萨顿（Richard Sutton）写了一篇不到两页的短文，题目叫《苦涩的教训》（[The Bitter Lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html)）。他回顾了人工智能 70 年的历史，得出了一个让许多研究者难以接受的结论：
 
@@ -54,7 +83,7 @@
   <em>图 2：CartPole 倒立摆环境：小车通过左右移动来保持杆子竖直平衡。图源：<a href="https://gymnasium.farama.org/environments/classic_control/cart_pole/" target="_blank" rel="noopener noreferrer">Gymnasium</a></em>
 </div>
 
-## 什么是强化学习？
+## 强化学习的定义
 
 上一节我们用"教小孩骑自行车"的例子建立了对强化学习的直觉。现在，让我们把它变得更精确。
 
@@ -125,7 +154,7 @@ $$G_t = r_{t+1} + \gamma\, r_{t+2} + \gamma^2\, r_{t+3} + \cdots = \sum_{k=0}^{\
 
 任务类型也有两种：**回合制（Episodic）** 有明确的起点和终点（一局超级马里奥、一局 CartPole），**持续性（Continuing）** 没有终点（自动化股票交易）。本书的实验都是回合制，方便用”每回合得分”衡量进展。
 
-### 如何求解：两条路线
+### 两条路线
 
 所有 RL 算法都在回答同一个问题：如何选择动作以**最大化累积回报**？所谓累积回报 $G_t$，就是智能体从时刻 $t$ 起获得的所有折扣奖励之和：
 
@@ -229,7 +258,7 @@ $$J(\theta) = \mathbb{E}_{\pi_\theta}\left[G_t\right], \quad \theta^* = \arg\max
 
 大模型时代的 RL 演化出了两条关键路线。**路线一：基于偏好的对齐（RLHF / DPO）**——当判断标准是"人类是否喜欢"（语气是否礼貌、回答是否安全）时，环境无法自动给分。我们先用人类标注训练一个奖励模型来"模仿"人类偏好，再用它指导 RL 训练。DPO 则更进一步，巧妙地将奖励信号"隐藏"在策略概率比中，绕过了显式的奖励模型——你将在第 8-9 章亲手实践这条流水线。**路线二：基于可验证奖励的纯强化学习（RLVR）**——当转向数学、代码或复杂推理任务时，答案的对错是客观可验证的。DeepSeek-R1-Zero 等前沿工作证明：不再需要预先进行 SFT 或训练奖励模型，只要给模型一个基于规则的反馈，纯粹的强化学习就能驱动基础模型自发涌现出长思维链（Chain-of-Thought）和强大的推理能力。这是当前 AI 迈向 AGI 的最前沿探索之一。
 
-![DeepSeek-R1 的强化学习训练流水线](../chapter12_future_trends/self-play-outlook/images/deepseek_r1_pipeline.png)
+![DeepSeek-R1 的强化学习训练流水线](../chapter32_selfplay/self-play-outlook/images/deepseek_r1_pipeline.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>图 7：DeepSeek-R1 的训练流水线把“大模型时代的 RL”推向另一条路线：在可验证任务上，让模型通过在线采样、规则奖励和 GRPO 类优化自我提升。来源：<a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener noreferrer">DeepSeek-R1 Paper</a></em>

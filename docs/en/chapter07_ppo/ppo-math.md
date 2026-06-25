@@ -580,7 +580,7 @@ Each term does a different job:
 
 **policy loss drives Actor improvement, value loss ensures the Critic provides accurate advantage signals, and entropy bonus preserves exploration.**
 
-They collaborate through the shared Actor-Critic network. In [ppo_from_scratch.py](../../../code/chapter07_ppo/ppo_from_scratch.py), the Actor and Critic share the same backbone network (`shared_net`), so one backpropagation updates both.
+They collaborate through the shared Actor-Critic network. In [ppo_from_scratch.py](../../../code/chapter10_ppo/ppo_from_scratch.py), the Actor and Critic share the same backbone network (`shared_net`), so one backpropagation updates both.
 
 ### Hyperparameter Summary
 
@@ -828,7 +828,7 @@ $$
 
 $Q^\pi(s_t,a_t)$ means: at state $s_t$, **first take action $a_t$**, then follow policy $\pi$ afterward; what return do we get on average? It has one more piece of information than $V^\pi$ — "what happens if I pick this specific action in this state."
 
-Subtracting the two gives the [advantage function](../chapter06_actor_critic/advantage-function):
+Subtracting the two gives the [advantage function](../chapter09_actor_critic/advantage-function):
 
 $$
 A^\pi(s_t,a_t) = Q^\pi(s_t,a_t) - V^\pi(s_t)
@@ -858,7 +858,7 @@ In code:
 
 Without GAE, the simplest approximation is `advantages = returns - values`. In this chapter's code we compute `advantages` using GAE; the next section derives GAE in detail. For now, interpret it as "the part that is better or worse than what the Critic expected."
 
-Why can we replace $G_t$ with $A_t$? Because subtracting a baseline $b(s_t)$ that depends only on the state does not change the expected gradient (review: [baseline variance reduction](../chapter05_policy_gradient/pg-improvements)):
+Why can we replace $G_t$ with $A_t$? Because subtracting a baseline $b(s_t)$ that depends only on the state does not change the expected gradient (review: [baseline variance reduction](../chapter08_policy_gradient/pg-improvements)):
 
 $$
 \mathbb{E}_{a_t\sim\pi_\theta}\left[\nabla_\theta\log\pi_\theta(a_t\mid s_t)b(s_t)\right] = b(s_t)\nabla_\theta\sum_{a_t}\pi_\theta(a_t\mid s_t) = b(s_t)\nabla_\theta 1 = 0

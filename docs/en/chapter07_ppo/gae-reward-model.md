@@ -29,15 +29,15 @@ The next three sections all consume this table: first TD and MC each compute adv
 
 ::: tip Prerequisites
 
-- [Advantage function $A(s,a) = Q - V$](../chapter06_actor_critic/advantage-function): what we are trying to estimate
-- [TD error $\delta = r + \gamma V(s') - V(s)$](../chapter06_actor_critic/critic-training): the building block behind GAE
+- [Advantage function $A(s,a) = Q - V$](../chapter09_actor_critic/advantage-function): what we are trying to estimate
+- [TD error $\delta = r + \gamma V(s') - V(s)$](../chapter09_actor_critic/critic-training): the building block behind GAE
 - [DP vs MC vs TD](../chapter03_mdp/dp-mc-td): GAE is an interpolation between TD and MC
 - [Reward design](../chapter03_mdp/reward-design): RM thinking is close in spirit to reward shaping
   :::
 
 ## Advantage Estimation: TD vs MC
 
-Recall the definition (review: [Section 6.1](../chapter06_actor_critic/advantage-function)):
+Recall the definition (review: [Section 6.1](../chapter09_actor_critic/advantage-function)):
 
 $$A(s_t, a_t) = Q(s_t, a_t) - V(s_t)$$
 
@@ -47,7 +47,7 @@ Chapter 3 already compared the two classical estimators (review: [DP/MC/TD](../c
 
 ### TD estimator: one-step signal
 
-The TD estimator (review: [critic training](../chapter06_actor_critic/critic-training)) uses one-step reward plus the critic's estimate at the next state:
+The TD estimator (review: [critic training](../chapter09_actor_critic/critic-training)) uses one-step reward plus the critic's estimate at the next state:
 
 $$A_t^{\text{TD}} = r_t + \gamma V(s_{t+1}) - V(s_t) = \delta_t$$
 
@@ -212,7 +212,7 @@ Classic RL environments (CartPole, LunarLander) hand us the reward directly thro
 LLM alignment has two tracks:
 
 - **Subjective alignment** (politeness, safety, helpfulness): no objective ground truth, requires a reward model trained from human preferences
-- **Objective reasoning** (math, code): verifiable by rules, can use rule-based rewards directly (covered in [Chapter 9: RLVR](../chapter09_grpo_rlvr/rlvr))
+- **Objective reasoning** (math, code): verifiable by rules, can use rule-based rewards directly (covered in [Chapter 9: RLVR](../chapter18_grpo/rlvr))
 
 This chapter focuses on subjective alignment — the classic PPO-for-LLM use case.
 
@@ -339,4 +339,4 @@ This is why RM training must carefully control capacity and regularization — b
 
 </details>
 
-**The RM is the heaviest burden in PPO-for-LLM alignment — heavy to label, heavy to host, and risky to trust. Can we skip it?** The next chapter gives DPO's answer: [Chapter 9: DPO — Bypassing the Reward Model](../chapter09_alignment/intro).
+**The RM is the heaviest burden in PPO-for-LLM alignment — heavy to label, heavy to host, and risky to trust. Can we skip it?** The next chapter gives DPO's answer: [Chapter 9: DPO — Bypassing the Reward Model](../chapter17_dpo/intro).

@@ -60,7 +60,7 @@ DQN attracted widespread attention because of its performance on pixel-input tas
 
 The architecture diagram below shows how DQN processes raw pixels through a convolutional network to output Q-values per action:
 
-![DQN network architecture: raw pixel frames pass through a CNN to output Q-values per action (Source: Mnih et al. 2015, [Nature 518](https://www.nature.com/articles/nature14236), Figure 1)](../../chapter04_dqn/images/dqn-architecture.png)
+![DQN network architecture: raw pixel frames pass through a CNN to output Q-values per action (Source: Mnih et al. 2015, [Nature 518](https://www.nature.com/articles/nature14236), Figure 1)](../../chapter07_dqn/images/dqn-architecture.png)
 
 LunarLander's state is 8 numbers, so the Q-network only needs an MLP. Atari Pong's state is a screen: the input is pixels, not explicit coordinates of the ball and paddle. The TD target does not change — DQN's learning objective is still
 
@@ -150,10 +150,10 @@ ALE contains dozens of games with widely varying difficulty. This section choose
 
 ### Where Are Other Atari Games
 
-Beyond Pong, ALE provides Breakout, Space Invaders, Seaquest, and dozens of other games. After installing `gymnasium[atari,accept-rom-license]` and `ale-py`, they can be created via Gymnasium environment IDs.[^ale-complete-list] The training script remains `code/chapter04_dqn/dqn_atari_sb3.py`; changing games only requires changing `--env-id`:
+Beyond Pong, ALE provides Breakout, Space Invaders, Seaquest, and dozens of other games. After installing `gymnasium[atari,accept-rom-license]` and `ale-py`, they can be created via Gymnasium environment IDs.[^ale-complete-list] The training script remains `code/chapter07_dqn/dqn_atari_sb3.py`; changing games only requires changing `--env-id`:
 
 ```bash
-python code/chapter04_dqn/dqn_atari_sb3.py \
+python code/chapter07_dqn/dqn_atari_sb3.py \
   --env-id BreakoutNoFrameskip-v4 \
   --total-timesteps 5000000 \
   --learning-starts 100000 \
@@ -166,14 +166,14 @@ The animations in the table are rendered directly from ALE environments and are 
 
 | Preview                                                                                                        | Game           | Common Env ID                 | Newer Env ID           | What to Observe                                              |
 | -------------------------------------------------------------------------------------------------------------- | -------------- | ----------------------------- | ---------------------- | ------------------------------------------------------------ |
-| <img src="../../chapter04_dqn/images/atari-game-pong.gif" alt="Pong gameplay" width="150">                     | Pong           | `PongNoFrameskip-v4`          | `ALE/Pong-v5`          | Ball, paddle, and short feedback chain — best starting point |
-| <img src="../../chapter04_dqn/images/atari-game-breakout.gif" alt="Breakout gameplay" width="150">             | Breakout       | `BreakoutNoFrameskip-v4`      | `ALE/Breakout-v5`      | Ball control, brick clearing, and clearer pixel structure    |
-| <img src="../../chapter04_dqn/images/atari-game-space-invaders.gif" alt="Space Invaders gameplay" width="150"> | Space Invaders | `SpaceInvadersNoFrameskip-v4` | `ALE/SpaceInvaders-v5` | Horizontal movement, shooting, and enemy pressure            |
-| <img src="../../chapter04_dqn/images/atari-game-beam-rider.gif" alt="Beam Rider gameplay" width="150">         | Beam Rider     | `BeamRiderNoFrameskip-v4`     | `ALE/BeamRider-v5`     | Horizontal dodging, shooting, and speed variation            |
-| <img src="../../chapter04_dqn/images/atari-game-enduro.gif" alt="Enduro gameplay" width="150">                 | Enduro         | `EnduroNoFrameskip-v4`        | `ALE/Enduro-v5`        | Racing, overtaking, and continuous visual judgment           |
-| <img src="../../chapter04_dqn/images/atari-game-ms-pacman.gif" alt="Ms. Pac-Man gameplay" width="150">         | Ms. Pac-Man    | `MsPacmanNoFrameskip-v4`      | `ALE/MsPacman-v5`      | Maze, pursuit, and stronger partial observability            |
-| <img src="../../chapter04_dqn/images/atari-game-qbert.gif" alt="Qbert gameplay" width="150">                   | Qbert          | `QbertNoFrameskip-v4`         | `ALE/Qbert-v5`         | Platform jumping, spatial positioning, and staged rewards    |
-| <img src="../../chapter04_dqn/images/atari-game-seaquest.gif" alt="Seaquest gameplay" width="150">             | Seaquest       | `SeaquestNoFrameskip-v4`      | `ALE/Seaquest-v5`      | Oxygen, divers, enemies, and longer goal dependencies        |
+| <img src="../../chapter07_dqn/images/atari-game-pong.gif" alt="Pong gameplay" width="150">                     | Pong           | `PongNoFrameskip-v4`          | `ALE/Pong-v5`          | Ball, paddle, and short feedback chain — best starting point |
+| <img src="../../chapter07_dqn/images/atari-game-breakout.gif" alt="Breakout gameplay" width="150">             | Breakout       | `BreakoutNoFrameskip-v4`      | `ALE/Breakout-v5`      | Ball control, brick clearing, and clearer pixel structure    |
+| <img src="../../chapter07_dqn/images/atari-game-space-invaders.gif" alt="Space Invaders gameplay" width="150"> | Space Invaders | `SpaceInvadersNoFrameskip-v4` | `ALE/SpaceInvaders-v5` | Horizontal movement, shooting, and enemy pressure            |
+| <img src="../../chapter07_dqn/images/atari-game-beam-rider.gif" alt="Beam Rider gameplay" width="150">         | Beam Rider     | `BeamRiderNoFrameskip-v4`     | `ALE/BeamRider-v5`     | Horizontal dodging, shooting, and speed variation            |
+| <img src="../../chapter07_dqn/images/atari-game-enduro.gif" alt="Enduro gameplay" width="150">                 | Enduro         | `EnduroNoFrameskip-v4`        | `ALE/Enduro-v5`        | Racing, overtaking, and continuous visual judgment           |
+| <img src="../../chapter07_dqn/images/atari-game-ms-pacman.gif" alt="Ms. Pac-Man gameplay" width="150">         | Ms. Pac-Man    | `MsPacmanNoFrameskip-v4`      | `ALE/MsPacman-v5`      | Maze, pursuit, and stronger partial observability            |
+| <img src="../../chapter07_dqn/images/atari-game-qbert.gif" alt="Qbert gameplay" width="150">                   | Qbert          | `QbertNoFrameskip-v4`         | `ALE/Qbert-v5`         | Platform jumping, spatial positioning, and staged rewards    |
+| <img src="../../chapter07_dqn/images/atari-game-seaquest.gif" alt="Seaquest gameplay" width="150">             | Seaquest       | `SeaquestNoFrameskip-v4`      | `ALE/Seaquest-v5`      | Oxygen, divers, enemies, and longer goal dependencies        |
 
 You can list local Atari environments with:
 
@@ -191,7 +191,7 @@ PY
 
 Now back to the Pong experiment. CNN and frame stacking solve the state representation problem, but to make training stable, the key is not how deep the network is — it is whether environment preprocessing, exploration, replay buffer, learning start, and evaluation are properly organized together. CleanRL, Stable-Baselines3, and RL-Zoo differ in implementation style, but share the same experimental structure: first standardize the environment with wrappers, then let DQN accumulate experience over sufficiently long interaction.[^cleanrl-dqn] [^sb3-dqn] [^sb3-atari] [^rlzoo-dqn]
 
-![Atari Pong raw gameplay. The orange paddle on the left is the opponent; the green paddle on the right is controlled by the agent. Numbers at the top show each side's score. DQN does not see a coordinate table — it sees screen pixels like this.](../../chapter04_dqn/images/dqn-atari-pong-smoke.gif)
+![Atari Pong raw gameplay. The orange paddle on the left is the opponent; the green paddle on the right is controlled by the agent. Numbers at the top show each side's score. DQN does not see a coordinate table — it sees screen pixels like this.](../../chapter07_dqn/images/dqn-atari-pong-smoke.gif)
 
 ### Experiment Setup
 
@@ -203,7 +203,7 @@ To judge learning quality, look at where the mean evaluation return falls: `-21`
 
 A common misconception needs clarification: **the paddle moving does not mean the agent has learned Pong**. A random policy or an early network may also move the paddle, but this is often just repeating the same action or coincidentally tracking a few frames. The real criterion is whether the mean return in multi-game deterministic evaluation consistently moves away from `-21` and gradually approaches and exceeds `0`.
 
-This section uses `PongNoFrameskip-v4` as the main experiment environment. This choice is not because `ALE/Pong-v5` cannot be trained, but to stay consistent with the validated Pong DQN pipeline in SB3 / RL-Zoo, reducing extra variance from environment version, default frame skipping, and sticky actions. The algorithm entry point is `code/chapter04_dqn/dqn_atari_sb3.py`, based on Stable-Baselines3's `DQN("CnnPolicy", ...)` implementation. This is no longer the hand-written CNN teaching snippet from earlier — it is a complete training script including Atari wrappers, experience replay, target network, evaluation callbacks, and model saving.
+This section uses `PongNoFrameskip-v4` as the main experiment environment. This choice is not because `ALE/Pong-v5` cannot be trained, but to stay consistent with the validated Pong DQN pipeline in SB3 / RL-Zoo, reducing extra variance from environment version, default frame skipping, and sticky actions. The algorithm entry point is `code/chapter07_dqn/dqn_atari_sb3.py`, based on Stable-Baselines3's `DQN("CnnPolicy", ...)` implementation. This is no longer the hand-written CNN teaching snippet from earlier — it is a complete training script including Atari wrappers, experience replay, target network, evaluation callbacks, and model saving.
 
 In this experiment, the orange paddle on the left is the opponent, and the green paddle on the right is the agent's side. This distinction is intuitive for human readers, but for DQN, the input is not a symbolic description like "left is opponent, right is self" — it is just pixels. After Atari wrappers, the image is first resized to 84×84 grayscale, then 4 consecutive frames are stacked and fed to the CNN in channel-first format. The action space is Pong's discrete joystick actions: `NOOP`, `FIRE`, `RIGHT`, `LEFT`, `RIGHTFIRE`, and `LEFTFIRE`. So what the network must learn is not memorizing "green means me," but recovering the ball's position, velocity, and direction from pixel positions, brightness, and motion changes on screen, and converting this information into stable defense and hitting actions.
 
@@ -214,10 +214,10 @@ Short Atari Pong experiments are only suitable for checking the pipeline: whethe
 ::: details Reproducing the Experiment and Exporting Assets
 
 ```bash
-pip install -r code/chapter04_dqn/requirements.txt
+pip install -r code/chapter07_dqn/requirements.txt
 
 # Long experiment aligned with the validated pipeline: observe whether eval return consistently rises above random level
-python code/chapter04_dqn/dqn_atari_sb3.py \
+python code/chapter07_dqn/dqn_atari_sb3.py \
   --env-id PongNoFrameskip-v4 \
   --total-timesteps 10000000 \
   --buffer-size 10000 \
@@ -240,16 +240,16 @@ Training logs will be written to `output/dqn_atari_long/PongNoFrameskip-v4_dqn_s
 tensorboard --logdir output/dqn_atari_long
 
 # Re-export local eval CSV as textbook images
-python code/chapter04_dqn/export_dqn_curves.py --run pong
+python code/chapter07_dqn/export_dqn_curves.py --run pong
 ```
 
 To render GIFs, use the same script with different checkpoints and output paths:
 
 ```bash
-python code/chapter04_dqn/render_atari.py \
+python code/chapter07_dqn/render_atari.py \
   --env-id PongNoFrameskip-v4 \
   --model output/dqn_atari_long/PongNoFrameskip-v4_dqn_seed0_10m_zoo_aligned/checkpoints/dqn_atari_500000_steps.zip \
-  --output docs/chapter04_dqn/images/dqn-atari-pong-500k.gif \
+  --output docs/chapter07_dqn/images/dqn-atari-pong-500k.gif \
   --max-steps 1800 \
   --render-every 6 \
   --fps 20 \
@@ -262,7 +262,7 @@ To render the 1M and current best model checkpoints, change `--model` to `checkp
 
 This section ran a long experiment configured along the validated pipeline. A full `10M` environment steps is typically an overnight experiment; on a local MPS machine, training to `1.25M` already takes several hours, and running the full `10M` requires another dozen or so hours. Therefore, the textbook first captures the evaluation curve and three checkpoints from the first `1.25M` steps, using them to show the policy's evolution from failure to clear competence.
 
-![PongNoFrameskip-v4 DQN staged evaluation curve. At 250k still near total loss, at 500k starts extending rallies, at 750k nears break-even, at 1.25M the evaluation mean turns positive.](../../chapter04_dqn/images/dqn-atari-pong-training-curve.png)
+![PongNoFrameskip-v4 DQN staged evaluation curve. At 250k still near total loss, at 500k starts extending rallies, at 750k nears break-even, at 1.25M the evaluation mean turns positive.](../../chapter07_dqn/images/dqn-atari-pong-training-curve.png)
 
 | Training Steps | Mean Eval Return | Std Dev | Mean Episode Length | Interpretation                                                           |
 | -------------- | ---------------- | ------- | ------------------- | ------------------------------------------------------------------------ |
@@ -280,19 +280,19 @@ The three GIFs below correspond to different training stages. They are not three
 
 The evaluation mean at this stage is `-17.0`. The agent no longer just repeats one action like an untrained network; the paddle tries to track the ball, but timing and movement amplitude remain unstable. Training has started to take effect, but it is not yet fair to say the agent has learned Pong.
 
-![Pong DQN 500k checkpoint: policy starts extending rallies, but mean evaluation return is still -17.0](../../chapter04_dqn/images/dqn-atari-pong-500k.gif)
+![Pong DQN 500k checkpoint: policy starts extending rallies, but mean evaluation return is still -17.0](../../chapter07_dqn/images/dqn-atari-pong-500k.gif)
 
 **1M checkpoint: policy enters a transition phase.**
 
 The deterministic evaluation mean at this stage is still `-4.2`, but some individual game replays already show positive returns. This reminds us not to judge algorithm success from a single episode: a good-looking game does not mean stable learning — the evaluation mean and variance must be considered together.
 
-![Pong DQN 1M checkpoint: can produce positive-score segments, but evaluation mean still fluctuates](../../chapter04_dqn/images/dqn-atari-pong-1m.gif)
+![Pong DQN 1M checkpoint: can produce positive-score segments, but evaluation mean still fluctuates](../../chapter07_dqn/images/dqn-atari-pong-1m.gif)
 
 **1.25M best model: evaluation mean turns positive.**
 
 The 5-game evaluation mean at this stage reaches `11.6`, and the rendered game below has a return of `+17` (agent wins 21:4). At this point it is fair to say the agent has learned an effective Pong strategy: it is not just moving the paddle — it can judge the ball's position and direction from pixel frames and move the paddle to a defensible position.
 
-![Pong DQN 1.25M best model: evaluation mean is positive, rendered segment cumulative return is +17](../../chapter04_dqn/images/dqn-atari-pong-1250k-best.gif)
+![Pong DQN 1.25M best model: evaluation mean is positive, rendered segment cumulative return is +17](../../chapter07_dqn/images/dqn-atari-pong-1250k-best.gif)
 
 ### Key Settings
 
@@ -345,22 +345,22 @@ Taking CartPole as an example, the state has only four numbers: cart position, v
 
 MountainCar's state is even shorter — only position and velocity — but rewards are more sparse. The agent must swing left and right to accumulate potential energy to reach the mountaintop. As a low-dimensional control task, MountainCar typically demonstrates the importance of exploration strategy more than CartPole.
 
-![Gymnasium CartPole-v1 animation: low-dimensional state, two discrete actions (Source: Gymnasium Classic Control documentation)](../../chapter04_dqn/images/cart-pole.gif)
+![Gymnasium CartPole-v1 animation: low-dimensional state, two discrete actions (Source: Gymnasium Classic Control documentation)](../../chapter07_dqn/images/cart-pole.gif)
 
-![Gymnasium MountainCar-v0 animation: sparse rewards but simple state, suitable for observing how DQN learns swing-to-gain-momentum through exploration (Source: Gymnasium Classic Control documentation)](../../chapter04_dqn/images/mountain-car.gif)
+![Gymnasium MountainCar-v0 animation: sparse rewards but simple state, suitable for observing how DQN learns swing-to-gain-momentum through exploration (Source: Gymnasium Classic Control documentation)](../../chapter07_dqn/images/mountain-car.gif)
 
 ::: details Experiment Entry: Classic Control
 
 ```bash
 cd code
-pip install -r chapter04_dqn/requirements.txt
+pip install -r chapter07_dqn/requirements.txt
 
-python chapter04_dqn/dqn_gym_sb3.py \
+python chapter07_dqn/dqn_gym_sb3.py \
   --env-id CartPole-v1 \
   --total-timesteps 100000 \
   --learning-starts 1000
 
-python chapter04_dqn/dqn_gym_sb3.py \
+python chapter07_dqn/dqn_gym_sb3.py \
   --env-id MountainCar-v0 \
   --total-timesteps 300000 \
   --learning-starts 5000
@@ -376,12 +376,12 @@ From low-dimensional vectors to pixel screens, Atari is the next natural step. A
 
 Training settings affect results more than network architecture itself. 84×84 grayscale, frame skipping, 4-frame stacking, reward clipping, a sufficiently large replay buffer, and late-starting `learning_starts` — these jointly determine whether samples in the replay buffer have sufficient diversity and stability. Atari is better suited as a complete visual DQN experiment, rather than the first environment for testing whether the algorithm is correctly implemented.
 
-![Atari Pong screen: pixel input, discrete actions, short feedback chain](../../chapter04_dqn/images/dqn-atari-compare.jpg)
+![Atari Pong screen: pixel input, discrete actions, short feedback chain](../../chapter07_dqn/images/dqn-atari-compare.jpg)
 
 ::: details Experiment Entry: Atari Pong
 
 ```bash
-python chapter04_dqn/dqn_atari_sb3.py \
+python chapter07_dqn/dqn_atari_sb3.py \
   --env-id PongNoFrameskip-v4 \
   --total-timesteps 10000000 \
   --buffer-size 10000 \
@@ -399,9 +399,9 @@ GridWorld provides the most transparent task design. Starting point, obstacles, 
 
 If the agent fails to learn an effective policy, the reason can usually be traced back to the environment definition itself: are rewards too sparse, is the action design reasonable, are episodes too long? These problems are easy to observe in small tasks, so GridWorld is well-suited for understanding the basic relationships among state, action, and reward in DQN.
 
-![Gymnasium FrozenLake animation: grid, discrete actions, terminal and failure states are all well-defined (Source: Gymnasium Toy Text documentation)](../../chapter04_dqn/images/frozen-lake.gif)
+![Gymnasium FrozenLake animation: grid, discrete actions, terminal and failure states are all well-defined (Source: Gymnasium Toy Text documentation)](../../chapter07_dqn/images/frozen-lake.gif)
 
-![Gymnasium custom GridWorld environment example animation: agent, target, movement, and termination conditions all defined by the environment interface (Source: Gymnasium Environment Creation tutorial)](../../chapter04_dqn/images/gymnasium-gridworld.gif)
+![Gymnasium custom GridWorld environment example animation: agent, target, movement, and termination conditions all defined by the environment interface (Source: Gymnasium Environment Creation tutorial)](../../chapter07_dqn/images/gymnasium-gridworld.gif)
 
 Stepping up, any task with action space `gym.spaces.Discrete(n_actions)` can try DQN. Low-dimensional vectors use `MlpPolicy`; images use `CnnPolicy`. But "discrete actions" is only a necessary condition — if rewards are extremely sparse, observations severely lack information, or random exploration almost never produces useful feedback, vanilla DQN still struggles to converge.
 
@@ -411,7 +411,7 @@ The appendices below explore this boundary: ViZDoom mainly exposes partial obser
 
 ViZDoom's original paper trained agents on simplified scenarios using convolutional networks + Q-learning + experience replay.[^vizdoom-paper] DQN can train, but depends on several constraints: scenarios designed for learning, controlled action sets, rewards close to target behavior, and moderate episode length.
 
-![ViZDoom Basic scenario: single room, few enemies, close shooting feedback, suitable as a DQN basic training check (Source: ViZDoom official environment documentation)](../../chapter04_dqn/images/vizdoom-basic.gif)
+![ViZDoom Basic scenario: single room, few enemies, close shooting feedback, suitable as a DQN basic training check (Source: ViZDoom official environment documentation)](../../chapter07_dqn/images/vizdoom-basic.gif)
 
 The official example `examples/python/learning_pytorch.py`[^vizdoom-learning-pytorch] has a complete structure: environment initialization, image preprocessing (scaled to 30×45 grayscale), action enumeration (button 0/1 combinations), frame repeat (`frame_repeat=12`), online/target networks, experience replay, and Double DQN updates. These components directly correspond to the DQN introduced earlier in this chapter.
 
@@ -428,15 +428,15 @@ python examples/python/learning_pytorch.py
 
 During training, distinguish two things: whether the code path is complete (each epoch produces training/testing returns), and whether the policy has truly learned behavior (evaluation returns should gradually rise above random level). If loss decreases but evaluation returns show no trend over a long period, the network may be fitting noise.
 
-![ViZDoom DefendCenter scenario: agent stands in the center, turning and shooting; action set is more controlled than a real FPS (Source: ViZDoom official environment documentation)](../../chapter04_dqn/images/vizdoom-defend-center.gif)
+![ViZDoom DefendCenter scenario: agent stands in the center, turning and shooting; action set is more controlled than a real FPS (Source: ViZDoom official environment documentation)](../../chapter07_dqn/images/vizdoom-defend-center.gif)
 
 A reasonable experimental starting point is `simpler_basic.cfg` or `basic.cfg`: small scenario, close feedback, movement and shooting quickly affect rewards. Observations first use grayscale scaled to 84×84 or smaller; action sets stay restrained (turn left, turn right, move forward, shoot), avoiding enumerating all button combinations which would bloat output dimensions.
 
-![ViZDoom HealthGathering scenario: agent must find supplies in a map with damaging ground; reward and navigation become longer-range (Source: ViZDoom official environment documentation)](../../chapter04_dqn/images/vizdoom-health-gathering.gif)
+![ViZDoom HealthGathering scenario: agent must find supplies in a map with damaging ground; reward and navigation become longer-range (Source: ViZDoom official environment documentation)](../../chapter07_dqn/images/vizdoom-health-gathering.gif)
 
 More complex scenarios (like HealthGathering, MyWayHome) require longer-term memory. Lample and Chaplot's research added recurrent memory and auxiliary game feature prediction on top of DQN.[^lample-chaplot] This shows that when tasks require remembering where you came from, enemy positions, or explored areas, short frame-stacked CNN-DQN is often insufficient.
 
-![ViZDoom MyWayHome scenario: goal shifts from shooting to navigation; the current screen cannot directly tell the agent the full map structure (Source: ViZDoom official environment documentation)](../../chapter04_dqn/images/vizdoom-my-way-home.gif)
+![ViZDoom MyWayHome scenario: goal shifts from shooting to navigation; the current screen cannot directly tell the agent the full map structure (Source: ViZDoom official environment documentation)](../../chapter07_dqn/images/vizdoom-my-way-home.gif)
 
 ViZDoom does not disprove DQN — it illustrates another boundary: when observations themselves do not satisfy the Markov property, adding convolutional depth alone cannot automatically fill in the missing historical information. Memory mechanisms like DRQN, or stronger exploration and task decomposition, are needed.
 
@@ -459,7 +459,7 @@ Pokemon Red can be wrapped as a DQN environment: the screen is the observation, 
 | State meaning          | Ball and paddle position, velocity      | Map, coordinates, menus, story flags, bag, party state    |
 | Exploration difficulty | Random actions quickly produce feedback | Random actions easily loop in place or get stuck in menus |
 
-![PokemonRedExperiments multi-frame gameplay montage during training. You can see wild exploration, battles, menus, and dialog mixed together — this is why Pokemon is harder to model than Atari Pong (Source: PWhiddy/PokemonRedExperiments assets/grid.png)](../../chapter04_dqn/images/pokemonred-grid.png)
+![PokemonRedExperiments multi-frame gameplay montage during training. You can see wild exploration, battles, menus, and dialog mixed together — this is why Pokemon is harder to model than Atari Pong (Source: PWhiddy/PokemonRedExperiments assets/grid.png)](../../chapter07_dqn/images/pokemonred-grid.png)
 
 ### Early Subtask Experiments
 
@@ -488,19 +488,19 @@ If using DQN, the network structure itself does not change: given screen state $
 | Replay buffer   | Contains defense, hitting, scoring with short feedback | Easily contains wall-hitting, looping, menu states     |
 | Reasonable goal | Observe score trend after millions of steps            | Leave room, enter new map, expand exploration coverage |
 
-![Agent's explored map mosaic from PokemonRedExperiments. Black areas are unexplored or unreachable; colored areas show progressively expanding accessible map during training (Source: PWhiddy/PokemonRedExperiments assets/poke_map.gif)](../../chapter04_dqn/images/pokemon-map.gif)
+![Agent's explored map mosaic from PokemonRedExperiments. Black areas are unexplored or unreachable; colored areas show progressively expanding accessible map during training (Source: PWhiddy/PokemonRedExperiments assets/poke_map.gif)](../../chapter07_dqn/images/pokemon-map.gif)
 
 **Minimum training entry.**
 
 ```bash
 cd code
-pip install -r chapter04_dqn/requirements.txt
+pip install -r chapter07_dqn/requirements.txt
 ```
 
 Prepare a legally obtained `PokemonRed.gb`; recommend starting from an existing save `start.state` (to avoid spending steps on the title menu):
 
 ```bash
-python chapter04_dqn/dqn_pokemon_red_pyboy.py \
+python chapter07_dqn/dqn_pokemon_red_pyboy.py \
   --rom /path/to/PokemonRed.gb \
   --state /path/to/start.state \
   --total-timesteps 500000 \
@@ -529,7 +529,7 @@ Therefore, the precise answer to "can DQN beat Pokemon?" is: DQN can train early
 
 Minecraft is an open-world sandbox game where the objective is not a single action skill, but a chain of interdependent long-term tasks: chop trees → wooden pickaxe → stone → stone pickaxe → iron ore → iron ingot → iron pickaxe → diamonds.
 
-![MineDojo tech-tree task example: from wood all the way to diamond sword, the task chain includes gathering, processing, crafting, and resource upgrading (Source: MineDojo task suite)](../../chapter04_dqn/images/minecraft-minedojo-diamond-sword.png)
+![MineDojo tech-tree task example: from wood all the way to diamond sword, the task chain includes gathering, processing, crafting, and resource upgrading (Source: MineDojo task suite)](../../chapter07_dqn/images/minecraft-minedojo-diamond-sword.png)
 
 Interface-wise, Minecraft can be wrapped as a reinforcement learning environment: the screen is the observation, keyboard and mouse actions can be discretized, and obtaining items can serve as rewards.[^malmo] [^minerl] But before "getting diamonds," a long sequence of intermediate steps is usually required; if only the final success is the reward, random exploration almost never produces positive samples.
 
@@ -558,7 +558,7 @@ So DQN can train constrained discrete subtasks in Minecraft; if the goal is obta
 - Pokemon reminds us: DQN can train neural-network Q-policies in real emulators, but full completion requires task decomposition, reward engineering, and longer-term memory.
 - Minecraft reminds us: open-world tasks not only have sparse rewards, but also contain hierarchical goals, inventory states, crafting chains, and more complex action spaces.
 
-With this, Chapter 4 completes the transition from tabular Q-learning to deep Q-networks to pixel game experiments. The next chapter turns to a different path: instead of first learning action-value tables, directly optimizing the policy itself. [Policy Gradient and REINFORCE](../chapter05_policy_gradient/intro)
+With this, Chapter 4 completes the transition from tabular Q-learning to deep Q-networks to pixel game experiments. The next chapter turns to a different path: instead of first learning action-value tables, directly optimizing the policy itself. [Policy Gradient and REINFORCE](../chapter08_policy_gradient/intro)
 
 ## References
 

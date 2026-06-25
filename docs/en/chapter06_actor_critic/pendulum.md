@@ -6,7 +6,7 @@ title: '6.4 Hands-on: Pendulum Swing-Up and Balance'
 
 > **Goal of this section**: Train `Pendulum-v1` with A2C, understand why continuous-action Actor-Critic outputs a Gaussian distribution, and see how the Critic helps the Actor learn stable control in continuous spaces.
 
-> **Code for this section**: [actor_critic_pendulum.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter06_actor_critic/actor_critic_pendulum.py) · [render_pendulum.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter06_actor_critic/render_pendulum.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter06_actor_critic/requirements.txt)
+> **Code for this section**: [actor_critic_pendulum.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter09_actor_critic/actor_critic_pendulum.py) · [render_pendulum.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter09_actor_critic/render_pendulum.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter09_actor_critic/requirements.txt)
 
 Earlier in the chapter, we used CartPole and LunarLander to understand RL where the agent picks one of a few discrete actions. Those action spaces fit DQN naturally and are easy to explain via a Softmax policy: left, right, fire, or do nothing, each action with a clear probability.
 
@@ -148,20 +148,20 @@ The `critic_loss` pushes the Critic's estimate toward the TD target. The final `
 Install dependencies:
 
 ```bash
-pip install -r code/chapter06_actor_critic/requirements.txt
+pip install -r code/chapter09_actor_critic/requirements.txt
 ```
 
 A quick smoke test to confirm the script runs:
 
 ```bash
-python code/chapter06_actor_critic/actor_critic_pendulum.py \
+python code/chapter09_actor_critic/actor_critic_pendulum.py \
   --total-timesteps 20000
 ```
 
 This section's script uses Stable-Baselines3's **A2C (Advantage Actor-Critic)** implementation. A2C is still Actor-Critic: the Actor learns a continuous-action policy, the Critic learns $V(s)$. The engineering additions — parallel environments and return normalization — simply make this teaching experiment easier to reproduce. Run the full training:
 
 ```bash
-python code/chapter06_actor_critic/actor_critic_pendulum.py \
+python code/chapter09_actor_critic/actor_critic_pendulum.py \
   --total-timesteps 300000
 ```
 
@@ -178,13 +178,13 @@ The training script generates a model, normalization statistics, and three curve
 To copy the plots into the course site:
 
 ```bash
-cp output/actor_critic_pendulum_*.png docs/chapter06_actor_critic/images/
+cp output/actor_critic_pendulum_*.png docs/chapter09_actor_critic/images/
 ```
 
 After training, you can render a replay GIF:
 
 ```bash
-python code/chapter06_actor_critic/render_pendulum.py \
+python code/chapter09_actor_critic/render_pendulum.py \
   --model output/actor_critic_pendulum.zip \
   --output output/pendulum_actor_critic.gif
 ```
@@ -193,13 +193,13 @@ python code/chapter06_actor_critic/render_pendulum.py \
 
 Here are the results from a 300k-step training run. Since A2C is still an on-policy Actor-Critic — each batch of data is used once and discarded — the per-episode variance is higher than what you will see with PPO in Chapter 7. Focus on the moving-average trend, not any single episode's spike or dip.
 
-![A2C Pendulum-v1 replay: the policy can swing the rod near the top, but stability is still limited](../../chapter06_actor_critic/images/pendulum_actor_critic.gif)
+![A2C Pendulum-v1 replay: the policy can swing the rod near the top, but stability is still limited](../../chapter09_actor_critic/images/pendulum_actor_critic.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.4-1: Pendulum replay after A2C training. This episode scored roughly -761; it reaches near-upright but is not yet near-optimal stable control.</em>
 </div>
 
-![Actor-Critic Pendulum-v1 episode reward curve](../../chapter06_actor_critic/images/actor_critic_pendulum_reward.png)
+![Actor-Critic Pendulum-v1 episode reward curve](../../chapter09_actor_critic/images/actor_critic_pendulum_reward.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.4-2: Episode reward curve. Light blue shows raw returns, dark blue is a 20-episode moving average, and the green dashed line marks the A2C baseline of -800.</em>
@@ -219,7 +219,7 @@ Pendulum learning is not like CartPole, where perfect scores appear quickly. Her
 
 One advantage of a Gaussian policy is that we can directly observe exploration intensity. A larger standard deviation $\sigma$ means more dispersed action sampling; higher policy entropy means a more random action distribution.
 
-![Actor-Critic Pendulum-v1 policy entropy curve](../../chapter06_actor_critic/images/actor_critic_pendulum_entropy.png)
+![Actor-Critic Pendulum-v1 policy entropy curve](../../chapter09_actor_critic/images/actor_critic_pendulum_entropy.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.4-3: Policy entropy loss. SB3 records entropy_loss, i.e., negative entropy. As the curve climbs toward 0, the true entropy is declining.</em>
@@ -235,7 +235,7 @@ In this section's configuration, `ent_coef=0.0`. This does not mean entropy is u
 
 The reward curve tells us whether performance is improving; the loss curves help us understand whether training is stable.
 
-![Actor-Critic Pendulum-v1 Actor/Critic loss curves](../../chapter06_actor_critic/images/actor_critic_pendulum_loss.png)
+![Actor-Critic Pendulum-v1 Actor/Critic loss curves](../../chapter09_actor_critic/images/actor_critic_pendulum_loss.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.4-4: Actor/Critic loss curves. Online Actor-Critic losses are typically noisier than supervised learning losses. Focus on whether they diverge over the long run.</em>

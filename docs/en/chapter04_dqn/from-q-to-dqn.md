@@ -72,7 +72,7 @@ $$
 
 Finally, move $Q(s,a)$ a step of size $\alpha$ toward the target. This is important: we do not overwrite the old estimate completely, because a single transition can be noisy.
 
-![A GridWorld Q-table: each reachable cell stores Q-values per action](../../chapter04_dqn/images/q-table-gridworld.png)
+![A GridWorld Q-table: each reachable cell stores Q-values per action](../../chapter07_dqn/images/q-table-gridworld.png)
 
 At the start, the whole table can be zeros. The agent walks, and each step updates exactly one cell. Over time, values near the goal become accurate earlier; via the $\max_{a'}Q(s',a')$ term, those values propagate backward. In the end, the policy is not hand-written. It emerges from the table: take the action with the largest $Q(s,a)$ at each state.
 
@@ -94,7 +94,7 @@ In LunarLander, the state is an 8D vector: position, velocity, angle, angular ve
 
 You can force discretization, but it explodes. If you split each of 6 continuous dimensions into 50 bins, you get $50^6 \approx 1.56\times 10^{10}$ states. Multiply by a small action set and you are already at tens of billions of table entries, for a low-dimensional control task.
 
-![LunarLander-v3: the lander environment (example rendering)](../../chapter04_dqn/images/lunarlander.gif)
+![LunarLander-v3: the lander environment (example rendering)](../../chapter07_dqn/images/lunarlander.gif)
 
 If you move to Atari, it becomes even more obvious. A state is an image. A single pixel difference is a different state. A table is hopeless.
 
@@ -125,7 +125,7 @@ This is the starting point, but not the full answer. Two training issues appear 
 
 In Atari, adjacent frames are extremely similar. If you train on the last 32 steps as a batch, you do not have 32 independent situations. You have one situation with tiny consecutive changes. That makes the gradient direction dominated by the most recent experience segment.
 
-![Sample correlation: consecutive frames are too similar to be treated as i.i.d.](../../chapter04_dqn/images/sample-correlation.png)
+![Sample correlation: consecutive frames are too similar to be treated as i.i.d.](../../chapter07_dqn/images/sample-correlation.png)
 
 This points to the first stabilization component: do not train only on the most recent steps. Train on random samples drawn from a larger set of past experience.
 
@@ -167,7 +167,7 @@ $$
 
 Notice $Q(s_2,a_2)$: it dropped from 8.0 to 6.3. Next time we compute a target from $s_2$, the "label" has shifted. This feedback loop can cause oscillation or divergence.
 
-![Moving targets: one Q-network generates both predictions and targets](../../chapter04_dqn/images/moving-target.png)
+![Moving targets: one Q-network generates both predictions and targets](../../chapter07_dqn/images/moving-target.png)
 
 So the naive neural-network Q-Learning inherits at least two instability sources:
 

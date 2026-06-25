@@ -21,23 +21,23 @@
 ### 伪代码
 
 ```
-# 第 1 步：同一 prompt 采 G 条回答，逐条打分
+# 第 1 步 与 同一 prompt 采 G 条回答，逐条打分
 rewards = [reward_fn(generate(prompt)) for _ in range(G)]   # [G]
 
-# 第 2 步：组内归一化（减均值除标准差）当 advantage
+# 第 2 步 与 组内归一化（减均值除标准差）当 advantage
 advantages = (rewards - mean(rewards)) / (std(rewards) + eps)
 
-# 第 3 步：PPO clipped loss（advantage 来自第 2 步，不是 Critic）
+# 第 3 步 与 PPO clipped loss（advantage 来自第 2 步，不是 Critic）
 ratio = exp(new_logp - old_logp)
 surr1 = ratio * advantages
 surr2 = clip(ratio, 1-eps, 1+eps) * advantages
 policy_loss = -min(surr1, surr2).mean()
 
-# 第 4 步：k3 KL 惩罚（拉住，别离参考模型太远）
+# 第 4 步 与 k3 KL 惩罚（拉住，别离参考模型太远）
 log_ratio = ref_logp - new_logp
 kl = (exp(log_ratio) - 1 - log_ratio).mean()
 
-# 第 5 步：总 loss
+# 第 5 步 与 总 loss
 loss = policy_loss + kl_coeff * kl
 ```
 
@@ -122,11 +122,11 @@ def grpo_loss(log_probs, old_log_probs, ref_log_probs,
 ### 伪代码
 
 ```
-# 第 1 步：RM 对两个回答各打一个标量分
+# 第 1 步 与 RM 对两个回答各打一个标量分
 r_w = reward_model(chosen_input)     # 好回答的分数
 r_l = reward_model(rejected_input)   # 坏回答的分数
 
-# 第 2 步：希望 r_w > r_l，对差值过 sigmoid 取负对数
+# 第 2 步 与 希望 r_w > r_l，对差值过 sigmoid 取负对数
 loss = -log(sigmoid(r_w - r_l))
 ```
 
@@ -158,7 +158,7 @@ def reward_model_loss(r_chosen, r_rejected):
 
 ---
 
-## 面试追问：GRPO、PPO-RLHF 与 RLVR 的区别
+## GRPO、PPO-RLHF 与 RLVR 的区别
 
 |                | PPO-RLHF     | GRPO                      | RLVR                          |
 | -------------- | ------------ | ------------------------- | ----------------------------- |

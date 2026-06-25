@@ -6,7 +6,7 @@ Specifically, we will train a language model agent that can autonomously solve p
 
 This implementation follows the approach of [hyunwoongko/nanoRLHF](https://github.com/hyunwoongko/nanoRLHF) — using minimal code to reproduce core structures. But our goal is not merely to "get it running." It is to **understand how the structure of a training system is naturally derived from the training loop itself**. After reading this section, reading the source code of veRL or Relax will give you a much clearer understanding of their abstraction layers.
 
-The complete implementation for this section is available in the book's GitHub repository: `https://github.com/walkinglabs/hands-on-modern-rl/tree/main/docs/chapter10_agentic_rl/code/`.
+The complete implementation for this section is available in the book's GitHub repository: `https://github.com/walkinglabs/hands-on-modern-rl/tree/main/docs/chapter22_agentic/code/`.
 
 ## Infrastructure Fundamentals of an Agentic RL Training System
 

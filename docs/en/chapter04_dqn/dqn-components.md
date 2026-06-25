@@ -201,7 +201,7 @@ Note several things:
 
 During training, 64 such experiences are randomly drawn; each one tells the network: "In this state, I took this action, got this score, and the environment changed to this." The network adjusts its Q-value predictions accordingly, so next time it encounters a similar state, it can make better judgments.
 
-![Experience replay buffer: store historical transitions, random sampling breaks temporal correlation](../../chapter04_dqn/images/experience-replay-tikz.svg)
+![Experience replay buffer: store historical transitions, random sampling breaks temporal correlation](../../chapter07_dqn/images/experience-replay-tikz.svg)
 
 ```python
 import random

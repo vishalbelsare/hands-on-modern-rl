@@ -22,7 +22,7 @@ Therefore, the core question of visual generation RL is:
 
 This section follows a complete generation trajectory: first understanding why visual generation is harder to write rewards for than visual QA, then translating Diffusion's denoising process into MDP language, and finally arriving at DDPO's policy gradient, training steps, and reward model design.
 
-![DDPO Training Teaser](../../chapter11_vlm_rl/images/ref-ddpo-teaser.jpg)
+![DDPO Training Teaser](../../chapter26_vlm/images/ref-ddpo-teaser.jpg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: RL post-training results shown in the DDPO paper/project. Different rewards push the Diffusion model toward different generation preferences, intuitively illustrating the key insight of visual generation RL: reward design directly shapes the final image distribution. Source: <a href="https://github.com/kvablack/ddpo-pytorch" target="_blank" rel="noopener noreferrer">DDPO GitHub</a>, corresponding paper Black et al., 2024</em>
@@ -788,7 +788,7 @@ Visual generation rewards typically come from three types of signals.
 
 The most common form of human preference data is pairwise comparison. Given the same prompt, users choose which of two candidate images they prefer. Pick-a-Pic is a representative publicly collected text-to-image user preference dataset, and HPS v2 further provides a human-preference-oriented evaluation benchmark and reward model[^pickapic][^hpsv2].
 
-![Pick-a-Pic Preference UI](../../chapter11_vlm_rl/images/ref-pick-a-pic-ui.png)
+![Pick-a-Pic Preference UI](../../chapter26_vlm/images/ref-pick-a-pic-ui.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: Pick-a-Pic's human preference collection interface. Users perform preference selection between two candidate images under the same prompt. This type of data can train reward models like PickScore. Source: <a href="https://stability.ai/research/pick-a-pic" target="_blank" rel="noopener noreferrer">Stability AI Research</a>, corresponding paper Kirstain et al., 2023</em>
@@ -857,7 +857,7 @@ A more stable engineering approach is to use rewards hierarchically:
 
 This way, reward is no longer a universal score, but a filtering and calibration pipeline.
 
-![PickScore Ranking Examples](../../chapter11_vlm_rl/images/ref-pickscore-ranking.png)
+![PickScore Ranking Examples](../../chapter26_vlm/images/ref-pickscore-ranking.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: PickScore re-ranks candidate generation results using a preference model. This illustrates that visual reward is not just an offline evaluation number — it can directly change which results are shown to users during sampling or ranking. Source: <a href="https://stability.ai/research/pick-a-pic" target="_blank" rel="noopener noreferrer">Stability AI Research</a></em>
@@ -955,7 +955,7 @@ This section's four most important conclusions:
 3. **Reward models are the bottleneck of generation RL**: human preferences, text alignment, and visual quality are all important, but reward hacking must be prevented.
 4. **Rewards can be used at both training and inference time**: reranking is safer, RL fine-tuning better internalizes capabilities, and video generation further amplifies temporal and computational challenges.
 
-With this, we have covered both understanding and generation directions of VLM RL training. The next chapter enters broader frontier trends: [Embodied Intelligence, Self-Play, and Offline RL](../chapter12_future_trends/intro).
+With this, we have covered both understanding and generation directions of VLM RL training. The next chapter enters broader frontier trends: [Embodied Intelligence, Self-Play, and Offline RL](../chapter32_selfplay/intro).
 
 ## References
 

@@ -1,10 +1,10 @@
-# 第1章：传统RL初体验——CartPole 倒立摆
+# 第 1 章 · CartPole 倒立摆
 
 > **本章目标**：零基础运行第一个 RL 训练脚本，直观感受智能体如何通过试错自主习得策略。不要求任何理论知识。
 
 > 📁 **本章代码**：[1-ppo_cartpole.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/1-ppo_cartpole.py) · [2-pytorch_ppo.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/requirements.txt)
 
-## 1.1 动手：运行 CartPole 训练
+## 1.1 运行 CartPole 训练
 
 经过上面的前置阅读，我们已经对强化学习有了一个初步印象。下面先回顾强化学习的核心机制：它由一个智能体（Agent）和一个环境（Environment）组成，智能体通过不断尝试动作并获取奖励信号，逐步学习在特定状态下应采取的最优决策。
 
@@ -34,7 +34,7 @@
   <em>图 1-2：PPO 训练 CartPole 的完整流程。整个流程在个人电脑上不到 30 秒即可完成。</em>
 </div>
 
-### **第一步：安装依赖**
+### 安装依赖
 
 首先，打开你的终端，安装环境库和算法库：
 
@@ -44,7 +44,7 @@ pip install "gymnasium[classic-control]" stable-baselines3
 
 > **注意**：`stable-baselines3` 依赖于 `PyTorch`。由于 PyTorch 体积较大，这一步可能需要较长的下载时间。这是整个第一章中唯一涉及大体积依赖安装的步骤。
 
-### **第二步：运行训练**
+### 运行训练脚本
 
 首先安装完整依赖：
 
@@ -60,11 +60,11 @@ pip install -r requirements.txt
 这两个脚本都会把训练指标记录到 SwanLab，并且训练结束后都支持用 `--gui` 弹出小车演示窗口：
 
 ```bash
-# 方案 A：SB3 封装版（推荐第一次先跑这个）
+# SB3 封装版（推荐第一次先跑这个）
 python 1-ppo_cartpole.py
 python 1-ppo_cartpole.py --gui
 
-# 方案 B：纯 PyTorch 版（希望同时了解实现细节可运行此版本）
+# 纯 PyTorch 版（希望同时了解实现细节可运行此版本）
 python 2-pytorch_ppo.py
 python 2-pytorch_ppo.py --gui
 ```
@@ -73,7 +73,7 @@ python 2-pytorch_ppo.py --gui
 
 关于 `--gui` 参数：训练阶段始终是 headless（无渲染），速度不受影响。`--gui` 只控制训练结束后的演示环节是否弹出 CartPole 动画窗口。开启 GUI 时每帧需要等待屏幕刷新（约 16ms），演示会慢一些；关闭 GUI 时演示环节纯计算，几秒内跑完。
 
-### **第三步：去哪里看 SwanLab 的训练曲线？**
+### SwanLab 训练曲线查看方法
 
 本章两个脚本默认都把 SwanLab 配成了 `mode="local"`，所以**最常见的查看方式是本地看板**。训练跑完后，在当前目录执行：
 

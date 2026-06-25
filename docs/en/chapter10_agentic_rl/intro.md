@@ -347,8 +347,8 @@ Zhang et al. organize Agentic RL along two axes: **core capabilities** such as p
 ::: tip Prerequisites
 This chapter repeatedly uses the following concepts:
 
-- [GRPO and RLVR](../chapter09_grpo_rlvr/rlvr): verifiable reward is a natural fit for Agentic RL.
-- [PPO and reward models](../chapter07_ppo/intro): the basic policy-optimization frame.
+- [GRPO and RLVR](../chapter18_grpo/rlvr): verifiable reward is a natural fit for Agentic RL.
+- [PPO and reward models](../chapter10_ppo/intro): the basic policy-optimization frame.
   :::
 
 | Section                                                                              | Core question                                                                       |

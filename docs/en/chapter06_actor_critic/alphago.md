@@ -5,7 +5,7 @@ title: '6.4 Hands-On: Reproducing AlphaGo'
 # 6.4 Hands-On: Reproducing AlphaGo
 
 After learning policy gradients and Actor-Critic, we already have two weapons in hand:
-the **policy network** (deciding where to play next; review: [policy $\pi_\theta(a|s)$](../chapter05_policy_gradient/reinforce))
+the **policy network** (deciding where to play next; review: [policy $\pi_\theta(a|s)$](../chapter08_policy_gradient/reinforce))
 and the **value network** (judging which side has the better prospects; review: [Critic $V(s)$](./critic-training)).
 In 2016, DeepMind's AlphaGo combined these two weapons with Monte Carlo Tree Search (MCTS) and defeated world champion Lee Sedol.
 This was one of the most widely recognized moments in the history of reinforcement learning.
@@ -25,7 +25,7 @@ AlphaGo consists of three core components:
 
 | Component               | Role                                                | Related Concept In This Chapter                                     |
 | ----------------------- | --------------------------------------------------- | ------------------------------------------------------------------- |
-| Policy network          | Outputs probabilities over legal moves              | [Chapter 5 Policy Gradient](../chapter05_policy_gradient/reinforce) |
+| Policy network          | Outputs probabilities over legal moves              | [Chapter 5 Policy Gradient](../chapter08_policy_gradient/reinforce) |
 | Value network           | Evaluates the win rate of the current position      | [Section 6.2 Training the Critic](./critic-training)                |
 | Monte Carlo Tree Search | Looks ahead for several moves to find the best play | Newly introduced in this section                                    |
 
@@ -536,7 +536,7 @@ The training loop has only two phases:
 1. **Self-play**: use the current model plus MCTS to play games, collecting triplets (position, MCTS policy, outcome)
 2. **Network training**: train the policy network to imitate MCTS search results, and train the value network to predict the final outcome
 
-There is a subtle but important difference from the [policy gradient](../chapter05_policy_gradient/reinforce) method in Chapter 5:
+There is a subtle but important difference from the [policy gradient](../chapter08_policy_gradient/reinforce) method in Chapter 5:
 AlphaGo's policy network does not learn directly from game returns (as in REINFORCE).
 Instead, it **learns to imitate the search policy produced by MCTS**.
 Because MCTS aggregates many simulations, its policy signal is much more reliable than a single sampled trajectory.
@@ -605,9 +605,9 @@ Let's map each AlphaGo component back to what we have learned in this chapter:
 
 | AlphaGo Component    | Related Concept                             | Where It Appears                                                  |
 | -------------------- | ------------------------------------------- | ----------------------------------------------------------------- |
-| Policy network       | Actor, outputs action probabilities         | [Policy Gradient Theorem](../chapter05_policy_gradient/reinforce) |
+| Policy network       | Actor, outputs action probabilities         | [Policy Gradient Theorem](../chapter08_policy_gradient/reinforce) |
 | Value network        | Critic, evaluates a position                | [Actor-Critic Architecture](./actor-critic)                       |
-| MCTS policy targets  | "Reliable policy signal" to reduce variance | [Baselines](../chapter05_policy_gradient/pg-improvements)         |
+| MCTS policy targets  | "Reliable policy signal" to reduce variance | [Baselines](../chapter08_policy_gradient/pg-improvements)         |
 | Self-play            | Online sampling + policy improvement        | The sampling spirit of REINFORCE                                  |
 | $-v$ backpropagation | Symmetry in zero-sum games                  | Sign flip in [advantage functions](./advantage-function)          |
 

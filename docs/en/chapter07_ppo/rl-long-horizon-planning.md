@@ -50,7 +50,7 @@ This is the same intuition as an organization. A CEO sets quarterly goals; depar
 - **More abstract state space**: the high-level policy reasons about subgoals rather than every pixel or joint angle.
 - **Skill reuse**: a learned low-level skill can serve many high-level tasks.
 
-![HIRO hierarchical architecture](../../chapter07_ppo/images/hrl-hiro.png)
+![HIRO hierarchical architecture](../../chapter10_ppo/images/hrl-hiro.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: The two-level HIRO architecture. The high-level manager outputs subgoals, and the low-level worker executes primitive actions. Source: <a href="https://arxiv.org/abs/1805.08296" target="_blank" rel="noopener noreferrer">Nachum et al., 2018</a></em>
@@ -102,7 +102,7 @@ HRL changes the policy structure. **Hindsight Experience Replay (HER)** changes 
 
 The core trick is simple. The agent tried to reach goal $g$ and failed, but it ended at state $s_T$. If we pretend the goal had been $s_T$, the failed episode becomes a successful training example.
 
-![HER goal concept](../../chapter07_ppo/images/her-goal-concept.png)
+![HER goal concept](../../chapter10_ppo/images/her-goal-concept.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: Goal-conditioned sparse-reward tasks. The agent must push the object to the target position. Source: <a href="https://openai.com/index/ingredients-for-robotics-research/" target="_blank" rel="noopener noreferrer">OpenAI Blog</a></em>
@@ -116,7 +116,7 @@ The training procedure is:
 4. recompute rewards as $r'_t=r(s_t,a_t,g')$;
 5. store $(s_t,a_t,r'_t,s_{t+1},g')$ in the replay buffer.
 
-![HER virtual goal](../../chapter07_ppo/images/her-virtual-goal.png)
+![HER virtual goal](../../chapter10_ppo/images/her-virtual-goal.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: HER relabels the state the agent actually reached as a virtual goal. Source: <a href="https://openai.com/index/ingredients-for-robotics-research/" target="_blank" rel="noopener noreferrer">OpenAI Blog</a></em>
@@ -133,7 +133,7 @@ HER usually works with a goal-conditioned policy $\pi(a|s,g)$. The original pape
 
 The **future** strategy is often strongest because the relabeled goal is reachable from the current point in the original trajectory. HER also naturally connects with curriculum learning: if virtual goals are sampled near the boundary of the current policy's ability, they form an automatic curriculum.
 
-![HER results](../../chapter07_ppo/images/openai-fetch.png)
+![HER results](../../chapter10_ppo/images/openai-fetch.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4: DDPG + HER on an OpenAI robotics task. Sparse-reward HER can approach full success. Source: <a href="https://openai.com/index/ingredients-for-robotics-research/" target="_blank" rel="noopener noreferrer">OpenAI Blog</a></em>
@@ -152,7 +152,7 @@ HER is elegant, but it has limits:
 
 The third route is: instead of only trying actions in the real environment, **learn a world model and plan inside it**.
 
-![Dreamer architecture](../../chapter07_ppo/images/dreamer-architecture.png)
+![Dreamer architecture](../../chapter10_ppo/images/dreamer-architecture.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 5: Dreamer learns a world model from experience and trains Actor-Critic in latent imagination. Source: <a href="https://arxiv.org/abs/1912.01603" target="_blank" rel="noopener noreferrer">Hafner et al., 2020</a></em>
@@ -169,7 +169,7 @@ MBPO learns a dynamics model $\hat{T}(s'|s,a)$ and uses it to generate **short s
 
 The key insight is that short predictions can be accurate, while long predictions accumulate error. MBPO can improve sample efficiency by several times on continuous-control tasks, but because the model is used only for short rollouts, it is not a complete solution for very long planning.
 
-![MBPO architecture](../../chapter07_ppo/images/mbpo-teaser.png)
+![MBPO architecture](../../chapter10_ppo/images/mbpo-teaser.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6: MBPO uses a learned dynamics model to generate short branched rollouts. Source: <a href="http://bair.berkeley.edu/blog/2019/12/12/mbpo/" target="_blank" rel="noopener noreferrer">BAIR Blog</a></em>
@@ -207,7 +207,7 @@ The lesson is not that search replaces learning. It is that **search and learnin
 
 Dreamer represents a more modern model-based direction. It learns a latent world model, then rolls out imagined trajectories in latent space and trains Actor-Critic through them. The real environment is used to improve the world model; most policy learning happens in imagination.
 
-![Dreamer components](../../chapter07_ppo/images/dreamer-components.png)
+![Dreamer components](../../chapter10_ppo/images/dreamer-components.png)
 
 DreamerV3 extends this idea to continuous control, Atari, and Minecraft with fixed hyperparameters. Important improvements include:
 
@@ -215,7 +215,7 @@ DreamerV3 extends this idea to continuous control, Atari, and Minecraft with fix
 - **normalization-free training**, using robust scaling choices instead of hand-tuned normalization;
 - **robust critics**, which use distributional/value-robust objectives for long-tailed returns.
 
-![DreamerV3 Minecraft](../../chapter07_ppo/images/dreamerv3-minecraft.png)
+![DreamerV3 Minecraft](../../chapter10_ppo/images/dreamerv3-minecraft.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 8: DreamerV3 collecting diamonds in Minecraft from scratch, without human data or curriculum. Source: <a href="https://arxiv.org/abs/2301.04104" target="_blank" rel="noopener noreferrer">Hafner et al., 2023</a></em>
@@ -274,7 +274,7 @@ $$
 
 where $\Phi$ is any state potential function. Ng et al. showed that this form does not change the optimal policy. In a navigation task, if $\Phi(s)$ is negative distance to the goal, then moving closer produces a small positive shaping reward while preserving the original optimum.
 
-![Reward shaping](../../chapter07_ppo/images/reward-shaping-concept.png)
+![Reward shaping](../../chapter10_ppo/images/reward-shaping-concept.png)
 
 Good shaping still requires knowledge of useful intermediate states. To reduce manual design, researchers use inverse RL, preference-based RL, and self-supervised reward discovery.
 
@@ -282,7 +282,7 @@ Good shaping still requires knowledge of useful intermediate states. To reduce m
 
 **Curriculum learning** trains from easy tasks to hard tasks. A robot opening a door might start with a half-open door, then a barely open door, then a closed door.
 
-![Curriculum learning categories](../../chapter07_ppo/images/curriculum-overview.png)
+![Curriculum learning categories](../../chapter10_ppo/images/curriculum-overview.png)
 
 Lilian Weng groups RL curricula into several types:
 

@@ -50,7 +50,7 @@ EasyR1/
 
 This structure looks complex, but as a user you only need to care about three directories: `examples/` (config and scripts), `examples/reward_function/` (reward functions), and `examples/format_prompt/` (prompt templates). The rest of the framework works behind the scenes.
 
-![EasyR1 GRPO training flow](../../chapter11_vlm_rl/images/easyr1-grpo-diagram.png)
+![EasyR1 GRPO training flow](../../chapter26_vlm/images/easyr1-grpo-diagram.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: The complete GRPO flow in EasyR1 -- from sampling multiple responses, computing group-relative advantage, to clipped policy updates. Source: <a href="https://github.com/hiyouga/EasyR1" target="_blank" rel="noopener noreferrer">EasyR1 GitHub</a></em>
@@ -60,7 +60,7 @@ This structure looks complex, but as a user you only need to care about three di
 
 [GeoQA-8K](https://huggingface.co/datasets/leonardPKU/GEOQA_8K_R1V) is an elementary geometry QA dataset. Each sample contains a geometry diagram, a Chinese question, and a ground-truth answer.
 
-![GeoQA dataset example](../../chapter11_vlm_rl/images/geoqa-example.png)
+![GeoQA dataset example](../../chapter26_vlm/images/geoqa-example.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: A typical GeoQA sample -- the left side shows the geometry diagram (parallelogram + diagonals + shaded region), the right side shows the Chinese question and ground-truth answer. The model must understand both the diagram and the text to give the correct answer.</em>
@@ -325,7 +325,7 @@ algorithm:
 
 `low_var_kl` is a lower-variance KL estimation method, more stable than standard KL. `kl_coef=0.01` is EasyR1's default, smaller than PPO's typical value (0.05), because GRPO's within-group normalization already has a regularization effect.
 
-![GRPO algorithm flow](../../chapter11_vlm_rl/images/illustrated-grpo.png)
+![GRPO algorithm flow](../../chapter26_vlm/images/illustrated-grpo.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: GRPO algorithm flow diagram -- sample multiple responses → compute rewards → normalize advantage within groups → clipped update. Source: <a href="https://abderrahmanskiredj.github.io/the-illustrated-grpo/" target="_blank" rel="noopener noreferrer">The Illustrated GRPO</a></em>
@@ -333,7 +333,7 @@ algorithm:
 
 **Worker configuration (`worker`)**:
 
-![Qwen2.5-VL model architecture](../../chapter11_vlm_rl/images/qwen2.5-vl-architecture.png)
+![Qwen2.5-VL model architecture](../../chapter26_vlm/images/qwen2.5-vl-architecture.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4: Qwen2.5-VL model architecture -- the Vision Encoder encodes images into visual tokens, which are sent to the Qwen2.5 language model alongside text tokens. During EasyR1 training, you can choose to freeze or update the vision encoder. Source: <a href="https://debuggercafe.com/qwen2-5-vl-architecture-data-benchmarks-and-inference/" target="_blank" rel="noopener noreferrer">DebuggerCafe</a></em>
@@ -508,7 +508,7 @@ If WandB is also enabled (`trainer.logger` includes `"wandb"`), these metrics ar
 
 ## Training Metric Analysis
 
-![EasyR1 GeoQA training curves](../../chapter11_vlm_rl/images/easyr1-geoqa-curves.png)
+![EasyR1 GeoQA training curves](../../chapter26_vlm/images/easyr1-geoqa-curves.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 5: Reward and accuracy curves for Qwen2.5-VL-7B trained with EasyR1 GRPO on Geo3K/GeoQA. Source: <a href="https://github.com/hiyouga/EasyR1" target="_blank" rel="noopener noreferrer">EasyR1 GitHub</a></em>

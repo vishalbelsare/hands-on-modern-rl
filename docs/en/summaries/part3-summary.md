@@ -97,4 +97,4 @@ Each step replaces complex components with simpler mechanisms while remaining ma
 
 At the same time, RL expands from "aligning human preferences" to "eliciting reasoning" and "training agents." Moving from single-turn dialogue to multi-turn tool interactions, RL is playing an increasingly central role in LLM post-training.
 
-> **Next stop**: [Part 4: Frontier and Advanced Topics](/chapter11_vlm_rl/intro)
+> **Next stop**: [Part 4: Frontier and Advanced Topics](/chapter26_vlm/intro)

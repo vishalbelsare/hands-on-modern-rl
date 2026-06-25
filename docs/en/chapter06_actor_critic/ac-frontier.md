@@ -22,7 +22,7 @@ In this section, we will look at three milestone large-scale applications of Act
 
 Unlike turn-based board games, StarCraft is **real-time**: both sides act simultaneously, there is no "wait for the other player to move" turn structure, and multiple decisions must be made every second: selecting units, moving, attacking, retreating, building, scouting. For professional players, **effective APM** (actions per minute) can reach 300-500.
 
-<img src="../../chapter06_actor_critic/images/sc2-gameplay.gif" alt="StarCraft II gameplay" width="500" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/sc2-gameplay.gif" alt="StarCraft II gameplay" width="500" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>A StarCraft II match. The center is the main battlefield view; the lower-left is the minimap (global situation awareness); the lower-right is the resource and unit information panel.</em>
@@ -34,7 +34,7 @@ AlphaGo defeated Lee Sedol in 2016, but for AI, StarCraft II is significantly ha
 
 StarCraft II, in contrast, is an **imperfect-information game**: the fog of war hides the opponent's actions; the state contains positions, health, and resources for hundreds of units; and actions are compositional: select a unit, select an ability, then specify a target. The resulting action space is on the order of $10^{26}$. A single game lasts roughly 10,000 steps, far longer than Go's ~250 moves.
 
-<img src="../../chapter06_actor_critic/images/alphastar-nature-cover.png" alt="AlphaStar on the cover of Nature" width="800" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/alphastar-nature-cover.png" alt="AlphaStar on the cover of Nature" width="800" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>AlphaStar: Grandmaster level in StarCraft II using multi-agent reinforcement learning, published in <a href="https://doi.org/10.1038/s41586-019-1724-z" target="_blank" rel="noopener noreferrer">Nature 2019</a>.</em>
@@ -46,7 +46,7 @@ In 2019, DeepMind's AlphaStar became the first AI to reach Grandmaster level in 
 
 At its core, AlphaStar is a large-scale Actor-Critic system. The network consumes raw game features (unit lists, minimaps, build queues, resources, and so on), uses a Transformer torso to process a variable-length set of entities, then an LSTM core to accumulate temporal memory, and finally branches into two outputs.
 
-<img src="../../chapter06_actor_critic/images/nature-fig1.png" alt="AlphaStar system architecture" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/nature-fig1.png" alt="AlphaStar system architecture" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 1: AlphaStar system architecture. (a) Real-time decision layer: processes game state and outputs a structured action; (b) learning framework: combines supervised learning (imitation of human replays) and reinforcement learning (self-play); (c) population-based training (PBT): maintains a diverse pool of policies. Source: <a href="https://doi.org/10.1038/s41586-019-1724-z" target="_blank" rel="noopener noreferrer">Vinyals et al., 2019, Fig.1</a>.</em>
@@ -90,7 +90,7 @@ AlphaStar's most distinctive innovation is **league training**. The league maint
 - **Main Exploiter**: specializes in finding weaknesses in the Main Agent, forcing it to patch holes
 - **League Exploiter**: searches for strategic blind spots across the league that no one can handle
 
-<img src="../../chapter06_actor_critic/images/alphastar-training-curves.png" alt="AlphaStar policy evolution: Self-play vs With exploiters" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/alphastar-training-curves.png" alt="AlphaStar policy evolution: Self-play vs With exploiters" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 2: Comparing policy evolution. Top: pure self-play, where the agent gradually collapses from a mixture into a narrow single-style specialization. Bottom: league training with exploiters, where exploiters actively expose weaknesses and force the agent to maintain a more robust and diverse policy distribution. Source: <a href="https://doi.org/10.1038/s41586-019-1724-z" target="_blank" rel="noopener noreferrer">Vinyals et al., 2019</a>.</em>
@@ -102,7 +102,7 @@ Each agent is an independent Actor-Critic network. The league maintains on the o
 
 The full training process lasted about **44 days**. During this period, millions of matches were run in parallel, accumulating **hundreds of millions** of self-play games. Each agent network contained roughly **200 million parameters**, and the TPU compute corresponded to around **12,000 years** of gameplay.
 
-<img src="../../chapter06_actor_critic/images/nature-fig3.png" alt="AlphaStar benchmarks and TrueSkill ratings" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/nature-fig3.png" alt="AlphaStar benchmarks and TrueSkill ratings" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 3: AlphaStar benchmarks and TrueSkill ratings. (a) Win rate of AlphaStar Final against human players across percentiles; (b) TrueSkill ratings against the three races (Terran/Protoss/Zerg); (c) win/loss distributions by race. AlphaStar reaches Grandmaster level across all matchups. Source: <a href="https://doi.org/10.1038/s41586-019-1724-z" target="_blank" rel="noopener noreferrer">Vinyals et al., 2019, Fig.3</a>.</em>
@@ -150,7 +150,7 @@ $$\mathcal{L}(Q_i) = \mathbb{E} \left[ \left( Q_i(s,a) - \left( r + \gamma \min_
 
 SAC has been deployed directly on physical robots across a range of tasks:
 
-<img src="../../chapter06_actor_critic/images/sac-real-robot.gif" alt="SAC deployed on real robots" width="800" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/sac-real-robot.gif" alt="SAC deployed on real robots" width="800" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 4: SAC deployed directly on physical robots for dexterous manipulation. Source: <a href="https://bair.berkeley.edu/blog/2018/12/14/sac/" target="_blank" rel="noopener noreferrer">BAIR Blog, 2018</a>.</em>
@@ -169,13 +169,13 @@ What these tasks share is the workflow: train SAC in simulation, then transfer d
 
 The BAIR blog provides training-curve comparisons between SAC and DDPG, TD3, and PPO on MuJoCo continuous-control tasks. On high-dimensional tasks such as HalfCheetah and Humanoid, SAC (blue) outperforms other methods in final performance, sample efficiency, and worst-case behavior:
 
-<img src="../../chapter06_actor_critic/images/sac-benchmark-cheetah.png" alt="SAC training curve on HalfCheetah" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/sac-benchmark-cheetah.png" alt="SAC training curve on HalfCheetah" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 5: Training curves on HalfCheetah-v2. SAC (blue) is noticeably more sample-efficient than PPO and DDPG, and it is more consistent across random seeds. Source: <a href="https://bair.berkeley.edu/blog/2018/12/14/sac/" target="_blank" rel="noopener noreferrer">BAIR Blog</a>.</em>
 </div>
 
-<img src="../../chapter06_actor_critic/images/sac-benchmark-humanoid.png" alt="SAC training curve on Humanoid" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/sac-benchmark-humanoid.png" alt="SAC training curve on Humanoid" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 6: Training curves on Humanoid-v2 (a 17-DoF humanoid). Even in a high-dimensional action space, SAC still converges stably. Source: <a href="https://bair.berkeley.edu/blog/2018/12/14/sac/" target="_blank" rel="noopener noreferrer">BAIR Blog</a>.</em>
@@ -212,7 +212,7 @@ NVIDIA Isaac Lab (formerly Isaac Orbit) is designed for exactly these needs. It 
 
 In other words, Isaac Lab takes the "one network makes decisions, one network evaluates" architecture from a single-machine CartPole demo to industrial-scale GPU-parallel training. [^mittal2023]
 
-<img src="../../chapter06_actor_critic/images/isaac-lab-overview.png" alt="Isaac Lab overview" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/isaac-lab-overview.png" alt="Isaac Lab overview" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 7: NVIDIA Isaac Lab simulation environments. A humanoid robot performs terrain navigation tasks in GPU-accelerated Isaac Sim physics, and the platform supports training across thousands of parallel environments. Source: <a href="https://isaac-sim.github.io/IsaacLab/" target="_blank" rel="noopener noreferrer">NVIDIA Isaac Lab</a>.</em>
@@ -222,7 +222,7 @@ In other words, Isaac Lab takes the "one network makes decisions, one network ev
 
 Isaac Lab ships with many built-in robot models, spanning manipulators, quadrupeds, and bipeds:
 
-<img src="../../chapter06_actor_critic/images/isaac-lab-robots.png" alt="Robots and tasks supported by Isaac Lab" width="1000" loading="eager" decoding="async">
+<img src="../../chapter09_actor_critic/images/isaac-lab-robots.png" alt="Robots and tasks supported by Isaac Lab" width="1000" loading="eager" decoding="async">
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: 12px; margin-bottom: 24px; padding: 0 12px; line-height: 1.6;">
   <em>Figure 8: Robot manipulation and navigation tasks supported by Isaac Lab. It showcases diverse simulation scenes: arm grasping, quadruped walking, dexterous hand manipulation, and more, across home, industrial, and lab environments. Source: <a href="https://isaac-sim.github.io/IsaacLab/" target="_blank" rel="noopener noreferrer">NVIDIA Isaac Lab</a>.</em>

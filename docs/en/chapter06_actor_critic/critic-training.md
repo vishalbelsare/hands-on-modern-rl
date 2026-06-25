@@ -362,7 +362,7 @@ The TD target ($-2$) is much smaller in magnitude than the MC target ($-7$), but
 
 Both methods eventually converge to the same $V^\pi$, but their update paths differ: MC makes large single updates ($-3.5$) with high variance; TD makes small updates ($-1$) but more frequently, with lower variance.
 
-In practice, Actor-Critic methods almost always use TD to train the Critic. In more advanced implementations (e.g., [GAE in Chapter 7](../chapter07_ppo/gae-reward-model)), MC and TD are combined -- a parameter $\lambda$ interpolates between them to achieve an optimal bias-variance tradeoff.
+In practice, Actor-Critic methods almost always use TD to train the Critic. In more advanced implementations (e.g., [GAE in Chapter 7](../chapter10_ppo/gae-reward-model)), MC and TD are combined -- a parameter $\lambda$ interpolates between them to achieve an optimal bias-variance tradeoff.
 
 ## The Full Critic-Training Workflow
 

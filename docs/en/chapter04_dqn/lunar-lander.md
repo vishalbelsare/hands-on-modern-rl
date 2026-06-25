@@ -6,7 +6,7 @@ title: '4.3 Hands-On: LunarLander'
 
 > **Goal of this section**: start from a reproducible experiment, train DQN on `LunarLander-v3`, and use evaluation curves, replay GIFs, and failure diagnosis to answer the only question that matters: what did the policy actually learn?
 
-> **Code for this section**: [dqn_gym_sb3.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/dqn_gym_sb3.py) · [export_dqn_curves.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/export_dqn_curves.py) · [render_lunarlander_split.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/render_lunarlander_split.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/requirements.txt)
+> **Code for this section**: [dqn_gym_sb3.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_dqn/dqn_gym_sb3.py) · [export_dqn_curves.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_dqn/export_dqn_curves.py) · [render_lunarlander_split.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_dqn/render_lunarlander_split.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_dqn/requirements.txt)
 
 ## 4.3.1 Run the LunarLander Training
 
@@ -16,7 +16,7 @@ Now we stop adding concepts and instead run a full task end-to-end.
 
 LunarLander is intuitive: a lander falls from the sky, and the agent must use the main engine and side thrusters to land smoothly between two flags. Compared to CartPole, it is closer to a real control problem, because the agent must control position, velocity, angle, fuel use, and the landing condition at the same time.
 
-![LunarLander: land smoothly between the two flags](../../chapter04_dqn/images/lunarlander.gif)
+![LunarLander: land smoothly between the two flags](../../chapter07_dqn/images/lunarlander.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4.3-1: The goal in LunarLander is not to have the lander just touch the ground, but to control it to make smooth contact within the landing zone.</em>
@@ -29,13 +29,13 @@ If you only want to sanity-check that the pipeline runs, reduce `--total-timeste
 First install the dependencies for this chapter:
 
 ```bash
-pip install -r code/chapter04_dqn/requirements.txt
+pip install -r code/chapter07_dqn/requirements.txt
 ```
 
 Then run the training:
 
 ```bash
-python code/chapter04_dqn/dqn_gym_sb3.py \
+python code/chapter07_dqn/dqn_gym_sb3.py \
   --env-id LunarLander-v3 \
   --total-timesteps 100000 \
   --learning-rate 0.0005 \
@@ -76,7 +76,7 @@ tensorboard --logdir output/dqn_gym_runs/LunarLander-v3/tb
 To export the local evaluation CSV into images used in the notes:
 
 ```bash
-python code/chapter04_dqn/export_dqn_curves.py --run lunarlander
+python code/chapter07_dqn/export_dqn_curves.py --run lunarlander
 ```
 
 ## 4.3.2 Read Curves First, Then Watch Replays
@@ -106,7 +106,7 @@ timesteps  mean_reward  std_reward
 100000       253.12        15.37
 ```
 
-![DQN LunarLander evaluation curve (100k steps)](../../chapter04_dqn/images/dqn-lunarlander-tikz.svg)
+![DQN LunarLander evaluation curve (100k steps)](../../chapter07_dqn/images/dqn-lunarlander-tikz.svg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4.3-2: DQN evaluation curve for LunarLander-v3. The curve is not monotonic, but has clearly departed from the random-policy level.</em>
@@ -117,7 +117,7 @@ The final evaluation reached `253.12`, showing that this training run learned an
 To re-render replays:
 
 ```bash
-python code/chapter04_dqn/render_lunarlander_split.py \
+python code/chapter07_dqn/render_lunarlander_split.py \
   --model output/dqn_gym_runs/LunarLander-v3/final_model.zip \
   --output-dir output/lunarlander_episodes \
   --episodes 3 \
@@ -185,15 +185,15 @@ Now let us look at three replay segments. During testing, exploration should be 
 
 **Episode 1 (return 313.7, 263 steps)** is a high-scoring successful landing. The lander quickly enters a controlled descent state, reduces speed before approaching the ground, and finally contacts the ground within the landing zone. Its highest score comes mainly from good performance across landing position, speed, attitude, and termination mode.
 
-![LunarLander Episode 1: Decisive deceleration and landing, return 313.7](../../chapter04_dqn/images/lunarlander_ep1.gif)
+![LunarLander Episode 1: Decisive deceleration and landing, return 313.7](../../chapter07_dqn/images/lunarlander_ep1.gif)
 
 **Episode 2 (return 173.2, 676 steps)** is a medium success. The lander eventually lands, but the process is longer, requiring repeated attitude and position corrections in between. It is clearly better than failure episodes because it does not crash at the end; but scoring only about 100 points indicates issues with action efficiency, fuel consumption, and stability compared to the high-scoring example.
 
-![LunarLander Episode 2: Landing after multiple corrections, return 173.2](../../chapter04_dqn/images/lunarlander_ep2.gif)
+![LunarLander Episode 2: Landing after multiple corrections, return 173.2](../../chapter07_dqn/images/lunarlander_ep2.gif)
 
 **Episode 3 (return 5.9, 104 steps)** is a clear failure. After deviating from the stable descent path, the lander does not recover attitude; both legs do not make normal contact on landing. This is closer to "drifting out and crashing/hard landing" rather than hovering until the maximum step timeout.
 
-![LunarLander Episode 3: Crashing after deviating from stable descent path, return 5.9](../../chapter04_dqn/images/lunarlander_ep3.gif)
+![LunarLander Episode 3: Crashing after deviating from stable descent path, return 5.9](../../chapter07_dqn/images/lunarlander_ep3.gif)
 
 These three replays illustrate exactly why you cannot judge from a single episode. Episode 1 proves the policy can complete a high-quality landing; Episode 2 shows the same policy may still use a longer path and more corrections for a medium-quality landing; Episode 3 reminds us that training to 100k steps does not mean the policy is stable for all initial states. Reading curves and replays together, the conclusion should be: this DQN has clearly learned LunarLander's control patterns, but it is not yet a fully robust landing controller.
 
@@ -252,7 +252,7 @@ Next: [The DQN family](./dqn-family)
 ## Section Summary
 
 - `LunarLander-v3` is a suitable continuation for this chapter's DQN hands-on: low-dimensional continuous states, discrete actions, and a richer reward structure than CartPole.
-- The training entry point is `code/chapter04_dqn/dqn_gym_sb3.py`; curve export uses `export_dqn_curves.py`; replay GIFs use `render_lunarlander_split.py`.
+- The training entry point is `code/chapter07_dqn/dqn_gym_sb3.py`; curve export uses `export_dqn_curves.py`; replay GIFs use `render_lunarlander_split.py`.
 - During evaluation, first check whether multi-episode average return has departed from the random baseline, then use replays to verify whether the policy actually completes deceleration, attitude correction, and landing zone control.
 - A single episode above `200` usually indicates a high-quality successful landing; `100` to `200` is mostly a medium success; significantly below `100` requires examining replays to determine the failure cause.
 - Curve fluctuation in LunarLander is normal; to judge whether training is effective, consider the mean, variance, checkpoints, and replays across different seeds simultaneously.

@@ -12,7 +12,7 @@ This section breaks down the core ideas of self-play and self-evolution, from th
 
 The core idea of self-play is extremely elegant: **no external data needed — the model generates its own training data and searches for a Nash equilibrium through mutual competition**.
 
-![SPIN Pipeline](../../../chapter12_future_trends/self-play-outlook/images/spin_pipeline.png)
+![SPIN Pipeline](../../../chapter32_selfplay/self-play-outlook/images/spin_pipeline.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: SPIN (Self-Play Fine-Tuning) architecture, jointly proposed by UCLA and UIUC. Without any new human data, the model continuously converts a weaker language model into a stronger one by playing against "its past self." Source: <a href="https://arxiv.org/abs/2401.01335" target="_blank" rel="noopener noreferrer">SPIN Paper</a></em>
@@ -75,7 +75,7 @@ This is the most core form of self-play in the LLM domain. Traditional RLHF requ
 
 In 2024, Meta and NYU jointly proposed **Self-Rewarding Language Models**. The core idea: **let the same model simultaneously play both Generator (generating answers) and Judge (LLM-as-a-Judge, evaluating answer quality)**.
 
-![Self Rewarding LM](../../../chapter12_future_trends/self-play-outlook/images/self_rewarding_lm.png)
+![Self Rewarding LM](../../../chapter32_selfplay/self-play-outlook/images/self_rewarding_lm.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: Self-Rewarding Language Models training iteration. In each iteration, the model generates candidate answers (M1), scores its own answers (M2), and uses the scored data to train a stronger next-generation model (M3) through DPO. Source: <a href="https://arxiv.org/abs/2401.10020" target="_blank" rel="noopener noreferrer">Meta Paper</a></em>
@@ -142,7 +142,7 @@ The core of self-evolution systems is **Online Learning**, which turns this proc
 
 $$ \text{Policy } \pi*{\theta} \xrightarrow{\text{Self-Play Generation}} \text{New trajectory data } \tau \xrightarrow{\text{Rule/RM scoring}} \text{Reward } R \xrightarrow{\text{PPO/GRPO update}} \text{New policy } \pi*{\theta'} \xrightarrow{\text{Loop}} \cdots $$
 
-![DeepSeek-R1 Pipeline](../../../chapter12_future_trends/self-play-outlook/images/deepseek_r1_pipeline.png)
+![DeepSeek-R1 Pipeline](../../../chapter32_selfplay/self-play-outlook/images/deepseek_r1_pipeline.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: DeepSeek-R1's RL training pipeline. Unlike the traditional two-stage (SFT + RL), DeepSeek-R1-Zero proved that relying purely on a base model and online RL, the model can achieve leaps in reasoning capability through self-exploration and rule rewards. Source: <a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener noreferrer">DeepSeek-R1 Paper</a></em>
@@ -183,7 +183,7 @@ The highest form of self-evolution is **reward signals themselves evolving throu
 
 **Stage 3: Self-Verification and LLM-as-Judge**. The model evaluates its own generation quality — the Self-Rewarding LM discussed in this section. As generation capability improves, judging capability improves simultaneously, forming a positive flywheel. **STaR (Self-Taught Reasoner)** is a typical implementation of this closed loop: the model writes its own reasoning process, and if the final answer is correct (positive reward), the reasoning is treated as a positive example; if wrong (negative reward), the correct answer is provided for the model to reason backwards — the entire process is itself an RL loop.
 
-![Quiet STaR Pipeline](../../../chapter12_future_trends/self-play-outlook/images/quiet_star.png)
+![Quiet STaR Pipeline](../../../chapter32_selfplay/self-play-outlook/images/quiet_star.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4: Quiet-STaR (Self-Taught Reasoner) architecture. The language model generates numerous thinking drafts (Thoughts) in a latent state before answering each token, continuously optimizing its internal thinking process (not just output text) to achieve capability evolution. Source: <a href="https://arxiv.org/abs/2403.09629" target="_blank" rel="noopener noreferrer">Quiet-STaR Paper</a></em>

@@ -12,7 +12,7 @@ But many real-world settings are not like this. Autonomous driving cannot explor
 
 The common structure of these problems is: **we have large amounts of historical data, but cannot continue trial-and-error during training.** This is the problem **Offline Reinforcement Learning (Offline RL)** aims to solve.
 
-![Offline RL Settings](../../../chapter12_future_trends/offline-rl/images/paper/offline-rl-settings.png)
+![Offline RL Settings](../../../chapter32_selfplay/offline-rl/images/paper/offline-rl-settings.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: Comparison of training approaches for online RL, off-policy RL, and offline RL. Offline RL's dataset is collected only once; training involves no further interaction with the MDP. Source: Levine et al., "Offline Reinforcement Learning: Tutorial, Review, and Perspectives on Open Problems", Fig. 1.</em>
@@ -117,7 +117,7 @@ This environment is not a full MDP but a contextual bandit. It is small enough y
 Run:
 
 ```bash
-python docs/chapter12_future_trends/offline-rl/snippets/minimal_offline_rl_contextual_bandit.py
+python docs/chapter32_selfplay/offline-rl/snippets/minimal_offline_rl_contextual_bandit.py
 ```
 
 Typical output:
@@ -155,7 +155,7 @@ This is not a complete CQL paper implementation, but it captures the core intuit
 
 Offline data is not "more is better"; what matters is what it covers.
 
-![D4RL Maze Trajectories](../../../chapter12_future_trends/offline-rl/images/paper/d4rl-maze-trajectories.png)
+![D4RL Maze Trajectories](../../../chapter32_selfplay/offline-rl/images/paper/d4rl-maze-trajectories.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: Maze2D trajectory coverage in D4RL. Offline data records paths taken by the behavior policy; whether the algorithm can "stitch" existing fragments together is a key capability of offline RL. Source: Fu et al., "D4RL: Datasets for Deep Data-Driven Reinforcement Learning", Fig. 4.</em>
@@ -257,7 +257,7 @@ $$
 
 The first term penalizes high Q-values across all actions; the second term preserves Q-values for actions that actually appeared in the data. Intuitively, CQL makes the Q-function pessimistic: **prefer to underestimate unseen actions rather than lead the policy into dangerous blind spots.**
 
-![CQL Gap Curves](../../../chapter12_future_trends/offline-rl/images/paper/cql-gap-curves.png)
+![CQL Gap Curves](../../../chapter32_selfplay/offline-rl/images/paper/cql-gap-curves.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: Experimental curves from the CQL paper showing Q-gap and return changes. CQL mitigates value overestimation and degradation that can occur with policy constraint methods through conservative value estimation. Source: Kumar et al., "Conservative Q-Learning for Offline Reinforcement Learning", Fig. 2.</em>
@@ -308,7 +308,7 @@ $$
 
 When $\tau>0.5$, $V(s)$ moves closer to the high-Q portion of data actions. It is essentially asking: **among the actions that appeared in the dataset, approximately how good is the better subset?**
 
-![IQL Expectile Regression](../../../chapter12_future_trends/offline-rl/images/paper/iql-expectile-regression.png)
+![IQL Expectile Regression](../../../chapter32_selfplay/offline-rl/images/paper/iql-expectile-regression.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4: IQL uses expectile regression to estimate high-value states from data actions. Different τ values shift the regression target toward different positions in the distribution. Source: Kostrikov et al., "Offline Reinforcement Learning with Implicit Q-Learning", Fig. 1.</em>
@@ -395,7 +395,7 @@ $$
 
 During inference, you give it a target return, like "I want to score 360 points," and it generates the next action based on past states and actions.
 
-![Decision Transformer Architecture](../../../chapter12_future_trends/offline-rl/images/paper/decision-transformer-architecture.png)
+![Decision Transformer Architecture](../../../chapter32_selfplay/offline-rl/images/paper/decision-transformer-architecture.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 5: Decision Transformer interleaves return, state, and action as input to a causal Transformer and predicts the next action. Source: Chen et al., "Decision Transformer: Reinforcement Learning via Sequence Modeling", Fig. 1.</em>

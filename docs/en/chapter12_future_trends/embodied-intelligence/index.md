@@ -14,7 +14,7 @@ Embodied intelligence refers to **AI systems that interact with the environment 
 
 This concept comes from a fundamental insight in cognitive science: human intelligence is not "thought up" in a vacuum, but is shaped through continuous interaction with the physical world. Infants understand physical laws through grasping, crawling, and colliding -- this "bodily experience" is the foundation of cognitive development. Embodied intelligence brings this idea to AI -- letting AI also learn through "bodily experience."
 
-![Stanford Arm](../../../chapter12_future_trends/embodied-intelligence/images/stanford_arm.jpg)
+![Stanford Arm](../../../chapter28_vla/embodied-intelligence/images/stanford_arm.jpg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: The Stanford Arm, the world's first fully electric, computer-controlled robotic arm, which pioneered complex manipulation in the physical world. Source: <a href="https://commons.wikimedia.org/wiki/File:The_Stanford_Arm.jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -74,7 +74,7 @@ Embodied intelligence tasks vary widely, but by how the agent interacts with the
 - **Classic case**: OpenAI training a robotic hand to solve a Rubik's Cube. They used the PPO algorithm and introduced extreme **Asymmetric Domain Randomization (ADR)** in simulation, training a policy network that could rotate a Rubik's Cube with one hand in the real world.
 - **Challenges**: Extremely complex **contact dynamics** -- sliding, friction, and micro-deformation between fingers and object surfaces are very difficult to perfectly reproduce in simulation engines.
 
-![PR2 Robot](../../../chapter12_future_trends/embodied-intelligence/images/pr2_robot.jpg)
+![PR2 Robot](../../../chapter28_vla/embodied-intelligence/images/pr2_robot.jpg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 2: The PR2 robot equipped with advanced grasping hands, commonly used for research in dexterous manipulation and human-robot interaction. Source: <a href="https://commons.wikimedia.org/wiki/File:PR2_robot_with_advanced_grasping_hands.JPG" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -90,7 +90,7 @@ Embodied intelligence tasks vary widely, but by how the agent interacts with the
   - The RL policy network typically runs at 50Hz, receiving IMU (attitude, angular velocity) and joint encoder data, and outputting target angles $q_{target}$ to the low-level PD controller.
 - **Challenges**: Balance in underactuated systems, bipedal robots' high center of gravity making them prone to falling.
 
-![BigDog Robot](../../../chapter12_future_trends/embodied-intelligence/images/big_dog.jpg)
+![BigDog Robot](../../../chapter28_vla/embodied-intelligence/images/big_dog.jpg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 3: Boston Dynamics' BigDog quadruped robot, capable of maintaining dynamic balance and walking on complex terrain. Source: <a href="https://commons.wikimedia.org/wiki/File:Big_dog_military_robots.jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -275,7 +275,7 @@ In practice, a typical embodied RL paradigm is: **pretrain with PPO in large-sca
 
 ## Common Simulation Environments for Embodied Intelligence
 
-![Simulation Environment](../../../chapter12_future_trends/embodied-intelligence/images/simulation.gif)
+![Simulation Environment](../../../chapter28_vla/embodied-intelligence/images/simulation.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 4: Robot control testing in a simulation environment. High-quality physics simulation engines are essential infrastructure for training embodied agents. Source: <a href="https://commons.wikimedia.org/wiki/File:5R_robot.gif" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -285,7 +285,7 @@ Simulation environments are the infrastructure of embodied RL -- without high-qu
 
 ### MuJoCo
 
-![MuJoCo Simulation](../../../chapter12_future_trends/embodied-intelligence/images/mujoco_sim.png)
+![MuJoCo Simulation](../../../chapter28_vla/embodied-intelligence/images/mujoco_sim.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 5: Robot joint and dynamics simulation example. Physics engines like MuJoCo provide accurate contact modeling and kinematic computation. Source: <a href="https://commons.wikimedia.org/wiki/File:SpaceRoboticsChallenge_Task2.png" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -295,7 +295,7 @@ Simulation environments are the infrastructure of embodied RL -- without high-qu
 
 ### Isaac Gym / Isaac Sim
 
-![Isaac Sim Simulation](../../../chapter12_future_trends/embodied-intelligence/images/isaac_sim.png)
+![Isaac Sim Simulation](../../../chapter28_vla/embodied-intelligence/images/isaac_sim.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6: Multi-robot parallel simulation framework. The Isaac Gym/Sim series leverages GPU parallelism to enable simultaneous training of large numbers of robots. Source: <a href="https://commons.wikimedia.org/wiki/File:Asynchronous_Multi-Body_Framework,_AMBF.png" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -311,7 +311,7 @@ The core value of the Isaac series is **freeing simulation from the CPU bottlene
 
 ### ManiSkill / Sapien
 
-![ManiSkill Simulation](../../../chapter12_future_trends/embodied-intelligence/images/maniskill_sim.jpg)
+![ManiSkill Simulation](../../../chapter28_vla/embodied-intelligence/images/maniskill_sim.jpg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7: Simulation scene for grasping and manipulation tasks using a robotic arm. This is the domain where ManiSkill and Sapien excel. Source: <a href="https://commons.wikimedia.org/wiki/File:Robotic_simulation_using_Robcad_software.jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -327,7 +327,7 @@ The core value of the Isaac series is **freeing simulation from the CPU bottlene
 
 ## Sim-to-Real: Core Ideas for Simulation-to-Reality Transfer
 
-![Sim-to-Real](../../../chapter12_future_trends/embodied-intelligence/images/sim_to_real.png)
+![Sim-to-Real](../../../chapter28_vla/embodied-intelligence/images/sim_to_real.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 8: Comparison of simulation and real-world environments. The core challenge of Sim-to-Real is bridging the gap between the physical and digital worlds (Sim-to-Real Gap). Source: <a href="https://commons.wikimedia.org/wiki/File:Xenobot_sim_to_real.png" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -374,7 +374,7 @@ In Chapter 7 we learned PPO's deterministic policy output -- given a state, the 
 
 ### Vision-Language-Action Models (VLA)
 
-![Vision-Language-Action](../../../chapter12_future_trends/embodied-intelligence/images/vla_robot.jpg)
+![Vision-Language-Action](../../../chapter28_vla/embodied-intelligence/images/vla_robot.jpg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 9: A robot system with visual perception and grasping capabilities. VLA models combine visual input and natural language instructions to directly generate robot physical actions, a key technology for achieving general-purpose embodied intelligence. Source: <a href="https://commons.wikimedia.org/wiki/File:Care-O-Bot_grasping_an_object_on_the_table_(5117071459).jpg" target="_blank" rel="noopener noreferrer">Wikimedia Commons</a></em>
@@ -414,7 +414,7 @@ First, ensure you have the following dependencies installed:
 pip install gymnasium[mujoco] stable-baselines3
 ```
 
-![HalfCheetah Simulation](../../../chapter12_future_trends/embodied-intelligence/images/halfcheetah.gif)
+![HalfCheetah Simulation](../../../chapter28_vla/embodied-intelligence/images/halfcheetah.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 10: The HalfCheetah robot model in Gymnasium. You will use the PPO algorithm to train it from random flailing to smooth forward running.</em>
@@ -517,7 +517,7 @@ When embodied intelligence truly enters the physical world, the biggest bottlene
 
 If you want to actually deploy a running, jumping robot in the physical world, you need not only theory but also reliable hardware and open-source frameworks. Chinese robotics company **Unitree Robotics** provides one of the most complete RL open-source ecosystems in industry. You can reference these materials to apply our simulation-trained "brain" approach to real quadruped or humanoid robots:
 
-![Unitree RL GYM](../../../chapter12_future_trends/embodied-intelligence/images/unitree_rl.jpeg)
+![Unitree RL GYM](../../../chapter28_vla/embodied-intelligence/images/unitree_rl.jpeg)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 11: Unitree Robotics' Go2 quadruped robot and H1 humanoid robot trained with reinforcement learning. Source: <a href="https://github.com/unitreerobotics/unitree_rl_gym" target="_blank" rel="noopener noreferrer">unitree_rl_gym GitHub</a></em>

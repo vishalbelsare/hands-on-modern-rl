@@ -6,7 +6,7 @@ title: '7.1 Hands-On: BipedalWalker Continuous Control'
 
 > **Goal of this section**: Train PPO to control a bipedal robot to walk over randomized terrain, and understand what really changes when we move from discrete actions to continuous actions.
 
-> **Code for this section**: [ppo_bipedal_walker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_ppo/ppo_bipedal_walker.py) · [render_bipedal_walker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_ppo/render_bipedal_walker.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter07_ppo/requirements.txt)
+> **Code for this section**: [ppo_bipedal_walker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter10_ppo/ppo_bipedal_walker.py) · [render_bipedal_walker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter10_ppo/render_bipedal_walker.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter10_ppo/requirements.txt)
 
 In earlier chapters, we used CartPole and LunarLander to get comfortable with **discrete-action** tasks: the policy only needs to choose one action from a small set. But many real control problems, such as robot joint torques, a car's throttle and brake, or a drone's rotor speeds, live in a **continuous action space**.
 
@@ -16,7 +16,7 @@ One of PPO's core advantages is that it handles continuous actions natively. A c
 
 The task in BipedalWalker is to control a bipedal robot to walk across randomly generated terrain. The state is 24-dimensional (including lidar distance readings, joint angles, and joint velocities). The action is a 4-dimensional continuous vector (torques for the hips and knees of both legs). Compared with LunarLander, this environment is a better main experiment for this chapter: you are no longer selecting among a few discrete actions; instead you must learn continuous control signals directly.
 
-![The bipedal robot in BipedalWalker must walk stably on randomized terrain](../../chapter07_ppo/images/bipedalwalker_demo.gif)
+![The bipedal robot in BipedalWalker must walk stably on randomized terrain](../../chapter10_ppo/images/bipedalwalker_demo.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7.1-1: The goal of BipedalWalker is to learn a walking gait over uneven terrain, rather than falling down.</em>
@@ -25,13 +25,13 @@ The task in BipedalWalker is to control a bipedal robot to walk across randomly 
 Install dependencies:
 
 ```bash
-pip install -r code/chapter07_ppo/requirements.txt
+pip install -r code/chapter10_ppo/requirements.txt
 ```
 
 Run training:
 
 ```bash
-python code/chapter07_ppo/ppo_bipedal_walker.py \
+python code/chapter10_ppo/ppo_bipedal_walker.py \
   --total-timesteps 2000000
 ```
 
@@ -66,7 +66,7 @@ During PPO training, there are four key metrics. Each one reflects the learning 
 
 Episode reward is the most direct metric: the cumulative return at the end of each episode. In BipedalWalker, returns typically range from about -110 (fall quickly) to +340 (efficient walking).
 
-![PPO BipedalWalker-v3 episode reward: rising from about -110 to around 250; light blue is raw values, dark blue is a 50-episode moving average](../../chapter07_ppo/images/ppo_bipedal_walker_reward.png)
+![PPO BipedalWalker-v3 episode reward: rising from about -110 to around 250; light blue is raw values, dark blue is a 50-episode moving average](../../chapter10_ppo/images/ppo_bipedal_walker_reward.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7.1-2: Episode reward curve. Light blue shows raw per-episode returns; dark blue is a 50-episode moving average. The green dashed line marks the solved threshold (300).</em>
@@ -86,7 +86,7 @@ Policy entropy measures how "random" the policy is. Higher entropy means the pol
 
 In discrete-action tasks, entropy refers to the entropy of a categorical distribution over a small action set. In continuous control, SB3's Gaussian policy has entropy related to the scale of the standard deviation (roughly speaking, larger standard deviation means higher entropy).
 
-![PPO BipedalWalker-v3 policy entropy: a gradual decrease with a late-stage plateau](../../chapter07_ppo/images/ppo_bipedal_walker_entropy.png)
+![PPO BipedalWalker-v3 policy entropy: a gradual decrease with a late-stage plateau](../../chapter10_ppo/images/ppo_bipedal_walker_entropy.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7.1-3: Policy entropy over training steps. Entropy decreases as the policy becomes more confident and more consistent.</em>
@@ -104,7 +104,7 @@ $$r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\mathrm{old}}}(a_t|s_t)}
 
 and using a clipped objective so that the update cannot push the new policy too far away from the old one in a single step. SB3 reports a metric called **clip fraction**: the fraction of samples where the ratio is clipped (i.e., where the update would have been too large without clipping).
 
-![PPO BipedalWalker-v3 clip fraction: fluctuating between about 0.05 and 0.15](../../chapter07_ppo/images/ppo_bipedal_walker_clip.png)
+![PPO BipedalWalker-v3 clip fraction: fluctuating between about 0.05 and 0.15](../../chapter10_ppo/images/ppo_bipedal_walker_clip.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7.1-4: Clip fraction over training. A higher clip fraction means more samples are being constrained by PPO's clipping rule.</em>
@@ -116,7 +116,7 @@ Intuitively, clip fraction answers the question: "How often does PPO need to say
 
 SB3 also reports an approximate KL divergence between the old and new policy. The exact formula varies by implementation details, but the high-level meaning is stable: **smaller KL means the new policy is closer to the old one**, and thus the update is "safer." PPO is designed to limit this distance indirectly, and the KL metric gives you a window into whether that constraint is being respected.
 
-![PPO BipedalWalker-v3 approximate KL divergence: mostly below 0.016 and overall stable](../../chapter07_ppo/images/ppo_bipedal_walker_kl.png)
+![PPO BipedalWalker-v3 approximate KL divergence: mostly below 0.016 and overall stable](../../chapter10_ppo/images/ppo_bipedal_walker_kl.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7.1-5: Approximate KL divergence over training. Smaller KL means the new policy stays closer to the old policy, which generally implies safer updates.</em>
@@ -200,7 +200,7 @@ To make PPO's learning progression more concrete, let's compare policies from th
 After training, you can generate replay GIFs with the rendering script:
 
 ```bash
-python code/chapter07_ppo/render_bipedal_walker.py \
+python code/chapter10_ppo/render_bipedal_walker.py \
   --model output/ppo_bipedal_walker.zip \
   --output-dir output/bipedalwalker_episodes \
   --episodes 10 --seeds 0 1 2 3 4 5 6 7 8 9
@@ -210,19 +210,19 @@ python code/chapter07_ppo/render_bipedal_walker.py \
 
 At 100k steps, the policy has already learned "not to fall." The robot can survive the full 1600 steps without falling, but it barely moves forward -- its limb movements look like balance-maintaining wiggles in place. The -35.8 return comes from torque penalties and lack of forward progress.
 
-![BipedalWalker at 100k steps: can stand but cannot walk, return -35.8](../../chapter07_ppo/images/bipedalwalker_ep1_100k.gif)
+![BipedalWalker at 100k steps: can stand but cannot walk, return -35.8](../../chapter10_ppo/images/bipedalwalker_ep1_100k.gif)
 
 ### Mid (500k steps, return 109.3)
 
 At 500k steps, the policy is in the transition phase of learning to walk. The same model can produce wildly different results across episodes: lucky episodes score above 100, unlucky ones still end in a fall at -100. The episode shown here is a successful one -- the robot can move forward, but the gait is poorly coordinated and the speed is low.
 
-![BipedalWalker at 500k steps: starting to walk but very unstable, return 109.3](../../chapter07_ppo/images/bipedalwalker_ep2_500k.gif)
+![BipedalWalker at 500k steps: starting to walk but very unstable, return 109.3](../../chapter10_ppo/images/bipedalwalker_ep2_500k.gif)
 
 ### Late (2M steps, return 295.1)
 
 At 2M steps, the policy has formed a stable and efficient gait. Joint coordination is smooth, and the robot finishes the walk in 1118 steps (compared to the full 1600 steps needed by the 100k and 500k policies).
 
-![BipedalWalker at 2M steps: stable and efficient walking, return 295.1](../../chapter07_ppo/images/bipedalwalker_ep3_2m.gif)
+![BipedalWalker at 2M steps: stable and efficient walking, return 295.1](../../chapter10_ppo/images/bipedalwalker_ep3_2m.gif)
 
 Evaluation summary across the three stages (20-episode mean):
 
@@ -328,7 +328,7 @@ In the next section, we will unpack the mathematical derivation behind PPO: [PPO
 - `BipedalWalker-v3` is a direct demonstration of PPO in continuous action spaces: 4D continuous torques, 24D states, and randomized terrain.
 - PPO supports continuous actions natively via a Gaussian policy (output mean and standard deviation, then sample actions), without discretization.
 - BipedalWalker learning often goes through three stages: "standing → shuffling → walking," and typically requires far more training steps than common discrete-action tasks.
-- This section uses SB3's PPO implementation. The entry script is `code/chapter07_ppo/ppo_bipedal_walker.py`, and the replay GIFs are generated by `render_bipedal_walker.py`.
+- This section uses SB3's PPO implementation. The entry script is `code/chapter10_ppo/ppo_bipedal_walker.py`, and the replay GIFs are generated by `render_bipedal_walker.py`.
 - The environment's solved threshold is a 100-episode mean reward $\geq 300$. In this section, 2M-step training reaches 282.5 ± 59.7, with most episodes stable in the 290-299 range.
 
 ## References

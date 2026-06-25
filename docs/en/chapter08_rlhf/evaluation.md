@@ -560,7 +560,7 @@ RLHF evaluation must simultaneously answer three questions:
 
 If you only look at the reward curve, it is easy to mistake reward hacking for model improvement. Evaluation loop + reward hacking controlled experiment + data flywheel together form RLHF's quality guardrails.
 
-With this, the classic RLHF main thread is complete: the base model is not an assistant, SFT gives it a behavioral starting point, the RM gives it a preference direction, PPO lets it practice according to reward, and evaluation and the data flywheel prevent it from learning the wrong things. For a controlled debugging exercise, continue to [8.8 Extended Practice](./extended-practice). The next chapter starts from this classic RLHF pipeline and explains why modern methods simplify the RM, Critic, or human preference itself -- [Post-Training Alignment](../chapter09_alignment/intro).
+With this, the classic RLHF main thread is complete: the base model is not an assistant, SFT gives it a behavioral starting point, the RM gives it a preference direction, PPO lets it practice according to reward, and evaluation and the data flywheel prevent it from learning the wrong things. For a controlled debugging exercise, continue to [8.8 Extended Practice](./extended-practice). The next chapter starts from this classic RLHF pipeline and explains why modern methods simplify the RM, Critic, or human preference itself -- [Post-Training Alignment](../chapter17_dpo/intro).
 
 ## Exercises
 

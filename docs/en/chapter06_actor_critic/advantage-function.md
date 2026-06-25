@@ -8,7 +8,7 @@ At the end of Chapter 5, we found that subtracting a baseline $V(s)$ reduces the
 
 ::: tip Prerequisites
 
-- [REINFORCE policy gradient](../chapter05_policy_gradient/reinforce): $\nabla_\theta J \approx \nabla_\theta \log \pi(a|s) \cdot G_t$ -- where to insert the baseline
+- [REINFORCE policy gradient](../chapter08_policy_gradient/reinforce): $\nabla_\theta J \approx \nabla_\theta \log \pi(a|s) \cdot G_t$ -- where to insert the baseline
 - [State value $V(s)$](../chapter03_mdp/value-bellman): what makes a good baseline
 - [Action value $Q(s,a)$](../chapter03_mdp/value-q): the advantage is defined as the difference between $Q$ and $V$
 - [TD error](../chapter03_mdp/dp-mc-td): $\delta = r + \gamma V(s') - V(s)$ -- a practical estimator of the advantage
@@ -16,7 +16,7 @@ At the end of Chapter 5, we found that subtracting a baseline $V(s)$ reduces the
 
 ## From Baseline to Advantage Function
 
-Recall the REINFORCE [policy gradient](../chapter05_policy_gradient/reinforce):
+Recall the REINFORCE [policy gradient](../chapter08_policy_gradient/reinforce):
 
 $$\nabla_\theta J \approx \nabla_\theta \log \pi(a|s) \cdot G_t$$
 

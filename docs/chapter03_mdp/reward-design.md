@@ -1,4 +1,4 @@
-# 3.8 奖励函数：优化目标从哪里来
+# 3.8 奖励函数设计
 
 前面几节讨论了价值估计方法和数据收集方式，但无论是 DP、MC、TD，还是 on-policy 与 off-policy，所有算法的更新目标都来自同一个源头：奖励函数。上一节回答了"数据从哪里来"，本节回到更上游的问题：**奖励怎样决定优化方向？为什么写好奖励这么难？**
 
@@ -162,7 +162,7 @@ reward = forward_reward - ctrl_cost
 
 只有两项，设计意图非常清晰：鼓励前进、惩罚剧烈动作。$r_2$ 的系数 $0.1$ 也足够小，不会主导梯度。HalfCheetah 因此成为连续控制任务的"标准基准"——奖励简单、没有歧义，算法的表现差异主要来自算法本身而不是奖励设计的好坏。
 
-![HalfCheetah 环境示意](../chapter12_future_trends/embodied-intelligence/images/halfcheetah.gif)
+![HalfCheetah 环境示意](../chapter28_vla/embodied-intelligence/images/halfcheetah.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>图 6：HalfCheetah-v4（上）和 Ant-v4（下）。HalfCheetah 只有前进速度和控制成本两项奖励，是连续控制的标准基准；Ant 则有前进、存活、控制、接触四项，组合更复杂，也更容易出现奖励冲突。</em>
@@ -185,7 +185,7 @@ reward -= 0.00035 * MOTORS_TORQUE * sum(|a|)  # r3: 关节动作惩罚
 
 问题在于 $r_2$ 并不是 PBRS 形式，它是直接惩罚 hull_angle。这会导致智能体学会一种"低头快走"的策略：把头压低来减少角度惩罚，即使这不利于平衡。BipedalWalker 的奖励设计在 GitHub 上被反复讨论，很多改进版本调整了 $r_2$ 的系数甚至移除它。
 
-![BipedalWalker 环境示意：双足机器人需要在崎岖地形上行走](../chapter07_ppo/images/bipedalwalker_demo.gif)
+![BipedalWalker 环境示意：双足机器人需要在崎岖地形上行走](../chapter10_ppo/images/bipedalwalker_demo.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>图 7：BipedalWalker-v3 环境。双足机器人需要在随机生成的崎岖地形上行走。奖励由前进距离（PBRS 塑形）、姿态惩罚和动作惩罚三项组成，但姿态惩罚的系数和形式一直存在争议。</em>
@@ -425,7 +425,7 @@ Gao 等人系统研究了这个问题[^5]。他们用一个大模型（6B 参数
 
 RLAIF 大幅降低了标注成本，也带来了新问题：AI 的偏好本身是否可靠？如果 AI 的判断和人类的真实偏好不一致，那只是把 $R \neq R^*$ 的问题从"人类反馈"转移到了"AI 反馈"上。
 
-### 绕开奖励模型：GRPO
+### GRPO 绕开奖励模型
 
 上面所有方法都依赖一个显式的奖励模型。但奖励模型训练本身就是 $R \neq R^*$ 的一个来源。**GRPO（Group Relative Policy Optimization）** 试图绕开这个问题：在同一个问题上生成一组回答（比如 8 个），用某种规则（如正确性检查或另一个模型的评判）对这组回答排序，然后用组内相对排名作为奖励信号，直接更新策略。
 

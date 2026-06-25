@@ -168,7 +168,7 @@ reward = forward_reward - ctrl_cost
 
 With only two terms, the design intent is extremely clear: encourage forward progress and penalize violent actions. The coefficient $0.1$ for $r_2$ is small enough that it does not dominate the gradient. As a result, HalfCheetah has become a “standard benchmark” for continuous control: the reward is simple and unambiguous, so performance differences more often reflect algorithmic differences rather than reward-engineering artifacts.
 
-![HalfCheetah environment illustration](../../chapter12_future_trends/embodied-intelligence/images/halfcheetah.gif)
+![HalfCheetah environment illustration](../../chapter28_vla/embodied-intelligence/images/halfcheetah.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6: HalfCheetah-v4 (top) and Ant-v4 (bottom). HalfCheetah has only two reward terms, forward velocity and control cost, making it a standard continuous-control benchmark. Ant uses four terms (forward, alive, control, contact), which makes the composition more complex and increases the chance of reward conflicts.</em>
@@ -191,7 +191,7 @@ Three different “combination styles” appear at the same time:
 
 The problem is that $r_2$ is not in PBRS form; it directly penalizes `hull_angle`. This can lead to a “head-down fast-walk” strategy: the agent lowers its body to reduce the angle penalty, even if that hurts balance. BipedalWalker’s reward design has been repeatedly discussed in GitHub issues; many improved variants adjust the coefficient of $r_2$ or remove it altogether.
 
-![BipedalWalker environment illustration: a biped robot walks over rough terrain](../../chapter07_ppo/images/bipedalwalker_demo.gif)
+![BipedalWalker environment illustration: a biped robot walks over rough terrain](../../chapter10_ppo/images/bipedalwalker_demo.gif)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 7: The BipedalWalker-v3 environment. A biped robot must walk over randomly generated rough terrain. The reward is composed of forward progress (PBRS-like shaping), posture penalties, and action penalties, but the coefficient and form of the posture term have long been controversial.</em>

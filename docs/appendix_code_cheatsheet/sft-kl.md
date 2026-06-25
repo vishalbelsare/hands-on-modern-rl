@@ -93,10 +93,10 @@ def sft_loss(logits, labels, ignore_index=-100):
 ### 伪代码
 
 ```
-# k1（PPO 常用）：直接平均，无偏但高方差，样本少时可能为负
+# k1（PPO 常用） 与 直接平均，无偏但高方差，样本少时可能为负
 kl = (log_probs - ref_log_probs).mean()
 
-# k3（GRPO / trl 默认）：恒非负，ratio 方向 q/p
+# k3（GRPO / trl 默认） 与 恒非负，ratio 方向 q/p
 log_ratio = ref_log_probs - log_probs        # log(q/p)
 kl = (exp(log_ratio) - 1 - log_ratio).mean()
 ```

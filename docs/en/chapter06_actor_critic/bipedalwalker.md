@@ -6,7 +6,7 @@ title: '6.5 Hands-On: BipedalWalker'
 
 > **Goal**: Train `BipedalWalker-v3` with A2C, observe how Actor-Critic handles high-dimensional continuous control — and understand why the next chapter needs PPO.
 
-> **Code**: [actor_critic_bipedalwalker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter06_actor_critic/actor_critic_bipedalwalker.py) · [render_bipedalwalker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter06_actor_critic/render_bipedalwalker.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter06_actor_critic/requirements.txt)
+> **Code**: [actor_critic_bipedalwalker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter09_actor_critic/actor_critic_bipedalwalker.py) · [render_bipedalwalker.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter09_actor_critic/render_bipedalwalker.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter09_actor_critic/requirements.txt)
 
 The previous section's Pendulum had just 1 continuous action and a 3-dimensional state. BipedalWalker raises the complexity by an order of magnitude: a 24-dimensional state (joint angles, angular velocities, ground-contact sensors, etc.) and 4 continuous actions (two hip joints and two knee joints). The goal is to teach a bipedal robot to walk.
 
@@ -48,20 +48,20 @@ The real difficulty going from Pendulum to BipedalWalker is not just the state d
 Install dependencies:
 
 ```bash
-pip install -r code/chapter06_actor_critic/requirements.txt
+pip install -r code/chapter09_actor_critic/requirements.txt
 ```
 
 Quick smoke test:
 
 ```bash
-python code/chapter06_actor_critic/actor_critic_bipedalwalker.py \
+python code/chapter09_actor_critic/actor_critic_bipedalwalker.py \
   --total-timesteps 100000
 ```
 
 This section uses Stable-Baselines3's A2C implementation — the same algorithm as the Pendulum experiment, but adjusted for BipedalWalker's complexity: 16 parallel environments and a larger `[128, 128]` network. Run the full training:
 
 ```bash
-python code/chapter06_actor_critic/actor_critic_bipedalwalker.py \
+python code/chapter09_actor_critic/actor_critic_bipedalwalker.py \
   --total-timesteps 3000000
 ```
 
@@ -104,7 +104,7 @@ Results from a single 3M-timestep training run are shown below. A2C's training c
 
 ### Episode Reward
 
-![A2C BipedalWalker-v3 episode reward curve](../../chapter06_actor_critic/images/actor_critic_bipedalwalker_reward.png)
+![A2C BipedalWalker-v3 episode reward curve](../../chapter09_actor_critic/images/actor_critic_bipedalwalker_reward.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.6-1: Episode reward curve. Light blue = raw returns; dark blue = 50-episode moving average. The dashed green line marks the solved threshold (300 points).</em>
@@ -120,7 +120,7 @@ Compared to the Pendulum reward curve from the previous section, BipedalWalker's
 
 ### Policy Entropy
 
-![A2C BipedalWalker-v3 policy entropy loss curve](../../chapter06_actor_critic/images/actor_critic_bipedalwalker_entropy.png)
+![A2C BipedalWalker-v3 policy entropy loss curve](../../chapter09_actor_critic/images/actor_critic_bipedalwalker_entropy.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.6-2: Policy entropy loss (negative entropy). The curve rises slowly from -5.37 to -4.38, corresponding to actual entropy decreasing from 5.37 to 4.38.</em>
@@ -132,7 +132,7 @@ Note that the entropy curve is more jagged than Pendulum's. Because A2C updates 
 
 ### Loss Curves
 
-![A2C BipedalWalker-v3 Actor/Critic loss curves](../../chapter06_actor_critic/images/actor_critic_bipedalwalker_loss.png)
+![A2C BipedalWalker-v3 Actor/Critic loss curves](../../chapter09_actor_critic/images/actor_critic_bipedalwalker_loss.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 6.6-3: Policy loss and Value loss. Note the Y-axis scale — loss spikes correspond to sudden policy changes.</em>
@@ -149,7 +149,7 @@ To get an intuitive feel for A2C's learning process, we compare the policy at th
 After training, use the rendering script to generate replay GIFs:
 
 ```bash
-python code/chapter06_actor_critic/render_bipedalwalker.py \
+python code/chapter09_actor_critic/render_bipedalwalker.py \
   --model output/actor_critic_bipedalwalker.zip \
   --output-dir output/bipedalwalker_a2c_episodes \
   --episodes 3 --seeds 0 1 2
@@ -159,19 +159,19 @@ python code/chapter06_actor_critic/render_bipedalwalker.py \
 
 At 500k steps the policy has learned to stand without falling. The robot can last the full 1600 steps per episode, but barely moves forward — the limbs maintain balance in place. Compared to PPO reaching the same "standing" stage at 100k steps, A2C needs many more steps.
 
-![BipedalWalker A2C 500k steps: standing but not walking, return -52.9](../../chapter06_actor_critic/images/bipedalwalker_a2c_500k.gif)
+![BipedalWalker A2C 500k steps: standing but not walking, return -52.9](../../chapter09_actor_critic/images/bipedalwalker_a2c_500k.gif)
 
 ### Mid Phase (2M steps, return 263.8)
 
 At 2M steps the policy is attempting to walk, but is extremely unstable. Across 20 evaluation episodes, only about 15% score above 100 points; the rest still end in falls. The episode shown here is a rare success — the policy happened to find a coordinated gait. The same model might fall immediately in the next episode.
 
-![BipedalWalker A2C 2M steps: occasionally walks but highly unstable, return 263.8](../../chapter06_actor_critic/images/bipedalwalker_a2c_2m.gif)
+![BipedalWalker A2C 2M steps: occasionally walks but highly unstable, return 263.8](../../chapter09_actor_critic/images/bipedalwalker_a2c_2m.gif)
 
 ### Late Phase (3M steps, return 274.2)
 
 At 3M steps the policy has developed a relatively stable gait. Most episodes score 271–276, but about 10–15% still end in falls (-47 to -59 points). This is A2C's typical performance: **it can learn to walk, but cannot match PPO's consistency**.
 
-![BipedalWalker A2C 3M steps: mostly stable walking with occasional falls](../../chapter06_actor_critic/images/bipedalwalker_a2c_3m.gif)
+![BipedalWalker A2C 3M steps: mostly stable walking with occasional falls](../../chapter09_actor_critic/images/bipedalwalker_a2c_3m.gif)
 
 Evaluation comparison across the three phases (20-episode average):
 
@@ -241,4 +241,4 @@ This chapter started from REINFORCE's high-variance problem and introduced the A
 
 But the BipedalWalker experiment also exposed the core weakness of vanilla Actor-Critic: **training instability**. Without constraints on the magnitude of policy updates, A2C's reward curve oscillates violently on complex tasks, and both final performance and consistency fall short of PPO.
 
-The next chapter addresses this problem with PPO: [Chapter 7: PPO](../chapter07_ppo/intro).
+The next chapter addresses this problem with PPO: [Chapter 7: PPO](../chapter10_ppo/intro).

@@ -16,7 +16,7 @@ The real world is not text-only. You see images, screenshots, charts, videos, an
 
 Can we use outcome feedback to make the model not only describe images, but _see more accurately, reason more reliably, and answer more truthfully_?
 
-![VISTA-Gym Overview](../../chapter11_vlm_rl/images/ref-vista-gym-overview.png)
+![VISTA-Gym Overview](../../chapter26_vlm/images/ref-vista-gym-overview.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: VISTA-Gym (and VISTA-R1) illustrates a typical VLM-RL loop: visual QA + tool use + trajectory reward + policy updates, pushing beyond "look-and-answer" toward "look, verify with tools, and improve by feedback". Source: the VISTA-Gym / VISTA-R1 blog.</em>
@@ -33,9 +33,9 @@ This chapter opens these issues in a progressive way: first a minimal GRPO exper
 
 ::: tip Prerequisites
 
-- [GRPO](../chapter09_grpo_rlvr/grpo-practice-and-mechanism): group-based optimization without a critic
-- [Reward model design](../chapter08_rlhf/reward-function-design): rules vs model rewards, hacking risks
-- [PPO-RLHF loop](../chapter08_rlhf/ppo-rlhf-loop): KL penalty, clipping, reference model
+- [GRPO](../chapter18_grpo/grpo-practice-and-mechanism): group-based optimization without a critic
+- [Reward model design](../chapter15_rlhf/reward-function-design): rules vs model rewards, hacking risks
+- [PPO-RLHF loop](../chapter15_rlhf/ppo-rlhf-loop): KL penalty, clipping, reference model
   :::
 
 ## VLM RL vs Text-Only RL

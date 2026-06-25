@@ -18,13 +18,13 @@ To keep the derivation concrete, this section uses a single running example thro
 
 ::: tip Prerequisites for This Section
 
-- [The policy-gradient update rule](../chapter05_policy_gradient/reinforce): clipping is designed to protect this update
-- [The advantage function $A(s,a)$](../chapter06_actor_critic/advantage-function): the directional signal for policy updates
+- [The policy-gradient update rule](../chapter08_policy_gradient/reinforce): clipping is designed to protect this update
+- [The advantage function $A(s,a)$](../chapter09_actor_critic/advantage-function): the directional signal for policy updates
   :::
 
 ## The Update Risk of Vanilla Policy Gradient
 
-Recall the policy-gradient update from Chapter 5 ([REINFORCE](../chapter05_policy_gradient/reinforce)):
+Recall the policy-gradient update from Chapter 5 ([REINFORCE](../chapter08_policy_gradient/reinforce)):
 
 $$\theta \leftarrow \theta + \alpha \cdot \nabla_\theta \log \pi_\theta(a \mid s) \cdot A(s,a)$$
 

@@ -104,7 +104,7 @@ This says: **do not only ask whether the reward is high; ask whether it is bette
 
 GRPO keeps the most useful part of PPO, namely **ratio + clip**, but replaces the Critic baseline with the mean score of a group of answers to the same problem. When the DeepSeekMath paper introduced GRPO, it explicitly said that GRPO **"foregoes the critic model"** and uses within-group scores to estimate the baseline.
 
-![GRPO replaces the Critic baseline from PPO](../../chapter09_grpo_rlvr/images/grpo-from-ppo.svg)
+![GRPO replaces the Critic baseline from PPO](../../chapter18_grpo/images/grpo-from-ppo.svg)
 
 Therefore, the relationship between GRPO and PPO can be summarized as follows:
 
@@ -412,7 +412,7 @@ Before answering "why it can replace it", first clarify "why we want to replace 
 
 **3. It complicates engineering.** Four models have separate optimizers, learning rates, and gradient clipping configurations, making hyperparameter tuning much harder.
 
-Recall the [baseline analysis in Chapter 5](../chapter05_policy_gradient/pg-improvements) and the [advantage function in Chapter 6](../chapter06_actor_critic/advantage-function): the core role of the Critic is **to provide a baseline that reduces variance**. If we can obtain a baseline without training a separate network, the Critic can retire.
+Recall the [baseline analysis in Chapter 5](../chapter08_policy_gradient/pg-improvements) and the [advantage function in Chapter 6](../chapter09_actor_critic/advantage-function): the core role of the Critic is **to provide a baseline that reduces variance**. If we can obtain a baseline without training a separate network, the Critic can retire.
 
 ### The Core Idea of GRPO
 

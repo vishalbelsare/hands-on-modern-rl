@@ -8,7 +8,7 @@ In Chapter 9 we ran GRPO training on a text-only model for math reasoning -- giv
 
 The core difference in this experiment is the input: pure-text GRPO input is a sequence of tokens, while VLM GRPO input is **visual tokens (image encoding) + text tokens (question)**. The reward function and optimization algorithm itself have not changed -- GRPO's core code is exactly the same, except the model input now has an additional image dimension.
 
-![VLM-R1 IoU Reward Curve](../../chapter11_vlm_rl/images/ref-vlm-r1-iou.png)
+![VLM-R1 IoU Reward Curve](../../chapter26_vlm/images/ref-vlm-r1-iou.png)
 
 <div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
   <em>Figure 1: IoU reward curve from VLM-R1 training logs. It converts visual grounding quality into an optimizable reward signal, using the same "rule reward + GRPO" training approach as the hands-on experiment in this section. Source: <a href="https://github.com/om-ai-lab/VLM-R1" target="_blank" rel="noopener noreferrer">VLM-R1 GitHub</a></em>

@@ -190,7 +190,7 @@
 
 ## 课程大纲
 
-课程分为四个部分以及附录。README 只保留主要模块；完整的小节树、图表、代码引用和详细导航请以在线网站为准。
+课程分为七个部分以及附录。README 只保留主要模块；完整的小节树、图表、代码引用和详细导航请以在线网站为准。
 
 ### 前言
 
@@ -200,41 +200,69 @@
 | [强化学习简史](docs/preface/brief-history/index.md) | 从试错学习到 AlphaGo、RLHF 和 LLM 对齐。 |
 | [环境安装指南](docs/preface/env-setup.md)           | 课程所需环境与依赖的安装配置指南。       |
 
-### 第一部分：基础导论
+### 第一部分：基础与经典强化学习
 
-| 章节 | 主要主题                                            | 内容概览                                                                         |
-| :--- | :-------------------------------------------------- | :------------------------------------------------------------------------------- |
-| 01   | [CartPole 倒立摆](docs/chapter01_cartpole/intro.md) | 通过第一个可运行控制任务理解状态、动作、奖励、策略、价值、熵和训练曲线。         |
-| 02   | [DPO 偏好微调](docs/chapter02_dpo/intro.md)         | 偏好数据、DPO 目标、奖励裕度、准确率，以及从 RL 直觉进入大模型后训练的第一座桥。 |
-| 总结 | [本篇小结](docs/summaries/part1-summary.md)         | 进入形式化强化学习理论前需要建立的实践直觉。                                     |
+| 章节 | 主要主题                                  | 内容概览                                                                   |
+| :--- | :--------------------------------------- | :------------------------------------------------------------------------- |
+| 01   | [CartPole 倒立摆](docs/chapter01_cartpole/intro.md) | 通过第一个可运行控制任务理解状态、动作、奖励、策略、价值、熵和训练曲线。    |
+| 02   | [多臂老虎机](docs/chapter02_bandits/intro.md)       | ε-贪心、UCB、Thompson 采样与上下文老虎机。                                  |
+| 03   | [MDP 与价值函数](docs/chapter03_mdp/intro.md)       | MDP、贝尔曼方程、DP/MC/TD、Q-learning、策略目标、算法分类与奖励设计。       |
 
-### 第二部分：核心理论与方法
+### 第二部分：深度强化学习
 
 | 章节 | 主要主题                                                        | 内容概览                                                                                      |
 | :--- | :-------------------------------------------------------------- | :-------------------------------------------------------------------------------------------- |
-| 03   | [MDP 与价值函数](docs/chapter03_mdp/intro.md)                   | 多臂老虎机、MDP、价值函数、贝尔曼方程、TD 学习、Q-learning、策略目标、数据来源与奖励设计。    |
-| 04   | [深度 Q 网络](docs/chapter04_dqn/intro.md)                      | 从表格 Q-learning 到 DQN，经验回放、目标网络、CNN 编码器、LunarLander、Atari 与视觉游戏项目。 |
-| 05   | [策略梯度与 REINFORCE](docs/chapter05_policy_gradient/intro.md) | 直接优化策略、采样式梯度、baseline 与方差降低。                                               |
-| 06   | [Actor-Critic](docs/chapter06_actor_critic/intro.md)            | Actor-Critic 架构、优势函数、基于 TD 误差的 Critic 训练与棋类智能体。                         |
-| 07   | [PPO](docs/chapter07_ppo/intro.md)                              | PPO 实验、裁剪目标、信任域直觉、GAE、奖励模型、长时程规划与 BipedalWalker 实战。              |
-| 总结 | [本篇小结](docs/summaries/part2-summary.md)                     | 经典和现代强化学习中反复出现的算法模式。                                                      |
+| 07   | [深度 Q 网络](docs/chapter07_dqn/intro.md)                      | 从表格 Q-learning 到 DQN，经验回放、目标网络、CNN 编码器、LunarLander 与 Atari。              |
+| 08   | [策略梯度与 REINFORCE](docs/chapter08_policy_gradient/intro.md) | 直接优化策略、采样式梯度、baseline 与方差降低。                                               |
+| 09   | [Actor-Critic](docs/chapter09_actor_critic/intro.md)            | Actor-Critic 架构、优势函数、基于 TD 误差的 Critic 训练与 Pendulum 实验。                     |
+| 10   | [PPO](docs/chapter10_ppo/intro.md)                              | 裁剪目标、信任域直觉、GAE、奖励模型与长时程规划。                                             |
+| 11   | [连续控制](docs/chapter11_continuous_control/intro.md)          | DDPG、TD3、SAC、Model-Based RL 与世界模型搜索。                                               |
 
-### 第三部分：大模型 RL
+### 第三部分：高级 RL 方法
 
-| 章节 | 主要主题                                         | 内容概览                                                                                                              |
-| :--- | :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
-| 08   | [完整 RLHF 流水线](docs/chapter08_rlhf/intro.md) | SFT、奖励模型、PPO 风格 RLHF、评估、规模化与奖励破解。                                                                |
-| 09   | [后训练对齐](docs/chapter09_alignment/intro.md)  | DPO 家族、GRPO、DeepSeek-R1 与 DAPO、RLVR、金融工具调用 GRPO、策略蒸馏、沙箱训练与工业后训练实践。                    |
-| 10   | [Agentic RL](docs/chapter10_agentic_rl/intro.md) | 多轮信用分配、工具调用轨迹、智能体评估、SWE/DeepCoder/FinQA 风格实验、Deep Research 智能体与端到端 Agentic 训练系统。 |
-| 总结 | [本篇小结](docs/summaries/part3-summary.md)      | 当 RL 面向语言模型、工具和多步智能体行为时，问题发生了哪些变化。                                                      |
+| 章节 | 主要主题                                                                                | 内容概览                                                              |
+| :--- | :-------------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
+| 12   | [离线强化学习](docs/chapter12_offline_rl/intro.md)                                     | 离策略数据、序列建模、CQL/IQL 与离线实验。                            |
+| 13   | [模仿与元强化学习](docs/chapter13_imitation_meta_rl/intro.md)                          | 行为克隆、DAgger、IRL、GAIL 与元强化学习。                            |
+| 14   | [探索、多智能体与分层 RL](docs/chapter14_exploration_marl_hierarchical/intro.md)        | 好奇心驱动探索、多智能体 RL 与分层方法。                              |
 
-### 第四部分：前沿与高级系统
+### 第四部分：大语言模型对齐与后训练
 
-| 章节 | 主要主题                                          | 内容概览                                                                     |
-| :--- | :------------------------------------------------ | :--------------------------------------------------------------------------- |
-| 11   | [VLM 强化学习](docs/chapter11_vlm_rl/intro.md)    | VLM GRPO、视觉奖励、多模态推理框架、视觉生成 RL 与 EasyR1 GeoQA 实战。       |
-| 12   | [未来趋势](docs/chapter12_future_trends/intro.md) | 具身智能、Model-Based RL、自我博弈、多智能体系统、离线强化学习与规模化趋势。 |
-| 总结 | [本篇小结](docs/summaries/part4-summary.md)       | 完成核心课程后可以继续探索的前沿方向。                                       |
+| 章节 | 主要主题                                                                 | 内容概览                                                          |
+| :--- | :---------------------------------------------------------------------- | :----------------------------------------------------------------- |
+| 15   | [RLHF](docs/chapter15_rlhf/intro.md)                                   | SFT、奖励模型、PPO 风格 RLHF、评估、规模化与奖励破解。              |
+| 16   | [大模型 RL 工业实践](docs/chapter16_llm_rl_industrial/intro.md)        | 分布式同步、现代后训练栈与工业流水线。                              |
+| 17   | [DPO 家族](docs/chapter17_dpo/intro.md)                                 | DPO 推导、训练指标与 IPO/KTO/ORPO 变体。                           |
+| 18   | [GRPO 与 RLVR](docs/chapter18_grpo/grpo-practice-and-mechanism.md)     | 组相对优势、DeepSeek-R1、DAPO、可验证奖励与沙箱训练。              |
+| 19   | [推理模型](docs/chapter19_reasoning/intro.md)                           | O1/R1 风格推理涌现、Test-time Scaling、混合与自适应思考。          |
+| 20   | [PRM 与推理期搜索](docs/chapter20_prm_search/outcome-vs-process.md)    | 结果 vs. 过程奖励模型、生成式 PRM 与并行推理。                     |
+| 21   | [CAI 与 RLAIF](docs/chapter21_cai_rlvr/intro.md)                       | Constitutional AI、HHH 对齐与 RLAIF 工程。                         |
+
+### 第五部分：Agentic 强化学习
+
+| 章节 | 主要主题                                           | 内容概览                                                                   |
+| :--- | :------------------------------------------------- | :------------------------------------------------------------------------- |
+| 22   | [Agentic RL](docs/chapter22_agentic/intro.md)      | 多轮信用分配、工具调用轨迹、多智能体协作与工业实践。                       |
+| 23   | [RL 驱动 SWE](docs/chapter23_rl_based_swe/intro.md) | SWE-bench、DeepSWE、Code World Model 与 Self-play SSR。                    |
+| 24   | [Deep Research 智能体](docs/chapter24_deep_research/intro.md) | 浏览器 RL 框架与 Deep Research 评测。                            |
+| 25   | [Computer Use](docs/chapter25_computer_use/intro.md) | GUI 智能体、训练方案与安全协作。                                            |
+
+### 第六部分：多模态强化学习
+
+| 章节 | 主要主题                                                 | 内容概览                                                      |
+| :--- | :------------------------------------------------------- | :------------------------------------------------------------ |
+| 26   | [VLM 强化学习](docs/chapter26_vlm/intro.md)              | VLM GRPO、视觉奖励、Qwen3-VL 反思与 EasyR1 GeoQA 实战。       |
+| 27   | [音频 RL](docs/chapter27_audio_rl/intro.md)              | 音频奖励设计与未来方向。                                       |
+| 28   | [VLA 与具身智能](docs/chapter28_vla/embodied-intelligence/index.md) | 视觉-语言-动作模型与具身 RL。                          |
+| 29   | [视觉生成 RL](docs/chapter29_visual_generation/intro.md) | 图像与视频生成 RL。                                            |
+
+### 第七部分：安全、评估与研究前沿
+
+| 章节 | 主要主题                                                | 内容概览                                                              |
+| :--- | :------------------------------------------------------ | :-------------------------------------------------------------------- |
+| 30   | [对齐失败](docs/chapter30_alignment_failures/intro.md)  | 经典与现代失败模式、尺度定律、潜伏代理与防御。                        |
+| 31   | [AlphaEvolve](docs/chapter31_alphaevolve/intro.md)      | 通过 RL 驱动代码进化与发现。                                          |
+| 32   | [自博弈与尺度展望](docs/chapter32_selfplay/intro.md)    | 自博弈、RL 尺度定律与 LLM 多智能体 RL 展望。                          |
 
 ### 附录
 
@@ -270,11 +298,11 @@
 本仓库的实用学习路径：
 
 1. 阅读[课程简介](docs/preface/intro.md)并运行 CartPole 示例。
-2. 尽早粗略阅读 DPO 章节（甚至在完整的理论之前），以锚定大模型后训练的动机。
-3. 按顺序学习第 03-07 章；这是概念核心。
-4. 在掌握策略梯度和 PPO 机制后，返回学习 RLHF、DPO、GRPO 和 RLVR。
+2. 尽早粗略阅读 [DPO 章节](docs/chapter17_dpo/intro.md)（甚至在完整的理论之前），以锚定大模型后训练的动机。
+3. 按顺序学习第 01-11 章；这是概念核心（基础、Value-Based 与 Policy-Based 深度 RL、PPO、连续控制）。
+4. 在掌握策略梯度和 PPO 机制后，返回第四部分（RLHF、DPO、GRPO、RLVR、推理、PRM、CAI）。
 5. 每当训练运行出现异常时，使用调试和工程附录。
-6. 将前沿章节作为扩展学习：VLM 强化学习、Agentic RL、连续控制、多智能体系统和测试时推理。
+6. 将第五至第七部分作为扩展学习：Agentic RL、多模态 RL 与安全/前沿研究。
 
 ## 快速开始
 

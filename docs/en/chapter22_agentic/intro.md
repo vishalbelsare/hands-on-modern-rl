@@ -1,193 +1,195 @@
 ---
-title: 10. Agentic RL
+title: 22. Agentic RL
 ---
 
-# Chapter 10: Agentic RL: Tool Use, Multi-Turn Interaction, and Agent Training
+# Chapter 22: Agentic RL
 
-From DQN in Chapter 4 to GRPO in Chapter 9, the RL problems we have studied so far have mostly been "single-turn" problems: the model receives one prompt, produces one complete answer, a reward model assigns a score, and the policy is updated. This paradigm has proved extremely effective in the last two years. ChatGPT, Claude, and DeepSeek all rely on this family of methods for alignment and post-training.
+The RL problems covered in earlier chapters are essentially **single-turn decision-making**: the model receives a prompt, emits a complete response, a reward model scores it, and the policy is updated once. Whether the underlying algorithm is PPO or GRPO, the skeleton of "one prompt, one response, one score" never changes.
 
-Real agents, however, do not operate this way. When a user asks an agent, "Check tomorrow's weather in Beijing, then plan an itinerary based on the weather," the agent must first call a search or weather tool, read the returned information, decide whether more queries are needed, and finally integrate all information into a plan. This is a **multi-step, multi-tool, multi-turn interaction**. The previous single-turn RL paradigm no longer fits directly, because we usually cannot assign a clear reward at every intermediate step. The intermediate steps are not simply "right" or "wrong"; only the final result tells us whether the whole decision path worked.
+Real agents do not work this way.
 
-## Traditional LLM RL and Agentic RL
+Consider a flight-booking agent. The user says "Book me the cheapest early-morning flight from Beijing to Shanghai tomorrow." The agent must act in steps: search for flights, compare prices and times, confirm seat availability, call the order API, and wait for ticket confirmation. Any step gone wrong—an overly broad search query, skipping price comparison, misjudging inventory, malformed order parameters—fails the whole task. The environment gives a single binary signal at the end: ticket issued (reward = 1) or not (reward = 0).
 
-Zhang et al. formalize this paradigm shift in [The Landscape of Agentic Reinforcement Learning for LLMs: A Survey](https://arxiv.org/abs/2509.02547). They point out that most preference-based reinforcement fine-tuning for LLMs can be viewed as a **degenerate MDP**:
+This shift from "one-shot QA" to "multi-step interaction with an environment" is the core problem Agentic RL addresses.
 
-$$
-\langle S_{\text{trad}},\ A_{\text{trad}},\ P_{\text{trad}},\ R_{\text{trad}},\ T=1 \rangle
-$$
+## The Paradigm Shift from Single-Turn to Multi-Turn
 
-The state space contains only the prompt, $S=\{s_0\}$; the action space is plain text, $A=A_{\text{text}}$; and the episode ends after one decision. The objective is $\mathbb{E}_{a \sim \pi_\theta}[r(a)]$: make the single response as good as possible.
+The flight-booking example reveals four new challenges absent from single-turn RL:
 
-**Agentic RL**, by contrast, is modeled as a **partially observable Markov decision process (POMDP)**:
+1. **The training object changes from completion to trajectory.** A trajectory mixes model-generated tokens, tool calls, tool returns, and environment state changes—structurally closer to a dialogue tree than a linear piece of text.
+2. **Rollouts must execute in a real environment.** Each step can trigger external calls (search, API, code execution); the GPU has to wait for the environment, with utilization as low as 20–30%.
+3. **Environments must be modular, resettable, and verifiable.** You cannot actually book ten thousand tickets during training—you need sandboxes or simulators.
+4. **Multi-turn training is more prone to instability.** A 10-step trajectory has reward only at the final step; earlier good and bad decisions are painted with the same reward brush—this is the **credit assignment problem**.
+
+This chapter unfolds around these four challenges. We first build intuition with two contrastive trajectories.
+
+## Two Contrastive Trajectories
+
+Same flight-booking task, same model, two rollouts:
+
+```
+Trajectory A (success)                   Trajectory B (failure)
+─────────────────────────────            ─────────────────────────────
+T1 search("Beijing Shanghai              T1 search("Beijing Shanghai flight")
+      early morning cheap flight")          obs: 200 mixed results
+   obs: 12 relevant flights
+
+T2 filter(dep<9:00, sort=price)          T2 pick_first()
+   obs: CA1501 6:30 ¥760                    obs: MU5101 9:30 ¥1280
+
+T3 check_seat(CA1501)                    T3 order(MU5101)
+   obs: seats available                     obs: order placed
+
+T4 order(CA1501, seat=window)
+   obs: ticket issued
+
+reward = 1                               reward = 0
+```
+
+The two trajectories end with very different rewards, but **which step is to blame**? Did Trajectory B fail because T1's query was too broad, because T2 picked the first option without comparing prices, or because T3 ordered without confirmation? The final reward alone cannot answer. We will return to these two trajectories throughout the chapter, examining them from different angles (component decomposition, MDP formalization, credit assignment).
+
+## Basic Components of an Agent
+
+An agent is more than an LLM. Minimal definition: **LLM backbone + instructions + tools + environment**, circulating in an agentic loop.
+
+### LLM Backbone
+
+The decision-making core of the agent. It receives the current observation, reasons about the next step, and produces an action (text or tool call). Any sufficiently strong LLM can serve as a backbone, but in practice we often choose reasoning-trained models—they emit a thinking trace before producing an action, which is friendlier to multi-step decisions.
+
+### Instructions
+
+Tell the agent what problem to solve and what strategy to use. Beyond the task itself ("book the cheapest early-morning flight"), this includes problem-solving hints ("search first, then filter," "balance price against time," "retry on failure"). The quality of instructions directly determines the floor of agent behavior.
+
+### Tools and Environment
+
+Tools are the agent's interface to the environment: search APIs, code interpreters, CLIs, MCP servers, order APIs. Tool calls are typically delimited by special tokens embedded in the model's token stream:
+
+```
+<tool_call>{"name":"search_flights","args":{"from":"PEK","to":"SHA"}}</tool_call>
+<tool_response>[CA1501 6:30 ¥760, CA1831 7:00 ¥690, ...]</tool_response>
+```
+
+The environment is stateful: search results change, inventory shifts, placing an order mutates a database. A tool call's return depends not only on its arguments but also on the environment's current state. This ability to anchor outputs to the real world rather than parametric memory is called **grounding**—a major advantage of agents over pure LLMs, and a core behavioral pattern that RL training can instill.
+
+### Agentic Loop
+
+The four components cycle: **observe → reason about the next step → execute an action → receive a new observation**, until a termination condition is met (task complete, max steps reached, or the model emits an end signal).
+
+A complete loop is called a **rollout**; the full interaction record produced by a rollout is called a **trajectory**, denoted $\tau = (s_0, a_0, o_1, a_1, o_2, \ldots, a_T)$. A trajectory is not a text sequence—it mixes model-generated tokens, tool calls, tool returns, and environment state changes, structurally closer to a dialogue tree than linear text.
+
+## MDP Formalization of Agentic RL
+
+The previous section described agents conceptually. To train one, we need to write this interaction as an RL problem. The most natural approach is to start from the familiar single-turn MDP and extend step by step.
+
+### The Single-Turn RL MDP
+
+The GRPO algorithm from earlier chapters is essentially a **degenerate MDP**:
+
+- **State** $s$: the current token context (prompt + generated tokens so far)
+- **Action** $a$: the next token
+- **Transition** $P$: deterministic append—the chosen token is added to the context
+- **Reward** $r$: given once after the entire rollout finishes (usually by a reward model or verifier)
+- **Trajectory** $\tau$: the complete token sequence
+
+The optimization objective is $\mathbb{E}_{a \sim \pi_\theta}[r(a)]$—make the single response as good as possible.
+
+### The Multi-Turn RL MDP
+
+Extend each of the single-turn components:
+
+- **State** expands: token context **plus** external environment state $s_t = (c, x_{1:t}, e_t)$, where $c$ is the task instruction, $x_{1:t}$ is the token history, and $e_t$ is the current environment state (e.g., a flight database snapshot). This is a **joint state**.
+- **Action** expands: text tokens **plus** structured tool calls $A = A_{\text{text}} \cup A_{\text{action}}$.
+- **Transition** expands: no longer deterministic—the environment may be stochastic (search results change), tools may fail, and sampling itself introduces noise.
+- **Reward** expands: can be given only at the end (ORM) or at every step (PRM).
+
+This "model sees only part of the state" setting corresponds to a **partially observable Markov decision process (POMDP)**:
 
 $$
 \langle S_{\text{agent}},\ A_{\text{agent}},\ P_{\text{agent}},\ R_{\text{agent}},\ \gamma,\ O \rangle
 $$
 
-The important changes are summarized below:
+where $O$ is the observation function, $o_t = O(s_t)$—the model sees observations, not the full state.
 
-|                | Traditional LLM RL (PBRFT)                                                    | Agentic RL                                                                                                        |
-| -------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **State**      | A single prompt; the episode ends immediately                                 | Environment state $s_t$ evolves dynamically; the agent observes only $o_t = O(s_t)$                               |
-| **Action**     | Pure text sequence $A_{\text{text}}$                                          | Text plus structured actions, $A = A_{\text{text}} \cup A_{\text{action}}$, such as tools and environment actions |
-| **Transition** | Deterministic termination, $P(s_1 \mid s_0, a)=1$                             | Dynamic transition $s_{t+1} \sim P(s_{t+1} \mid s_t, a_t)$ in an uncertain environment                            |
-| **Reward**     | One scalar score $r(a)$, with no intermediate feedback                        | Step-level or terminal reward; often sparse, sometimes shaped by subtasks                                         |
-| **Objective**  | $\mathbb{E}_{a \sim \pi_\theta}[r(a)]$, optimizing single-turn answer quality | $\mathbb{E}_{\tau \sim \pi_\theta}[\sum_t \gamma^t R(s_t,a_t)]$, optimizing a multi-step interaction policy       |
+|                | Single-Turn RL (GRPO)                  | Multi-Turn Agentic RL                                            |
+| -------------- | -------------------------------------- | ---------------------------------------------------------------- |
+| **State**      | A single prompt; episode ends at once  | Joint state $(c, x_{1:t}, e_t)$, evolving with interaction       |
+| **Action**     | Plain text tokens                      | Text + structured tool calls                                     |
+| **Transition** | Deterministic append                   | Dynamic; environment may be non-deterministic                    |
+| **Reward**     | One scalar $r(a)$                      | Step-level or terminal; often sparse task-completion signal      |
+| **Objective**  | $\mathbb{E}_{a \sim \pi_\theta}[r(a)]$ | $\mathbb{E}_{\tau \sim \pi_\theta}[\sum_t \gamma^t R(s_t, a_t)]$ |
 
-The core insight is that **many Agentic RL innovations are not changes to the RL formula itself, but system designs that make RL applicable to real agent loops**: how to define states and actions, design rewards, build environments, and handle long-horizon credit assignment.
+The formalization itself is not complicated. The key point: **the innovation in Agentic RL often lies not in "the RL formula itself" but in "the system design that lets RL act on a real agent loop"**—how to define state and action, how to design rewards, how to handle long-horizon credit assignment.
 
-## Key Concepts and Terms
+## Credit Assignment and Step-Level Signals
 
-The table gives us the formal frame. To reason fluently about Agentic RL, we also need several terms that recur throughout the field. These are not isolated definitions. They form a chain: how the agent interacts with the environment, how rewards are assigned, and how training uses those signals.
+Back to the two flight-booking trajectories. Trajectory B failed with reward = 0. But T2's "pick the first option without comparing prices" is clearly the main error—how do we turn this intuition into a training signal?
 
-### Rollout
+**Credit assignment** breaks the final trajectory reward back down into a step-level advantage for each step.
 
-In traditional LLM RL, "sampling" means generating a text completion with one forward pass. In Agentic RL, the agent must **act inside a real environment**. Each step may trigger an external tool, such as a search engine, code interpreter, or API, and the tool result becomes the next input. The full process of letting the agent start from a task, interact according to the current policy, and continue until termination is called a **rollout**.
+### Three-Layer Signal Decomposition
 
-A typical agentic rollout looks like this:
+From final outcome to token update, the signal passes through three layers:
 
-```text
-User question:
-  "Who won the 2024 Nobel Prize in Physics, and what were their main contributions?"
+| Layer             | Meaning                                      | Form                                      |
+| ----------------- | -------------------------------------------- | ----------------------------------------- |
+| Trajectory reward | The final $R(\tau)$ for the whole trajectory | Only tells you "did this episode succeed" |
+| Step advantage    | Decomposed into per-step $A_t$               | Answers "should step t be rewarded"       |
+| Token gradient    | $A_t$ multiplied into this action's log-prob | Actually updates the LLM weights          |
 
-Turn 1:
-  Reasoning: "I need to search for this information."
-  Action: call search with "2024 Nobel Prize Physics"
-  Observation: search summary
-
-Turn 2:
-  Reasoning: "I need more detail about the contributions."
-  Action: call search with a refined query
-  Observation: detailed sources
-
-Turn 3:
-  Reasoning: "The information is sufficient; now integrate the answer."
-  Action: final response
-  Observation: episode ends; reward is 1 if correct, 0 if wrong
-```
-
-A rollout is therefore more than "model output." It contains the full loop of **reasoning, action, and environment feedback**. The resulting interaction record is a **trajectory**, written as $\tau = (s_0, a_0, o_1, a_1, o_2, \ldots, a_T)$. In single-turn LLM RL, one training example is often a $(prompt, completion, reward)$ triple. In Agentic RL, a trajectory is closer to a conversation tree: model tokens, tool calls, tool returns, and environment state changes all matter.
-
-### Agent Loop
-
-A rollout is one complete interaction. The engine that drives it is the **agent loop**. It is the same core RL loop introduced in Chapter 1, but the action space has expanded from "left/right" to "text/tool call/code execution":
-
-<div align="center" style="margin: 2.5rem 0;">
-
-```mermaid
-graph LR
-    A["Agent"] -->|"action a_t<br/>text / tool call / code execution"| B["Environment<br/>search / sandbox / API"]
-    B -->|"observation o_{t+1}<br/>results / output / API response"| A
-```
-
-</div>
-
-1. **Perception**: the agent receives the current observation $o_t$, such as a search result, runtime error, or web page.
-2. **Reasoning**: the model uses the observation to generate the next thought.
-3. **Action**: the model chooses an action, which may be more reasoning or a tool call.
-4. **Observation**: the environment executes the action and returns a result.
-5. The loop repeats until the task is finished or a termination condition is reached.
-
-The key difference from ordinary LLM RL is that the "action" is not limited to generating the next token. It can be "call a search engine," "execute this code," or "click this button." This richer action space creates new capabilities and new training problems.
-
-### Tool Calling
-
-**Tool calling** is the signature capability of Agentic RL. A language model without tools can only rely on parametric memory. It cannot retrieve live weather, verify a calculation, or inspect a database. A tool-equipped agent can actually search, compute, and check.
-
-The important point is that, in Agentic RL, tool use is not just a hard-coded rule such as "call the weather API for weather questions." It is a **policy decision learned by RL**. The model must learn:
-
-- **When** to call a tool. Some questions are answerable directly; others require external information.
-- **How** to call a tool. The right query may find the answer immediately; a poor query may waste many turns.
-- **How to use** the returned result. Search output may be redundant, noisy, or contradictory, so the agent must filter and integrate it.
-
-Work such as SearchR1 trains models to learn these policies through RL. Unlike traditional RAG, search-guided reasoning allows **iterative retrieval**: search once, refine based on clues, search again, and then answer.
-
-One technical detail is **retrieved token masking**. During RL gradient computation, parameters should be updated only on tokens generated by the model itself. Tokens returned by tools are masked out, because the model did not control their content and should not be punished for a low-quality search result.
+Naive trajectory-level RL uses $R(\tau)$ to update all tokens, effectively saying "all actions in a successful trajectory are good, all in a failed one are bad." Credit assignment corrects this coarse attribution.
 
 ### ORM and PRM
 
-In traditional LLM RL, a reward model can score the whole answer. In multi-step interaction, the question becomes: where should reward be assigned? This design choice determines the quality of the training signal.
+The simplest scheme is **ORM (Outcome Reward Model)**—reward only at the end. The advantage is clear signal and cheap annotation: a verifier automatically checks "does the answer match" or "do the tests pass," with no need to label every step. RLVR (Reinforcement Learning with Verifiable Rewards) is the extreme form of ORM: skip training a reward model entirely and use a binary verifier. The success of DeepSeek-R1 demonstrates that pure RLVR can elicit strong reasoning ability.
 
-**ORM (Outcome Reward Model)** looks only at the final result, not the intermediate process. It is like grading an exam by the final answer: a math answer is correct or wrong; code tests pass or fail. ORM is attractive because the signal is clear and cheap. RLVR is an extreme form of ORM: no learned reward model is needed, only an automatic verifier such as exact answer matching or test execution.
+But ORM cannot distinguish the responsibility of T2 vs T3 in Trajectory B—the whole trajectory scores 0.
 
-The weakness is **credit assignment**. If an agent fails after seven turns, ORM can only say "reward 0." It cannot tell whether the failure came from the second search query or the fifth synthesis step.
+**PRM (Process Reward Model)** scores each step independently. OpenAI's "Let's Verify Step by Step" (Lightman et al., 2023) formalized this idea: step 1 is correct (+1), step 2 has a calculation error (−0.5), step 3 reaches the right answer but takes a detour (+0.3). The model can precisely locate which steps need improvement. The cost is annotation: OpenAI built the PRM800K dataset for this purpose. Current research focuses on **automated PRM** (e.g., Math-Shepherd), where models judge step quality on their own.
 
-**PRM (Process Reward Model)** scores each step. OpenAI's "Let's Verify Step by Step" made this idea prominent: each reasoning step receives feedback, so the model can localize which decisions need improvement.
+In practice, ORM and PRM are often **combined**: ORM supplies a reliable final-outcome signal; PRM supplies dense mid-process guidance.
 
-<div align="center" style="margin: 2.5rem 0;">
+### Relative Advantage of Multiple Actions at the Same State
 
-```mermaid
-graph LR
-    subgraph "ORM: only the endpoint"
-        A1["step 1"] --> A2["step 2"] --> A3["step 3"] --> A4["step 4"] --> R1["final reward: 0"]
-    end
-    subgraph "PRM: score every step"
-        B1["step 1<br/>+1.0"] --> B2["step 2<br/>-0.5"] --> B3["step 3<br/>+0.8"] --> B4["step 4<br/>-0.3"]
-    end
+Finer-grained credit assignment doesn't just look at absolute scores—it **compares different actions at the same state**. Consider the T2 decision point in Trajectory B: under the same observation of 200 flights, three possible actions:
+
+| Action                            | Subsequent outcome        | $R_t$ |
+| --------------------------------- | ------------------------- | ----- |
+| Compare prices, pick the cheapest | Subsequent success        | 1.00  |
+| Skip comparison, pick the first   | Subsequent failure        | 0.00  |
+| Page through and re-search        | Eventually succeeds, slow | 0.65  |
+
+The group mean is 0.55, giving relative advantages:
+
+```
+Compare prices, pick the cheapest:  1.00 - 0.55 = +0.45
+Skip comparison, pick the first:    0.00 - 0.55 = -0.55
+Page through and re-search:         0.65 - 0.55 = +0.10
 ```
 
-</div>
+What the model learns is not "all steps in a successful trajectory are good," but "at this state, comparing prices is best; skipping comparison is worst; paging is so-so." This **state-anchored group** idea underlies a wave of 2026 methods including GiGPO and HGPO—see [Multi-Turn RL and Credit Assignment](./multi-turn-rl) for details.
 
-PRM gives richer gradients, faster convergence, and more precise credit assignment. Its cost is annotation: humans must judge individual steps. Current work therefore studies automated PRMs such as Math-Shepherd. In Agentic RL, PRM is further extended into **AgentPRM**, which judges not only reasoning steps but also tool selection, query quality, and use of evidence.
+## Training Mechanics
 
-In practice, ORM and PRM are often combined: ORM supplies reliable final-outcome signal, while PRM supplies denser guidance.
+Regardless of algorithmic details, RL training alternates between two operations:
 
-### Credit Assignment: Reward Attribution in Multi-Step Interaction
+1. **Rollout**: sample a batch of trajectories using the current policy $\pi_\theta$ and compute each reward.
+2. **Policy update**: use PPO / GRPO / REINFORCE to compute advantages from the rollouts and update $\theta$.
 
-**Credit assignment** asks how a final reward or penalty should be attributed to the intermediate decisions in a long trajectory. The problem exists in traditional RL, but it is sharper in Agentic RL for three reasons:
+Agentic rollouts are far more complex than single-turn ones:
 
-1. **Longer trajectories**: a code agent may go through many cycles of writing code, testing, reading errors, and modifying code.
-2. **More action types**: actions include tokens, tool calls, code execution, and abandoning a plan.
-3. **More environmental uncertainty**: the same query or code may produce different outcomes across time or environments.
+- **Long horizon**: a flight-booking rollout may take 5–10 steps; a code agent may exceed 20.
+- **Heterogeneous length**: the same prompt can yield rollouts of very different lengths—simple tasks finish in 3 steps, complex ones in 15+.
+- **Environment latency**: each tool call waits for the environment, leaving the GPU idle much of the time.
 
-Common approaches include:
+These engineering issues—asynchronous training, sandbox management, heterogeneous trajectory batching, long-tail latency elimination—are what Agentic RL frameworks in 2025–2026 aim to solve. The next section expands on this.
 
-- **PRM**, which directly scores each step.
-- **Policy gradient methods** such as PPO and GRPO, which solve credit assignment implicitly through repeated rollout sampling.
-- **Reward shaping**, which adds auxiliary milestone rewards without changing the intended optimum, such as rewarding successful retrieval of relevant evidence.
+::: tip Beyond Credit Assignment: A Training Pitfall
+In addition to step-level signals, Agentic RL faces **reward hacking**—the model exploits loopholes in the reward function instead of actually solving the problem. For example, if a code agent's reward only checks "do tests pass," the model may learn to generate a mock function that always returns `True`. Engineering countermeasures are covered in [Industrial Practice](./industrial-evaluation).
+:::
 
-### Reward Hacking: Exploiting the Reward Function
+## A Minimal Agent Loop
 
-When a reward function does not perfectly reflect the true objective, the model may find shortcuts that satisfy the reward without solving the task. This is **reward hacking**.
-
-Agentic RL has higher risk than ordinary LLM RL because the action space is broader:
-
-- A code agent rewarded only by "tests pass" may learn to mock everything as `True`.
-- A search agent rewarded for citations may append irrelevant links.
-- A web agent rewarded for reaching a page may exploit URL redirects rather than understand the page.
-
-Practical defenses include multiple complementary reward signals, adversarial tests, periodic human evaluation, and red-team testing of the reward function itself.
-
-### Grounding: Keeping the Agent Tied to Reality
-
-**Grounding** is the ability to anchor outputs in the real world or in external knowledge. A non-grounded LLM can only infer from parametric memory. A grounded agent verifies its output through tools: search for facts, execute code, query databases, or inspect files.
-
-This is one of the main advantages of Agentic RL over pure text RL. Through RL, the model does not merely learn the format of tool calls; it learns to treat tools as an extension of cognition: search when uncertain, verify risky reasoning, and retrieve when information is missing.
-
-### Rejection Sampling: The Simplest RL-Like Method
-
-Before complex policy optimization, it is useful to understand **rejection sampling**, also called **best-of-N**:
-
-1. sample $N$ answers for the same prompt,
-2. score them with a verifier or reward model,
-3. keep the highest-scoring answer,
-4. do SFT on the selected examples.
-
-The intuition is straightforward: generate several candidates, keep the best, and learn from it. The limitation is equally clear: it can only filter existing samples, not improve the sampling policy itself. If the model never generates a correct answer, no amount of filtering helps. GRPO can be seen as a policy-gradient extension of this idea: it not only selects good responses, but updates the policy so good responses become more likely.
-
-### Self-Play: Agents Training Against Agents
-
-The classic example of **self-play** is AlphaGo: an agent improves by playing against previous versions of itself. In Agentic RL, self-play appears in several forms:
-
-- **Adversarial**: one agent creates tasks, another solves them.
-- **Collaborative**: multiple agents solve a complex task together and receive a team reward.
-- **Debate**: agents argue different sides of a question, and a judge selects the stronger case.
-
-The appeal is that training signal can be generated without human labels. The risk is strategy drift: agents may converge to a self-consistent behavior that does not match human expectations.
-
-## First Run: A Minimal Agent Loop
-
-Concepts are easier to understand after seeing a running loop. Before adding RL, let us build a tiny agent that can call tools and feed observations back into the model.
+Reading concepts ten times is worse than running them once. Let's build a runnable agent in a few dozen lines—no RL training, just "how does an agent interact with tools?" Once this loop is clear, adding RL follows naturally.
 
 ```python
 import json, subprocess, os
@@ -198,7 +200,7 @@ client = OpenAI(
     base_url=os.environ.get("OPENAI_BASE_URL"),
 )
 
-# 1. Define tools: tell the model what it can do.
+# ① Define tools: tell the model "what you can do"
 tools = [
     {
         "type": "function",
@@ -226,8 +228,7 @@ tools = [
     },
 ]
 
-
-# 2. Implement tool execution: the environment.
+# ② Tool execution logic (the environment)
 def execute_tool(name, args):
     if name == "execute_bash":
         r = subprocess.run(args["command"], shell=True, capture_output=True, text=True)
@@ -237,14 +238,14 @@ def execute_tool(name, args):
             return f.read()
     return f"Unknown tool: {name}"
 
-
-# 3. Agent loop: perceive, reason, act, observe.
+# ③ Agent Loop: perceive → reason → act → observe, repeat
 def run_agent(task, max_turns=5):
     messages = [
         {"role": "system", "content": "You are a helpful assistant. Be concise."},
         {"role": "user", "content": task},
     ]
     for turn in range(max_turns):
+        # Perceive + reason: model decides next step given current info
         response = client.chat.completions.create(
             model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
             messages=messages,
@@ -253,117 +254,112 @@ def run_agent(task, max_turns=5):
         msg = response.choices[0].message
         messages.append(msg)
 
+        # Act: if no tool call, the model produced a final answer
         if not msg.tool_calls:
-            return msg.content
+            return msg.content  # Agent considers the task done; exit the loop
 
+        # Observe: execute the tool and feed the result back
         for tc in msg.tool_calls:
             args = json.loads(tc.function.arguments)
-            print(f"  [Turn {turn + 1}] call tool: {tc.function.name}({args})")
+            print(f"  [Turn {turn+1}] Tool call: {tc.function.name}({args})")
             result = execute_tool(tc.function.name, args)
-            messages.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": tc.id,
-                    "content": result,
-                }
-            )
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": result,
+            })
 
-    return "(maximum turns reached; stopped)"
+    return "(Max turns reached; stopping.)"
 
-
-# 4. Try it.
+# ④ Try it
 print(run_agent("List the .md files in the current directory and tell me how many there are."))
 ```
 
-The output may look like this:
+Expected output:
 
-```text
-  [Turn 1] call tool: execute_bash({'command': 'ls *.md'})
-  [Turn 2] call tool: execute_bash({'command': 'ls *.md | wc -l'})
+```
+  [Turn 1] Tool call: execute_bash({'command': 'ls *.md'})
+  [Turn 2] Tool call: execute_bash({'command': 'ls *.md | wc -l'})
 There are 12 .md files in the current directory.
 ```
 
-This short program is a complete agent. It maps directly to the earlier concepts:
+Map this 50-line code to the earlier concepts:
 
-- `tools = [...]` defines the action space $A_{\text{action}}$.
-- `execute_tool()` is the environment.
-- `for turn in range(max_turns)` is the agent loop and rollout.
-- `client.chat.completions.create()` is the policy $\pi_\theta$.
-- `messages.append(...)` is the evolving state visible to the model.
+- `tools = [...]` corresponds to the **action space** $A_{\text{action}}$—the set of tools the agent can call, the new action type added by Agentic RL on top of single-turn RL.
+- `execute_tool()` corresponds to the **environment**—the actual execution logic. The agent says "execute bash," the environment returns command output.
+- `for turn in range(max_turns)` corresponds to the **Agentic Loop / Rollout**—each iteration is one step $(s_t, a_t, o_{t+1})$; the entire `for` loop is one complete trajectory sample.
+- `client.chat.completions.create()` corresponds to the **policy** $\pi_\theta$—the model decides what to do next: which tool to call, what arguments to pass. Currently fixed weights; after RL training, this gets optimized.
+- `messages.append(...)` corresponds to the **state** $s_t$—the full dialogue history is the current state; the model sees all prior interactions.
 
-The key observation is that the agent's competence depends on the policy. A pretrained model may already know basic tool-use patterns, but it has not necessarily learned the best strategy for a specific task distribution. How should it construct search queries? When should it stop searching? Should it retry or switch plans after failure? These are policy-learning questions, and they are what RL is meant to optimize.
+How "smart" this agent is depends entirely on the policy $\pi_\theta$. The current model is a pretrained general model; it knows "when to use a bash command" because it saw many examples during pretraining and SFT. But it does not know: for this specific task, how to construct the most efficient search query? When the first search returns nothing useful, should it reformulate the query or change strategy? These "strategic decisions" are exactly what RL optimizes.
 
-The rest of this chapter shows how to add rewards, handle credit assignment, manage trajectory data, and turn this loop into a trainable system. We will extend this simple loop in [Multi-Turn RL and Credit Assignment](./multi-turn-rl).
+How to add RL training to this agent—how to compute rewards (ORM vs PRM), how to distribute reward across multi-step interaction (credit assignment), how to manage training data—is the subject of subsequent sections. In [Multi-Turn RL and Credit Assignment](./multi-turn-rl), we extend this simple loop into a trainable RL system.
 
-## Why SFT and Prompting Alone Are Not Enough
+## The Limits of SFT and Prompting
 
-A natural question is: ReAct and Toolformer already let LLMs call tools, so why do we need RL?
+A natural question: ReAct, Toolformer, and similar methods already let LLMs call tools. Why do we still need RL?
 
-The difference is that SFT and prompting teach **imitation**. They copy patterns from demonstrations: when to call a tool and how to format the call. Real agent tasks depend heavily on context:
+The key distinction: SFT and prompting teach the model to **imitate**—copying patterns of "when to call tools, which tool to call" from human demonstrations. But in real agent tasks, the optimal strategy for tool use is highly context-dependent:
 
-- How should a search query be written? When should the agent open a page? When should it stop searching?
-- After code still fails tests, should the agent continue debugging or change direction?
-- When sources conflict, which one should be trusted?
+- How to construct search queries? When to open page details? When to stop searching and start summarizing?
+- After a code edit, if tests still fail, should we keep debugging or switch direction?
+- When multiple sources contradict each other, which one to trust?
 
-These are **policy-learning** problems, not just language-modeling problems. Demonstrations cannot cover all decision paths. RL can shape tool use, planning, and recovery behavior from task outcomes. In the agent era, RL is not only about alignment; it helps turn a language model into an actor.
+These are fundamentally **strategy-learning problems**, not pure language modeling. Demonstration data cannot cover every possible decision path, while RL can shape tool-use, planning, and memory-management behaviors from task outcomes.
 
-More concretely:
+The division of labor between SFT and RL in agentic scenarios:
 
-- **SFT teaches format**: tool-call syntax and interaction protocol.
-- **RL teaches strategy**: when to call tools, how to combine actions, and how to recover from failure.
+- **SFT teaches format**: the syntax of tool calls (e.g., the JSON format for calling a search engine), the basic interaction protocol.
+- **RL teaches strategy**: when to call a tool, how to compose multi-step actions, how to recover from failure.
 
-DeepSeek-R1-Zero shows that reasoning abilities can emerge from RL without SFT when the base model and reward are strong enough. In practice, however, SFT warmup plus RL fine-tuning remains the mainstream path.
+The DeepSeek-R1-Zero experiment suggests that skipping SFT and going straight to RL can also surface reasoning ability—provided the base model is strong enough. In practice, the two-stage recipe of SFT warmup + RL fine-tuning remains the dominant paradigm.
 
-## Industrial Framework Landscape: What Runs Agentic RL?
+## Industrial Framework Landscape
 
-The concepts above are necessary, but implementation raises a practical question: what framework should you use to train an agent?
+Back to reality—when you actually want to train an agent, which framework do you use?
 
-For PPO and GRPO in Chapters 5-8, the training loop was mostly GPU computation. TRL or OpenRLHF can handle many such workloads. Agentic RL adds waiting: the model calls a search engine and the GPU waits; the model runs code and the GPU waits for the sandbox. GPU utilization can fall to 20-30%. Preventing GPU idling is the core systems problem.
+For PPO and GRPO in earlier chapters, this question was not sharp: the training loop is almost entirely GPU compute, and either TRL or OpenRLHF handles it easily. But the Agentic RL training loop adds a "wait"—when the model calls a search engine, the GPU waits for results; when the model runs code, the GPU waits for the sandbox. How to keep the GPU from idling? This is the core problem Agentic RL frameworks solve.
 
-Several open-source frameworks emerged around 2025-2026:
+In 2025–2026, a batch of open-source frameworks emerged around this problem:
 
-| Framework    | Developer             | One-line description                                                                  | Native multi-turn support | GitHub                                                    |
-| ------------ | --------------------- | ------------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------- |
-| **OpenRLHF** | Open-source community | Minimal codebase, decouples algorithm and agent execution, easy single/multi-turn use | Yes                       | [OpenRLHF/OpenRLHF](https://github.com/OpenRLHF/OpenRLHF) |
-| **verl**     | ByteDance / community | High throughput, dynamic switching between training and inference, broad ecosystem    | Basic support             | [verl-project/verl](https://github.com/verl-project/verl) |
-| **slime**    | Tsinghua / Zhipu      | Separates training and inference services; strong MoE efficiency                      | Basic support             | [THUDM/slime](https://github.com/THUDM/slime)             |
-| **AReaL**    | Ant / Tsinghua        | Fully asynchronous training; large speedups by avoiding GPU waits                     | Yes                       | [inclusionAI/AReaL](https://github.com/inclusionAI/AReaL) |
-| **ROLL**     | Alibaba Taotian       | RLVR plus agent mode, native Qwen support                                             | Yes                       | [alibaba/ROLL](https://github.com/alibaba/ROLL)           |
-| **SkyRL**    | UC Berkeley           | Modular full stack: training, agent orchestration, and task environment separated     | Yes                       | [NovaSky-AI/SkyRL](https://github.com/NovaSky-AI/SkyRL)   |
-| **Seer**     | Moonshot AI (Kimi)    | Synchronous design that reduces rollout tail latency with online context learning     | No                        | arXiv:2511.14617                                          |
-| **Relax**    | Xiaohongshu           | Multimodal asynchronous training                                                      | Yes                       | arXiv:2604.11554                                          |
-| **TRL**      | Hugging Face          | Lightweight and easy in the HF ecosystem; not designed for large async agent training | Mostly single-turn        | [huggingface/trl](https://github.com/huggingface/trl)     |
+| Framework    | Developer             | One-line description                                                                                               | Native multi-turn agent support | GitHub                                                    |
+| ------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------- | --------------------------------------------------------- |
+| **OpenRLHF** | Open-source community | Most concise code (~8k lines); algorithm decoupled from agent execution; one line to switch single-turn/multi-turn | Yes                             | [OpenRLHF/OpenRLHF](https://github.com/OpenRLHF/OpenRLHF) |
+| **verl**     | ByteDance / community | Highest throughput; training and inference dynamically share the same GPU group; richest ecosystem                 | Basic, community-extending      | [verl-project/verl](https://github.com/verl-project/verl) |
+| **slime**    | Tsinghua / Zhipu      | Training and inference split into independent services; best MoE efficiency                                        | Basic                           | [THUDM/slime](https://github.com/THUDM/slime)             |
+| **AReaL**    | Ant Group / Tsinghua  | Fully asynchronous training—GPU never waits; 2.77× speedup                                                         | Yes                             | [inclusionAI/AReaL](https://github.com/inclusionAI/AReaL) |
+| **ROLL**     | Alibaba Taotian       | RLVR + Agent dual mode; native Qwen support                                                                        | Yes                             | [alibaba/ROLL](https://github.com/alibaba/ROLL)           |
+| **SkyRL**    | UC Berkeley           | Modular full-stack—training, agent orchestration, task environments independently                                  | Yes                             | [NovaSky-AI/SkyRL](https://github.com/NovaSky-AI/SkyRL)   |
+| **Seer**     | Moonshot AI (Kimi)    | Pushed synchronous—eliminates rollout long-tail via in-context learning; 74–97% throughput gain                    | No                              | see arXiv:2511.14617                                      |
+| **Relax**    | Xiaohongshu           | Fully multimodal (text + image + audio) asynchronous training                                                      | Yes                             | see arXiv:2604.11554                                      |
+| **TRL**      | HuggingFace           | Lightweight and easy to use; seamless HF ecosystem integration; no large-scale async support                       | Mostly single-turn              | [huggingface/trl](https://github.com/huggingface/trl)     |
 
-The central tradeoff is **synchronous vs asynchronous**. Synchronous training is simple and easier to debug, but the trainer waits for slow rollouts. Asynchronous training improves throughput, but trajectories may be generated by slightly stale weights and require algorithmic compensation. AReaL shows that async training can nearly triple speed when the pipeline is already stable. Seer takes the opposite route: it keeps a synchronous GRPO setup and reduces long-tail rollout latency through scheduling and speculative decoding, preserving on-policy guarantees while improving throughput.
+The core difference between these frameworks comes down to a single trade-off: **synchronous vs asynchronous**. Synchronous training is simple, controllable, and easy to debug, but GPU utilization is low. Asynchronous training doubles throughput, but training data may be generated from stale weights, requiring extra algorithmic compensation. AReaL's research shows async training can deliver nearly 3× speedup without quality loss—provided training is already healthy. Seer takes the opposite extreme: it sticks with a synchronous framework, leaves GRPO untouched, and instead eliminates rollout long-tail latency via in-context learning (divided rollout, context-aware scheduling, adaptive grouped speculative decoding), achieving 74–97% throughput gains while preserving on-policy guarantees ([arXiv:2511.14617](https://arxiv.org/abs/2511.14617)).
 
-Another key distinction is whether a framework was designed for single-turn RL first or for multi-turn agent interaction from the start. In the latter, agent execution is a first-class part of the architecture: state management, heterogeneous trajectory lengths, and asynchronous tool returns are native concerns. OpenRLHF, AReaL, ROLL, and SkyRL are in this category.
+Another key difference: was the framework originally designed for single-turn RL (reasoning tasks), or did it account for multi-turn agent interaction from the start? The former's agent execution module was added later—usable but not optimized for it; the latter treats agent execution as a first-class architectural citizen, with native support for state management, heterogeneous trajectory lengths, and asynchronous tool-call returns. OpenRLHF, AReaL, ROLL, and SkyRL fall into the latter camp.
 
-Choose by scenario. For a first demo, OpenRLHF is concise and well documented. For large enterprise training, verl has strong throughput and ecosystem support. For MoE models such as GLM-4.5, Qwen3-30B-A3B, or DeepSeek-R1, slime's Megatron plus SGLang architecture is specialized for fp8 rollout and expert communication. For maximum throughput, AReaL's asynchronous design is attractive. We will discuss sandboxing, environment construction, and distributed deployment in [Tool Use and Agentic Engineering](./tool-use-and-trajectory).
+Framework choice depends on the scenario. For beginners wanting to get a demo running quickly, OpenRLHF has the most concise code and best docs. For enterprise-scale training (70B+), verl's throughput and ecosystem win. For MoE models (GLM-4.5, Qwen3-30B-A3B, DeepSeek-R1), slime's Megatron + SGLang native architecture optimizes fp8 rollout and DeepEP communication for MoE. For maximum throughput, AReaL's fully async mode delivers ~3× speedup. More engineering details—sandbox management, environment construction, distributed deployment—are covered in [Tool Use and Agentic Engineering](./tool-use-and-trajectory).
 
 ## Chapter Structure
 
-Zhang et al. organize Agentic RL along two axes: **core capabilities** such as planning, tool use, memory, reasoning, self-improvement, and perception; and **task domains** such as search, code, math, GUI, embodied agents, and multi-agent systems. This chapter follows a practical route that interleaves capabilities and tasks.
-
 ::: tip Prerequisites
-This chapter repeatedly uses the following concepts:
+This chapter uses the following concepts frequently; review them first:
 
-- [GRPO and RLVR](../chapter18_grpo/rlvr): verifiable reward is a natural fit for Agentic RL.
-- [PPO and reward models](../chapter10_ppo/intro): the basic policy-optimization frame.
+- [GRPO and RLVR](../chapter18_grpo/rlvr)—"verifiable rewards" are a natural choice for Agentic RL
+- [PPO and Reward Models](../chapter10_ppo/intro)—the foundational policy optimization framework
   :::
 
-| Section                                                                              | Core question                                                                       |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| [Multi-Turn RL and Credit Assignment](./multi-turn-rl)                               | A seven-turn interaction failed. Which step deserves blame? ORM vs PRM.             |
-| [Tool Use, Trajectory Synthesis, and Agentic Engineering](./tool-use-and-trajectory) | Where does training data come from? How are tools, sandboxes, and rewards designed? |
-| [Industrial Practice, Evaluation, and Badcases](./industrial-evaluation)             | How does real training become unstable, and how do eval pipelines locate problems?  |
-| [Agent Data Synthesis: SWE-smith](./agent-data-swe-smith)                            | How to manufacture 50k+ code-agent tasks by injecting bugs and running tests.       |
-| [Hands-On: rLLM DeepCoder Agent](./rllm-deepcoder-lab)                               | AgentFlow plus sandbox verification plus GRPO in rLLM.                              |
-| [Project 2: Deep Research Agent](./deep-research-agent)                              | Long-horizon search, citation verification, report generation, and RL design.       |
-| [Hands-On: Build an Agentic Training System](./build-agentic-training-system)        | Build Environment, Policy, RolloutWorker, and Trainer from scratch.                 |
-| [Further Reading](./extended-readings)                                               | An open index of 13 themes and 120+ papers for deeper study.                        |
+| Section                                                                                  | Core question                                                                                                   |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [Multi-Turn RL and Credit Assignment](./multi-turn-rl)                                   | After 7 turns the task failed—whom do we blame? ORM vs PRM; planning ability; hands-on labs                     |
+| [Tool Calling, Trajectory Synthesis, and Agentic Engineering](./tool-use-and-trajectory) | Where does training data come from? When should the model use tools? Sandbox, async rollout, reward design      |
+| [Industrial Practice, Evaluation, and Bad Cases](./industrial-evaluation)                | How does real training go unstable? How to localize problems via benchmarks, eval pipelines, and bad-case loops |
+| [Agent Data Fabrication—SWE-smith](./agent-data-swe-smith)                               | Auto-generate 50k+ code agent training data: inject bugs, run tests, filter useful samples                      |
+| [Hands-on Lab: Training a DeepCoder Agent with rLLM](./rllm-deepcoder-lab)               | rLLM in practice: AgentFlow + sandbox verification + GRPO RL training                                           |
+| [Project 2: Deep Research Agent](./projects)                                             | Long-horizon search, citation verification, report generation, and Deep Research RL schemes                     |
+| [Hands-on: Building an Agentic Training System](./build-agentic-training-system)         | Build Environment + Policy + RolloutWorker + Trainer from scratch; understand the framework skeleton            |
+| [Further Reading Index](./extended-readings)                                             | 13 topic clusters, 120+ papers—an open index for going deeper                                                   |
 
 ---
 
-This is the conceptual map and vocabulary of Agentic RL. The density may feel high at first, just as Chapter 1 did. You do not need to stop here until every term is memorized. The following sections revisit each term through code, training curves, and concrete failure cases.
-
-Next, we enter the central problem of multi-step interaction: if the final result fails, which step should receive the blame? See [Multi-Turn RL and Credit Assignment](./multi-turn-rl).
+Next, let's tackle the most central problem in multi-step interaction: when the final outcome fails, which step should bear the blame?—[Multi-Turn RL and Credit Assignment](./multi-turn-rl).

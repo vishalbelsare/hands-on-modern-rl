@@ -25,7 +25,7 @@ flowchart TB
         NeMo["NeMo-Aligner<br/>(NVIDIA, Megatron 系)"]
     end
     subgraph Async["异步 RL 框架"]
-        AReaL["AReaL<br/>(清华+智谱, 流式异步)"]
+        AReaL["AReaL<br/>(Ant Group+清华, 流式异步)"]
         AgentRL["AgentRL<br/>(智谱+清华, 多智能体)"]
         SLIME["SLIME<br/>(智谱, server-based rollout)"]
         ROLL["ROLL<br/>(阿里达摩院, rollout 工厂)"]
@@ -68,7 +68,7 @@ OpenRLHF 的优势是**社区友好**——配置文件接近 HuggingFace 风格
 
 #### AReaL
 
-[AReaL](https://github.com/inclusionAI/AReaL)（Ant Group + 清华，2025）是清华 + 智谱联合的异步 RL 框架，论文 [arXiv:2510.23748](https://arxiv.org/abs/2510.23748)。它的核心创新是 **fully asynchronous rollout**：rollout worker 7×24 持续生成经验，训练 worker 异步消费。AReaL 用 staleness-aware importance sampling 处理"训练时策略已经更新了 K 步"的偏移问题：
+[AReaL](https://github.com/inclusionAI/AReaL)（Ant Group 和清华，2025）是大规模异步 LLM RL 系统，论文 [arXiv:2505.24298](https://arxiv.org/abs/2505.24298)。它的核心创新是 **fully asynchronous rollout**：rollout worker 持续生成经验，training worker 异步消费。AReaL 用 staleness-aware PPO / importance sampling 处理"训练时策略已经更新了 K 步"的偏移问题：
 
 $$\rho_t^{\text{stale}} = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{gen}}}(a_t \mid s_t)}$$
 
@@ -100,7 +100,7 @@ $$\rho_t^{\text{stale}} = \frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{gen
 | **OpenRLHF**  | 开源社区    | DeepSpeed ZeRO| vLLM/SGLang| 否       | 百卡       | PPO/GRPO/DPO/KTO/SimPO  | 5.2k                  | 高         |
 | **TRL**       | HuggingFace | Accelerate    | 无原生     | 否       | 单机/小集群 | PPO/GRPO/DPO            | 11k                   | 高         |
 | **NeMo**      | NVIDIA      | Megatron-LM   | TRT-LLM    | 否       | 千卡       | PPO/DPO/SteerLM         | 1.8k                  | 中         |
-| **AReaL**     | 清华+智谱   | FSDP          | vLLM/SGLang| 全异步   | 百-千卡    | PPO/GRPO + 异步         | 1.1k                  | 中         |
+| **AReaL**     | Ant Group和清华 | FSDP      | vLLM/SGLang| 全异步   | 百-千卡    | PPO/GRPO + 异步         | 1.1k                  | 中         |
 | **AgentRL**   | 智谱+清华   | FSDP          | vLLM       | 全异步   | 千卡       | PPO/GRPO + multi-agent  | 0.8k                  | 中         |
 | **LlamaRL**   | Meta        | Megatron      | 自研       | 全异步   | 万卡       | 内部 PPO 变体           | 0.5k                  | 低（内部） |
 
@@ -600,7 +600,7 @@ $$\text{成本} = 3300 \times 2 = \$6,600$$
 
 - [HybridFlow: A Flexible and Efficient RLHF Framework (veRL, arXiv:2409.19256)](https://arxiv.org/abs/2409.19256)
 - [OpenRLHF: An Easy-to-use, Scalable and High-performance RLHF Framework](https://arxiv.org/abs/2405.11143)
-- [AReaL: Fully Asynchronous RL System (arXiv:2510.23748)](https://arxiv.org/abs/2510.23748)
+- [AReaL: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning (arXiv:2505.24298)](https://arxiv.org/abs/2505.24298)
 - [LlamaRL: A Distributed Asynchronous Reinforcement Learning Framework for LLMs (arXiv:2507.21240)](https://arxiv.org/abs/2507.21240)
 - [NeMo-Aligner: Scalable Toolkit for Efficient Model Alignment](https://arxiv.org/abs/2402.01969)
 

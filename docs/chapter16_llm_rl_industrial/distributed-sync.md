@@ -452,20 +452,19 @@ class LlamaRLWorker:
 
 ### AReaL (Asynchronous RL)
 
-[AReaL, arXiv:2505.24298](https://arxiv.org/abs/2505.24298) 清华 + 蚂蚁 2025 年开源：
+[AReaL: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning, arXiv:2505.24298](https://arxiv.org/abs/2505.24298) 是 Ant Group 和清华 2025 年开源的大规模异步 LLM RL 系统：
 
-**核心创新**：**Off-policy 容忍 + Importance Sampling 修正**。
+**核心创新**：**fully asynchronous rollout + staleness-aware PPO**。Rollout worker 持续生成样本，training worker 在拿到 batch 后立即消费；系统通过控制样本 staleness，并在 PPO 更新中加入针对旧策略样本的校正，缓解“生成策略已经落后当前训练策略 K 步”的偏移。
 
 ```python
 # AReaL 关键算法（简化）
-def off_policy_update(batch, current_weights):
-    # batch 是旧策略采集的
-    # 用 importance sampling 修正
-    old_log_probs = compute_log_probs(batch, old_weights)
-    new_log_probs = compute_log_probs(batch, current_weights)
-    importance_weights = torch.exp(new_log_probs - old_log_probs)
+def staleness_aware_update(batch, current_weights):
+    # batch 记录了 rollout 时的 policy version 与 logprob
+    gen_log_probs = batch["gen_log_probs"]
+    current_log_probs = compute_log_probs(batch, current_weights)
+    importance_weights = torch.exp(current_log_probs - gen_log_probs)
 
-    # 截断的 importance sampling（PPO 风格）
+    # 截断重要性权重，避免旧样本造成过大梯度
     clipped_weights = torch.clamp(importance_weights, 0.8, 1.2)
     loss = -(clipped_weights * advantages).mean()
 
@@ -515,7 +514,7 @@ class AgentRLRollout:
 | 框架 | 主要贡献者 | 核心机制 | 加速比 | 适用场景 |
 |------|-----------|---------|--------|---------|
 | **LlamaRL** | Meta | 完全去中心化 | 10.4× | 超大规模 Dense |
-| **AReaL** | 清华/蚂蚁 | Off-policy 容忍 | 2.77× | MoE 大模型 |
+| **AReaL** | Ant Group 和清华 | 全异步 rollout + staleness-aware PPO | 2.77× | 大规模 LLM RL |
 | **AgentRL** | 工业联盟 | Agentic 长任务 | 3-5× | Agent 训练 |
 
 ## 36.6 MoE + RL 训练
@@ -886,7 +885,7 @@ def monitor_expert_balance(model):
 - [Rajaseharan et al. 2024 "SGLang"](https://arxiv.org/abs/2312.07104)
 - [Rajbhandari et al. 2020 "ZeRO: Memory Optimizations Toward Training Trillion Parameter Models"](https://arxiv.org/abs/1910.02054)
 - [Zhao et al. 2025 "LlamaRL: A Distributed Asynchronous Reinforcement Learning Framework"](https://arxiv.org/abs/2506.10910)
-- [Dou et al. 2025 "AReaL: Asynchronous RL"](https://arxiv.org/abs/2505.24298)
+- [Fu et al. 2025 "AReaL: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning"](https://arxiv.org/abs/2505.24298)
 - [AgentRL Team 2025 "AgentRL: A Scalable Agentic RL Framework"](https://arxiv.org/abs/2510.04206)
 - [DeepSeek-AI 2024 "DeepSeek-V3 Technical Report"](https://arxiv.org/abs/2412.19437)
 - [DeepSeek-AI 2025 "DeepSeek-R1: Incentivizing Reasoning Capability via RL"](https://arxiv.org/abs/2501.12948)

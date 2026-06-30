@@ -203,7 +203,7 @@ curl -X POST http://controller:8000/scale \
 
 | 框架     | 出品方             | 特点                              | 多模态 | 异步       |
 | -------- | ------------------ | --------------------------------- | ------ | ---------- |
-| AReaL    | 清华 & 蚂蚁        | 全异步，2.77x 提速                | 否     | 全异步     |
+| AReaL    | Ant Group 和清华   | 全异步，2.77x 提速                | 否     | 全异步     |
 | Seer     | Moonshot AI (Kimi) | 极致同步，rollout 吞吐 +74–97%    | 否     | 同步       |
 | Agent-R1 | 中科大             | MDP 扩展，过程/结果奖励分离       | 否     | 部分异步   |
 | NeMo Gym | NVIDIA             | 科学 Agent 环境                   | 否     | 同步为主   |
@@ -302,7 +302,7 @@ nanoRLHF 的价值不在于生产使用，而在于它用可读的代码把 B.1 
 
 [^2]: PyTorch Blog, "[A Primer on LLM Post-Training](https://pytorch.org/blog/a-primer-on-llm-post-training/)", 2025.
 
-[^3]: AReaL Team. "[AReaL: Async RL for Language Reasoning](https://arxiv.org/abs/2505.24298)." arXiv:2505.24298, 2025. [GitHub](https://github.com/inclusionAI/AReaL)
+[^3]: AReaL Team. "[AReaL: A Large-Scale Asynchronous Reinforcement Learning System for Language Reasoning](https://arxiv.org/abs/2505.24298)." arXiv:2505.24298, 2025. [GitHub](https://github.com/inclusionAI/AReaL)
 
 [^4]: Hou L et al. "[Seer: Online Context Learning for Fast Synchronous LLM Reinforcement Learning](https://arxiv.org/abs/2511.14617)." arXiv:2511.14617, 2025.
 

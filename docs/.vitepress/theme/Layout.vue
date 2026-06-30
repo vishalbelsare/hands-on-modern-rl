@@ -107,6 +107,9 @@ const supportQrLabel = computed(() =>
     ? 'Official account / community QR code'
     : '公众号 / 社群二维码'
 )
+const supportQrZoomLabel = computed(() =>
+  isEnglishRoute.value ? 'Open WeChat QR code image' : '放大查看微信群二维码'
+)
 const discordLinkLabel = computed(() =>
   isEnglishRoute.value ? 'Join Discord' : '加入 Discord'
 )
@@ -326,6 +329,12 @@ function updateSupportQrRatio(event) {
   const image = event.currentTarget
   supportQrWide.value =
     image.naturalWidth > 0 && image.naturalWidth > image.naturalHeight * 1.15
+}
+
+function openSupportQrViewer(event) {
+  const image = event.currentTarget.querySelector('img')
+  if (!image) return
+  openMermaidViewer(image)
 }
 
 function hideRouteLoading() {
@@ -1181,13 +1190,21 @@ watch(
                     class="ct-support-qr-card"
                     :class="{ 'is-wide': supportQrWide }"
                   >
-                    <img
-                      src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png"
-                      alt="WalkingLab 微信二维码"
-                      loading="lazy"
-                      decoding="async"
-                      @load="updateSupportQrRatio"
-                    />
+                    <button
+                      class="ct-support-qr-zoom-button"
+                      type="button"
+                      :aria-label="supportQrZoomLabel"
+                      :title="supportQrZoomLabel"
+                      @click="openSupportQrViewer"
+                    >
+                      <img
+                        src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png"
+                        alt="WalkingLab 微信二维码"
+                        loading="lazy"
+                        decoding="async"
+                        @load="updateSupportQrRatio"
+                      />
+                    </button>
                     <div>{{ supportQrLabel }}</div>
                   </div>
                   <p class="ct-support-note">
@@ -1568,6 +1585,21 @@ watch(
   text-align: center;
 }
 
+.ct-support-qr-zoom-button {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.ct-support-qr-zoom-button:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 3px;
+}
+
 .ct-support-qr-card img {
   display: block;
   box-sizing: border-box;
@@ -1579,6 +1611,7 @@ watch(
   object-fit: contain;
 }
 
+.ct-support-qr-card.is-wide .ct-support-qr-zoom-button,
 .ct-support-qr-card.is-wide img {
   width: 100%;
   max-width: 496px;

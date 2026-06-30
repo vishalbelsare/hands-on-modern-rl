@@ -430,7 +430,11 @@ Our team has also created other courses. Take a look:
 
 For suggestions or feedback, scan the QR code to join the discussion group (WeChat):
 
-<img src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png" alt="Discussion Group" width="300" />
+<img
+  src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png"
+  alt="Discussion Group"
+  style="width: 100%; max-width: 520px; height: auto;"
+/>
 
 ## Citation
 

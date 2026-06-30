@@ -45,6 +45,7 @@ const lineHeight = ref(DEFAULT_LINE_HEIGHT)
 const docWidth = ref(DEFAULT_DOC_WIDTH)
 const readingToolsOpen = ref(false)
 const supportOpen = ref(false)
+const supportQrWide = ref(true)
 const sidebarCollapsed = ref(false)
 const sidebarWidth = ref(DEFAULT_SIDEBAR_WIDTH)
 const sidebarResizing = ref(false)
@@ -319,6 +320,12 @@ function showRouteLoading() {
   routeLoadingTimer = window.setTimeout(() => {
     routeLoading.value = true
   }, 120)
+}
+
+function updateSupportQrRatio(event) {
+  const image = event.currentTarget
+  supportQrWide.value =
+    image.naturalWidth > 0 && image.naturalWidth > image.naturalHeight * 1.15
 }
 
 function hideRouteLoading() {
@@ -1141,7 +1148,10 @@ watch(
                 align="end"
                 side="bottom"
               >
-                <div class="ct-popover-surface ct-support-panel">
+                <div
+                  class="ct-popover-surface ct-support-panel"
+                  :class="{ 'has-wide-qr': supportQrWide }"
+                >
                   <a
                     class="ct-support-link"
                     href="https://github.com/walkinglabs"
@@ -1167,12 +1177,16 @@ watch(
                     </span>
                     <span>{{ discordLinkMeta }}</span>
                   </a>
-                  <div class="ct-support-qr-card">
+                  <div
+                    class="ct-support-qr-card"
+                    :class="{ 'is-wide': supportQrWide }"
+                  >
                     <img
                       src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png"
                       alt="WalkingLab 微信二维码"
                       loading="lazy"
                       decoding="async"
+                      @load="updateSupportQrRatio"
                     />
                     <div>{{ supportQrLabel }}</div>
                   </div>
@@ -1491,12 +1505,16 @@ watch(
 }
 
 .ct-support-panel {
-  width: 220px;
+  width: min(260px, calc(100vw - 24px));
   padding: 12px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.ct-support-panel.has-wide-qr {
+  width: min(520px, calc(100vw - 24px));
 }
 
 .ct-support-link {
@@ -1543,6 +1561,7 @@ watch(
 .ct-support-qr-card {
   display: grid;
   gap: 8px;
+  justify-items: center;
   margin-top: 10px;
   color: var(--vp-c-text-2);
   font-size: 12px;
@@ -1551,10 +1570,18 @@ watch(
 
 .ct-support-qr-card img {
   display: block;
-  width: 100%;
+  box-sizing: border-box;
+  width: min(100%, 236px);
+  max-height: min(62vh, 420px);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 8px;
   background: #fff;
+  object-fit: contain;
+}
+
+.ct-support-qr-card.is-wide img {
+  width: 100%;
+  max-width: 496px;
 }
 
 .ct-support-note {

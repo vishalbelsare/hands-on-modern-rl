@@ -430,7 +430,11 @@ npm run verify        # 运行格式检查、Lint、构建和产物验证
 
 有任何建议 / 反馈，欢迎扫码加入读者交流群（微信）：
 
-<img src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png" alt="读者交流群" width="300" />
+<img
+  src="https://github.com/walkinglabs/.github/raw/main/profile/wechat.png"
+  alt="读者交流群"
+  style="width: 100%; max-width: 520px; height: auto;"
+/>
 
 ## 引用
 

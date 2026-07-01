@@ -1,4 +1,4 @@
-# 9.3 动手 与 GRPO 训练与核心机制
+# 16.1 GRPO 核心机制
 
 上一章我们深入了 DPO 的理论与实践，看到它可以直接从固定的偏好数据里学习：同一个 prompt 下，chosen 应该比 rejected 更可能出现。现在我们回到**在线训练**：模型不再只读别人已经标好的偏好对，而是在训练过程中自己生成回答、自己得到反馈、再用反馈更新自己。
 
@@ -116,7 +116,7 @@ $$
 
 **3. 工程复杂**：四个模型各有一套优化器、学习率、梯度裁剪配置，调参难度指数级增长。
 
-回顾[第 5 章基线分析](../chapter08_policy_gradient/pg-improvements)和[第 6 章优势函数](../chapter09_actor_critic/advantage-function)，Critic 的核心作用是**提供基线来降低方差**。如果不需要单独训练网络就能得到基线，Critic 就可以退休了——这就是 GRPO 的出发点。
+回顾[第 6 章基线分析](../chapter08_policy_gradient/pg-improvements)和[第 7 章优势函数](../chapter09_actor_critic/advantage-function)，Critic 的核心作用是**提供基线来降低方差**。如果不需要单独训练网络就能得到基线，Critic 就可以退休了——这就是 GRPO 的出发点。
 
 ## GRPO 的核心 与 组内归一化替代 Critic
 
@@ -347,7 +347,7 @@ $$
 - $\operatorname{clip}(\rho, 1-\epsilon_{\text{clip}}, 1+\epsilon_{\text{clip}})$：把概率比值限制在一个区间内。例如 $\epsilon_{\text{clip}}=0.2$ 时，$\rho$ 会被限制在 $[0.8, 1.2]$。
 - $\min(\cdot, \cdot)$：选择更保守的那个目标，避免一次更新太大。
 
-为什么要裁剪？因为这批回答是 $\pi_{\text{old}}$ 生成的。如果训练几步后 $\pi_\theta$ 已经离 $\pi_{\text{old}}$ 很远，那么这批数据就不再能可靠代表新策略的行为。裁剪的作用就是：**允许模型学习，但不允许它因为同一批数据一下子改得太猛**。这部分和第 7 章 PPO 裁剪机制完全一致，详细推导见[策略更新的约束机制](../chapter10_ppo/trust-region-clipping)。
+为什么要裁剪？因为这批回答是 $\pi_{\text{old}}$ 生成的。如果训练几步后 $\pi_\theta$ 已经离 $\pi_{\text{old}}$ 很远，那么这批数据就不再能可靠代表新策略的行为。裁剪的作用就是：**允许模型学习，但不允许它因为同一批数据一下子改得太猛**。这部分和第 5 章 PPO 裁剪机制完全一致，详细推导见[策略更新的约束机制](../chapter10_ppo/trust-region-clipping)。
 
 <GrpoCodeFocus focus="clip" />
 

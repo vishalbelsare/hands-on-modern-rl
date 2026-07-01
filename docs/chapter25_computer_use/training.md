@@ -1,4 +1,4 @@
-# 25.1 GUI Agent 训练实践
+# 23.1 GUI Agent 训练实践
 
 > [25.1](./intro) 讲清楚了 Computer Use 的 MDP 建模和 GUI Grounding 的视觉对齐。本节回答下一个工程问题：**怎么把一个 VLM 真正训成 GUI Agent**？这涉及数据合成、课程设计、奖励工程、虚拟环境等一整套工业 pipeline。我们以 2025-2026 年中国实验室的代表性工作为线索——UI-TARS-2、AutoGLM、MobileRL、ComputerRL、CogAgent——对比各家技术路线的优劣。
 
@@ -234,7 +234,7 @@ def compute_progress_reward(s_t, s_{t+1}, task):
     return float(llm_judge(prompt))
 ```
 
-这种 LLM-as-judge 的中间奖励类似 [第 20 章 Process Reward Model](../chapter20_prm_search/inference-time-search) 的思想——用 LLM 评估中间步质量。
+这种 LLM-as-judge 的中间奖励类似 [第 18 章 Process Reward Model](../chapter20_prm_search/inference-time-search) 的思想——用 LLM 评估中间步质量。
 
 ### 与正向课程的对比
 

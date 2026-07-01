@@ -6,7 +6,7 @@ search: false
 
 > This page is kept as an entry point for old links. The core content has already been merged into [22.2 Tool Use, Trajectory Synthesis, and Agentic Engineering](./tool-use-and-trajectory). The original content is preserved below for readers who arrive through legacy links and want a point of comparison.
 
-# 22.10 Trajectory Synthesis: Where Training Data Comes From
+# 20.10 Trajectory Synthesis: Where Training Data Comes From
 
 In the previous section, we unpacked the credit assignment problem in multi-turn RL. Before training even begins, however, there is an even more basic question: **where does the data come from?** Standard LLM RL, such as the GRPO setting in Chapter 9, only needs a prompt plus a verifiable answer. The model generates its own response and compares it against the verifier; no external interaction data is required. Agentic RL is different. The model must interact with an environment: calling tools, executing code, browsing the web, and observing results. These interactions produce "trajectories", which are both the training data and the source of reward. The quality of those trajectories determines the ceiling of the model. In this section, we examine the data-engineering core of Agentic RL: trajectory synthesis.
 

@@ -1,4 +1,4 @@
-# E.2.4 轨迹概率、Baseline 与 GAE
+# D.2.4 轨迹概率、Baseline 与 GAE
 
 > **前置知识**：[E.2.1 概率基础](./probability-basics)和[E.2.2 状态价值](./probability-value)——你需要知道条件概率、期望和方差。
 

@@ -1,6 +1,6 @@
-# 21.2 HHH 原则与 Claude 实践
+# 19.1 HHH 原则 Claude 实践
 
-> [21.1](./intro) 讲了 Constitutional AI 的理论与 RLAIF 框架。本节回答工程问题：**Anthropic 实际在 Claude 训练中怎么落地 CAI？** 答案是 HHH 三原则——Helpful、Harmless、Honest——以及一系列对抗训练 trick。
+> [第 19 章](./intro) 讲了 Constitutional AI 的理论与 RLAIF 框架。本节回答工程问题：**Anthropic 实际在 Claude 训练中怎么落地 CAI？** 答案是 HHH 三原则——Helpful、Harmless、Honest——以及一系列对抗训练 trick。
 
 ## HHH 对齐原则
 
@@ -101,7 +101,7 @@ $$
 R(x, y) = w_{\text{task}} r_{\text{RLVR}}(x, y) + w_{\text{safe}} r_{\text{CAI}}(x, y) + w_{\text{hon}} r_{\text{verifier}}(x, y) - \beta D_{KL}
 $$
 
-这种 **multi-objective RL** 是 Claude 3.5 / 4 的核心训练范式，也是 [第 21 章 PRM 引导搜索](../chapter20_prm_search/inference-time-search) 的奖励组合方式之一。
+这种 **multi-objective RL** 是 Claude 3.5 / 4 的核心训练范式，也是 [第 19 章 PRM 引导搜索](../chapter20_prm_search/inference-time-search) 的奖励组合方式之一。
 
 ### Claude 3.5 的几个工程经验
 

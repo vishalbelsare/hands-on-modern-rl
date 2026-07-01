@@ -2,7 +2,7 @@
 title: 12.5 Offline Reinforcement Learning
 ---
 
-# 12.5 Offline Reinforcement Learning: From Historical Data to Reliable Policies
+# 10.5 Offline Reinforcement Learning: From Historical Data to Reliable Policies
 
 <a id="article-start"></a>
 

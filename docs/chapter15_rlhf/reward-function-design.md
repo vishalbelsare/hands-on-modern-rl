@@ -1,4 +1,4 @@
-# 8.4 Reward Model 与 教一个裁判
+# 13.3 Bradley-Terry 奖励模型
 
 ## 本节导读
 

@@ -1,8 +1,8 @@
 ---
-title: 3.1 The Two-Armed Bandit Problem
+title: 3.1 Exploration and Exploitation
 ---
 
-# 3.1 Two Slot Machines: RL as the Smallest Decision Problem
+# 3.1 Exploration and Exploitation
 
 ## What This Section Solves
 

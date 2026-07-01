@@ -1,4 +1,4 @@
-# 4.3 动手 与 LunarLander 实战
+# 5.4 LunarLander / Atari 实验
 
 > **本节目标**：从一个可复现实验开始，训练 DQN 控制 `LunarLander-v3`，并用评估曲线、回放 GIF 和失败诊断判断策略到底学到了什么。
 

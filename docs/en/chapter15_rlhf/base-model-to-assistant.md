@@ -2,7 +2,7 @@
 title: 8.1 From Base Model to Aligned Assistant
 ---
 
-# 8.1 From Base Model to Aligned Assistant
+# 6.1 From Base Model to Aligned Assistant
 
 ## Reading Guide
 

@@ -2,6 +2,10 @@
 title: Part I Summary
 ---
 
+::: warning TODO: Summaries removed from Chinese side (2026-06-25)
+The Chinese restructure commit (`d0d5925`) deleted `docs/summaries/` entirely. These per-part summary pages no longer have a Chinese counterpart. They are kept here as translation reference and should be either removed or re-anchored to the new Part I–VII structure on the next translation pass.
+:::
+
 # Part 1: Practical Foundations - Core Concepts Recap
 
 ## What Did We Learn in This Part?

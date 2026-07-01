@@ -1,6 +1,6 @@
-# 27.2 RLVR → RLHF 演进与音频奖励设计
+# 25.1 RLVR → RLHF 音频奖励设计
 
-> [27.1](./intro) 讲了 Step-Audio 系列的发展。本节聚焦核心工程问题：**音频奖励怎么设计**？文本 RM 直接用偏好对训练，但音频多了韵律、情感、口音等维度，单一 reward 信号无法覆盖。
+> [27.0](./intro) 讲了 Step-Audio 系列的发展。本节聚焦核心工程问题：**音频奖励怎么设计**？文本 RM 直接用偏好对训练，但音频多了韵律、情感、口音等维度，单一 reward 信号无法覆盖。
 
 ## RLVR → RLHF 演进
 
@@ -72,7 +72,7 @@ R1.5 的 RL 损失综合 RLVR 和 RLHF：
 
 $$\mathcal{L}_{\text{RL}} = \underbrace{\mathbb{E}_{\mathcal{D}_{\text{verified}}}\left[R_{\text{verify}}(r, a)\right]}_{\text{客观正确性（RLVR）}} + \lambda \cdot \underbrace{\mathbb{E}_{\mathcal{D}_{\text{pref}}}\left[\log\sigma\left(\beta \log\frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log\frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\right)\right]}_{\text{主观偏好（DPO 形式）}}$$
 
-前项保住客观推理能力（不让 RLHF 把 RLVR 学到的东西遗忘），后项用 DPO 损失（见 [第 19 章 GRPO/DPO](../chapter18_grpo/grpo-family)）对齐主观体验。$\lambda$ 平衡两者——这是音频 RL 的核心超参。
+前项保住客观推理能力（不让 RLHF 把 RLVR 学到的东西遗忘），后项用 DPO 损失（见 [第 17 章 GRPO/DPO](../chapter18_grpo/grpo-family)）对齐主观体验。$\lambda$ 平衡两者——这是音频 RL 的核心超参。
 
 ### 30.3.3 韵律自然度的保留
 

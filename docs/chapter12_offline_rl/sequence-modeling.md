@@ -1,4 +1,4 @@
-# 12.2 Decision Transformer、Trajectory Transformer 与 Diffuser
+# 10.2 Decision Transformer、Trajectory Transformer 与 Diffuser
 
 > [12.1](./intro) 讲了离线 RL 在 Bellman 框架内的三大保守路线——BCQ/CQL/IQL。本节走另一条路：**彻底抛弃 Bellman**，把 RL 重新表述为**条件序列生成**。Decision Transformer 用 GPT 直接建模轨迹，Trajectory Transformer 用 beam search，Diffuser 用扩散模型——三者共同指向 "RL as sequence modeling" 的范式革命。
 

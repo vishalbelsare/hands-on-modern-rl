@@ -1,4 +1,4 @@
-# 11.3 Model-Based RL 与 Dyna、PETS、MBPO
+# 9.3 Model-Based RL 与 Dyna、PETS、MBPO
 
 > [11.2](./td3-sac) 让连续控制的 model-free 算法达到了稳定可用——SAC、TD3 在 MuJoCo 上训练百万步能给出好策略。但百万步对真实机器人是不可承受的：机械臂的电机磨损、电池续航、安全约束让真实环境采样极其昂贵。**Model-Based RL** 的核心思想是：**学一个环境模型** $\hat{P}(s' \mid s, a), \hat{R}(s, a)$，让策略在模型上训练，把样本效率从百万步降到万步。
 

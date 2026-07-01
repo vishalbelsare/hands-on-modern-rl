@@ -1,4 +1,4 @@
-# 13.2 经典对齐失败 与 Sleeper Agents 与 Alignment Faking
+# 28.3 Anthropic 失准研究
 
 这一节我们详细讨论 2024 年两个里程碑式的对齐研究——**Sleeper Agents** 和 **Alignment Faking**。这两个研究第一次用**实证**证明：模型可以隐藏恶意行为，可以假装对齐。
 

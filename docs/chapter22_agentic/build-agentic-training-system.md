@@ -1,4 +1,4 @@
-# 22.7 动手 与 从零实现一个 Agentic RL 训练系统
+# 20.7 动手 与 从零实现一个 Agentic RL 训练系统
 
 在 22.1 节和 22.2 节中，我们讨论了 Agentic RL 的决策框架和环境交互的设计思想；在 22.3 节至 22.5 节中，我们分析了 OpenRLHF、veRL、Relax 等框架的架构。本节将从这些讨论出发，用可运行的代码把这些概念变成具体实现。
 
@@ -577,7 +577,7 @@ class RolloutWorker:
 
 ## Trainer — 编排训练循环
 
-到这一步，我们已经能收集完整的交互轨迹了。但光有轨迹还不够——我们需要把它们变成梯度，更新模型参数。回顾第 9 章，GRPO 的核心思想是对同一个 prompt 采样多条轨迹，在组内做比较来计算 advantage。
+到这一步，我们已经能收集完整的交互轨迹了。但光有轨迹还不够——我们需要把它们变成梯度，更新模型参数。回顾第 7 章，GRPO 的核心思想是对同一个 prompt 采样多条轨迹，在组内做比较来计算 advantage。
 
 那么，谁来负责"采样多条轨迹 → 计算 advantage → 执行梯度更新 → 重复"这个完整的训练循环？这就是 **Trainer** 的职责。
 
@@ -820,7 +820,7 @@ history = trainer.fit(prompts, n_steps=30)
 
 ## 扩展练习
 
-1. **加 PPO clipping**：在 `train_step_with_advantage()` 中加入 PPO 的 clipped surrogate objective（参考第 7 章），对比 REINFORCE 和 PPO 的训练稳定性
+1. **加 PPO clipping**：在 `train_step_with_advantage()` 中加入 PPO 的 clipped surrogate objective（参考第 5 章），对比 REINFORCE 和 PPO 的训练稳定性
 2. **加 loss mask**：在 `_serialize_trajectory()` 中标记哪些 token 是模型生成的、哪些是环境返回的，只在模型生成的 token 上计算 loss
 3. **加更多工具**：在 `SandboxEnv` 中加入搜索工具（mock 版本即可），让模型学会在代码执行和搜索之间做选择
 4. **异步 rollout**：用 `multiprocessing` 把 rollout 和 train 拆到不同进程，用 `Queue` 传递轨迹数据，观察 GPU 利用率的变化

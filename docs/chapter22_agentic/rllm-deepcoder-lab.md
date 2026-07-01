@@ -1,4 +1,4 @@
-# 22.4 动手实验 与 用 rLLM 训练 DeepCoder Agent
+# 20.4 动手实验 与 用 rLLM 训练 DeepCoder Agent
 
 前面几节讨论了 Agentic RL 的概念框架——rollout、信用分配、工具调用、评测体系。现在是动手时间：**用一个工业级框架（rLLM），从头到尾跑通"代码生成 Agent 的 RL 训练"全流程——从数据长什么样，到训练怎么跑，到结果怎么判断好还是不好。**
 
@@ -483,7 +483,7 @@ def deepcoder_evaluator(task, episode):
 有测试失败 → reward = 0.0, is_correct = False
 ```
 
-reward 只有 0 和 1 两个值——没有中间状态。这就是第 9 章讲的 **RLVR（可验证奖励）**：代码要么对要么不对，不需要 Reward Model 来猜。
+reward 只有 0 和 1 两个值——没有中间状态。这就是第 7 章讲的 **RLVR（可验证奖励）**：代码要么对要么不对，不需要 Reward Model 来猜。
 
 ## 跑基线评测——训练前模型有多强？
 
@@ -694,7 +694,7 @@ rllm train deepcoder \
 
 ### 训练过程发生了什么？
 
-GRPO 的训练循环（对应第 9 章的算法）：
+GRPO 的训练循环（对应第 7 章的算法）：
 
 ```text
 对每道题：

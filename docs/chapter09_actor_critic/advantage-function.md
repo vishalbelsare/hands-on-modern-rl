@@ -1,6 +1,6 @@
-# 6.1 优势函数
+# 7.1 优势函数
 
-第 5 章末尾我们发现：减掉基线 $V(s)$ 可以降低策略梯度的方差，而不改变梯度的方向。本节将深入这个关键洞察，引出优势函数——它是连接 Actor 和 Critic 的桥梁。
+第 6 章末尾我们发现：减掉基线 $V(s)$ 可以降低策略梯度的方差，而不改变梯度的方向。本节将深入这个关键洞察，引出优势函数——它是连接 Actor 和 Critic 的桥梁。
 
 ::: tip 本节会用到的前置知识
 
@@ -12,7 +12,7 @@
 
 ## 从基线到优势函数
 
-回忆第 5 章 REINFORCE 的[策略梯度](../chapter08_policy_gradient/reinforce)：
+回忆第 6 章 REINFORCE 的[策略梯度](../chapter08_policy_gradient/reinforce)：
 
 $$\nabla_\theta J \approx \nabla_\theta \log \pi(a|s) \cdot G_t$$
 

@@ -1,6 +1,6 @@
-# 第 21 章 · Constitutional AI 与 RLAIF
+# 第 19 章 · Constitutional AI 与 RLAIF
 
-> [第 15 章 RLHF](../chapter15_rlhf/intro) 把"人类标注偏好 → 奖励模型 → PPO"这条流水线讲通了；[第 17 章 DPO/GRPO](../chapter17_dpo/intro) 进一步把它精简成不需要 RM、不需要 Critic 的形式。但所有这些方法都默认一个前提：**偏好数据来自人类**。当模型能力逼近或超过标注员水平时，这个前提就崩了——人类既标不动（成本和速度），也标不准（在数学、代码、长上下文上判断力不够）。本章回答一个问题：**当人类标注成为对齐瓶颈时，训练信号从哪来？** Anthropic 2022 年的答案是 *Constitutional AI: Harmlessness from AI Feedback*——让 AI 自己当裁判、自己改作文、自己生成偏好对。
+> [第 13 章 RLHF](../chapter15_rlhf/intro) 把"人类标注偏好 → 奖励模型 → PPO"这条流水线讲通了；[第 15 章 DPO/GRPO](../chapter17_dpo/intro) 进一步把它精简成不需要 RM、不需要 Critic 的形式。但所有这些方法都默认一个前提：**偏好数据来自人类**。当模型能力逼近或超过标注员水平时，这个前提就崩了——人类既标不动（成本和速度），也标不准（在数学、代码、长上下文上判断力不够）。本章回答一个问题：**当人类标注成为对齐瓶颈时，训练信号从哪来？** Anthropic 2022 年的答案是 *Constitutional AI: Harmlessness from AI Feedback*——让 AI 自己当裁判、自己改作文、自己生成偏好对。
 
 ## 21.1 Constitutional AI 框架
 
@@ -119,7 +119,7 @@ $$
 R_{\text{RLAIF}}(x, y) = r_\phi(x, y) - \beta \, D_{KL}\big(\pi_\theta(\cdot \mid x) \,\|\, \pi_{\text{ref}}(\cdot \mid x)\big)
 $$
 
-这一步和 [第 7 章 PPO](../chapter10_ppo/intro) 一模一样，KL 系数 $\beta$ 仍然防止策略漂太远。
+这一步和 [第 8 章 PPO](../chapter10_ppo/intro) 一模一样，KL 系数 $\beta$ 仍然防止策略漂太远。
 
 ### RLHF vs RLAIF 与 本质区别
 
@@ -133,7 +133,7 @@ $$
 | 不适合的能力域 | 超出标注员水平的推理                       | "模型本身也不知道答案"的开放问题                   |
 
 ::: warning RLAIF 的能力上限
-RLAIF 的质量受限于 judge 模型本身。在 Claude 2 阶段，让 Claude 2 judge Claude 2 会出现 **self-preference bias**——judge 倾向于选风格上更像自己的回答。当被 judge 的能力超出 judge 时，RLAIF 反而会强化错误答案。这正是 [第 33 章 Reward Hacking](../chapter30_alignment_failures/intro) 重点讨论的"sycophancy"（谄媚）与"reward model over-optimization"问题。
+RLAIF 的质量受限于 judge 模型本身。在 Claude 2 阶段，让 Claude 2 judge Claude 2 会出现 **self-preference bias**——judge 倾向于选风格上更像自己的回答。当被 judge 的能力超出 judge 时，RLAIF 反而会强化错误答案。这正是 [第 28 章 Reward Hacking](../chapter30_alignment_failures/intro) 重点讨论的"sycophancy"（谄媚）与"reward model over-optimization"问题。
 :::
 
 ### 成本对比的粗算
@@ -204,7 +204,7 @@ $$
 \mathcal{L}_{\text{DPO}}(\theta) = -\log \sigma\Big(\beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}\Big)
 $$
 
-关键观察：DPO 不需要显式 RM（[第 17 章证明](../chapter17_dpo/dpo-theory-and-family)），所以**整个流程是 self-contained 的**——模型同时是 generator、judge 和 learner。
+关键观察：DPO 不需要显式 RM（[第 15 章证明](../chapter17_dpo/dpo-theory-and-family)），所以**整个流程是 self-contained 的**——模型同时是 generator、judge 和 learner。
 
 ### 三轮迭代的效果
 

@@ -169,6 +169,7 @@ let outlineObserver = null
 let sidebarObserver = null
 let navigationSyncTimer = null
 let routeLoadingTimer = null
+let routeLoadingFallbackTimer = null
 let zoom = null
 let mermaidViewerDragState = null
 
@@ -320,9 +321,8 @@ function setAppearance(dark) {
 
 function showRouteLoading() {
   window.clearTimeout(routeLoadingTimer)
-  routeLoadingTimer = window.setTimeout(() => {
-    routeLoading.value = true
-  }, 120)
+  window.clearTimeout(routeLoadingFallbackTimer)
+  routeLoading.value = false
 }
 
 function updateSupportQrRatio(event) {
@@ -339,6 +339,7 @@ function openSupportQrViewer(event) {
 
 function hideRouteLoading() {
   window.clearTimeout(routeLoadingTimer)
+  window.clearTimeout(routeLoadingFallbackTimer)
   routeLoading.value = false
 }
 
@@ -894,6 +895,13 @@ watch(fontSize, (next) => {
     localStorage.setItem(FONT_SIZE_STORAGE_KEY, String(normalized))
   }
 })
+
+watch(
+  () => route.path,
+  () => {
+    hideRouteLoading()
+  }
+)
 
 watch(lineHeight, (next) => {
   const normalized = clampLineHeight(next)

@@ -1,4 +1,4 @@
-# 13.4 Scaling 与 Alignment 的关系
+# 28.4 防御机制总结
 
 前面几节我们讨论了对齐失败的具体案例。这一节讨论一个更理论化的问题：**Scaling 与 Alignment 的关系**——模型越大，对齐越难吗？
 
@@ -270,7 +270,7 @@ RLHF 让大模型变得更 sycophantic——这与 [GPT-4o rollback](./modern-in
 - 证明模型的某些性质满足这个定义
 - 提供数学保证
 
-目前还是理论阶段，但形式化 PRM（[第 11 章](../chapter20_prm_search/formal-prm)）的进展让这个方向看到了曙光。
+目前还是理论阶段，但形式化 PRM（[第 9 章](../chapter20_prm_search/formal-prm)）的进展让这个方向看到了曙光。
 
 ## 本章总结
 
@@ -291,6 +291,6 @@ RLHF 让大模型变得更 sycophantic——这与 [GPT-4o rollback](./modern-in
 
 **接下来的章节**：
 
-- [第 12 章 Agentic RL](../chapter22_agentic/intro)——agent 的对齐挑战
-- [第 15 章工业实战](../chapter17_dpo/industrial-post-training)——对齐的工程实践
+- [第 10 章 Agentic RL](../chapter22_agentic/intro)——agent 的对齐挑战
+- [第 13 章工业实战](../chapter17_dpo/industrial-post-training)——对齐的工程实践
 - [附录 安全清单](../appendix_common_pitfalls/)——对齐的工程清单

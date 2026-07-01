@@ -1,4 +1,4 @@
-# 11.5 推理时搜索 与 用 PRM 引导思考树
+# 18.5 推理时搜索
 
 前面三节我们讨论了 PRM 的训练——判别式、生成式、形式化。这一节我们换一个角度：**PRM 在推理时怎么用**。
 
@@ -297,7 +297,7 @@ $$\text{UCB}(n) = Q(n) + c \cdot \sqrt{\frac{\ln N(p)}{N(n)}}$$
 - 训练时轻度搜索（加速收敛）
 - 推理时根据任务难度决定是否搜索
 
-这与 [第 10 章 Test-time Compute Scaling](../chapter19_reasoning/test-time-scaling) 的思想一致——把算力花在哪里，是一个工程权衡。
+这与 [第 8 章 Test-time Compute Scaling](../chapter19_reasoning/test-time-scaling) 的思想一致——把算力花在哪里，是一个工程权衡。
 
 ## 小结
 

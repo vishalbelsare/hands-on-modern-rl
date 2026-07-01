@@ -2,7 +2,7 @@
 title: 12.3 Self-Play
 ---
 
-# 12.3 Self-Play, Self-Evolution, and a Learning Roadmap
+# 10.3 Self-Play, Self-Evolution, and a Learning Roadmap
 
 AlphaGo learned Go from scratch through self-play — no human game records, no expert demonstrations, just a board and a loop of self-competition. This "from zero to superhuman" story is one of RL's most legendary chapters. In 2025–2026, the same idea is being transferred to large language models: **can models continuously evolve through self-play, eventually breaking through the ceiling of human data?**
 

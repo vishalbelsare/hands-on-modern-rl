@@ -2,7 +2,7 @@
 title: 12.2 Model-Based RL
 ---
 
-# 12.2 Model-Based RL: From Model-Free to Model-Based
+# 10.2 Model-Based RL: From Model-Free to Model-Based
 
 <a id="article-start"></a>
 

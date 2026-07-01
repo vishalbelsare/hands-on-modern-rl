@@ -1,10 +1,10 @@
-# 22.7 多智能体协作与 Agent Swarm
+# 20.7 多智能体协作与 Agent Swarm
 
 > [22.6 Code Interpreter RL](./industrial-practice) 训练了**单个** agent 在工具调用循环里完成编程任务。但当任务从"写一个函数"升级到"重构整个代码库 + 跑测试 + 写文档 + 提 PR"，单个 agent 的上下文窗口、注意力带宽、错误恢复能力都会被压垮。**多智能体协作**（multi-agent collaboration）是 agentic RL 在 2025-2026 年的关键扩展：把一个复杂任务拆给多个 agent，每个 agent 专注一个子任务，通过显式通信协议协调。本节讲清楚三件事：(1) LLM-era 多智能体与经典 MARL 的根本差异；(2) 主流协作范式（Orchestrator-Worker、Debate、Swarm）；(3) 多 agent 系统的 RL 训练方法。
 
 ## 从经典 MARL 到 LLM-era 多智能体
 
-[第 14 章 14.2 节](../chapter14_exploration_marl_hierarchical/marl)讲过经典 MARL：CTDE 框架、MADDPG、MAPPO。这些算法处理的是**同构** agent 在**固定**环境里学习**纳什均衡**——例如多个机器人追逃、多智能体 StarCraft 微操。LLM-era 多智能体完全不同：
+[第 12 章 14.2 节](../chapter14_exploration_marl_hierarchical/marl)讲过经典 MARL：CTDE 框架、MADDPG、MAPPO。这些算法处理的是**同构** agent 在**固定**环境里学习**纳什均衡**——例如多个机器人追逃、多智能体 StarCraft 微操。LLM-era 多智能体完全不同：
 
 | 维度         | 经典 MARL            | LLM-era 多智能体                           |
 | ------------ | -------------------- | ------------------------------------------ |
@@ -190,9 +190,9 @@ Advisor 不直接执行任务，只对 Worker 输出做评论。Orchestrator 看
 - SWE-bench Verified：62.4%（介于单 agent 和 Swarm 之间）
 - 平均 token 消耗：52K（约 Swarm 的 1/5）
 
-## 与 [第 32 章 自我博弈](../chapter32_selfplay/self-play-outlook/) 的呼应
+## 与 [第 30 章 自我博弈](../chapter32_selfplay/self-play-outlook/) 的呼应
 
-多智能体协作有一个特殊形态：**多个 agent 是同一个 policy 的不同实例**，互相博弈。这就是 AlphaGo / AlphaZero / Constitutional AI Self-Critique 的核心思想。详见 [第 32 章 自我博弈](../chapter32_selfplay/self-play-outlook/)。
+多智能体协作有一个特殊形态：**多个 agent 是同一个 policy 的不同实例**，互相博弈。这就是 AlphaGo / AlphaZero / Constitutional AI Self-Critique 的核心思想。详见 [第 30 章 自我博弈](../chapter32_selfplay/self-play-outlook/)。
 
 关键区别：
 
@@ -287,4 +287,4 @@ Anthropic 内部数据：多 agent 系统的"连锁错误率"是单 agent 的 2.
 
 LLM-era 多智能体的 RL 训练核心挑战：**信用分配**与**token 成本**。前者决定训练能否收敛，后者决定能否商业化。2026 年主流是 Orchestrator-Worker + 显式归因，Swarm 仍处于研究阶段。
 
-下一章 [第 23 章 代码智能体强化学习](../chapter23_rl_based_swe/intro) 把这套协作框架用在 SWE 任务上——你会看到 SWE-Agent 如何用 Orchestrator-Worker 训练单 agent 代码智能体，DeepSWE 如何用 self-play 训练多 agent 协作开发。
+下一章 [第 21 章 代码智能体强化学习](../chapter23_rl_based_swe/intro) 把这套协作框架用在 SWE 任务上——你会看到 SWE-Agent 如何用 Orchestrator-Worker 训练单 agent 代码智能体，DeepSWE 如何用 self-play 训练多 agent 协作开发。

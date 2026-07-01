@@ -1,4 +1,4 @@
-# 12.3 离线 RL 实验与 LLM 视角
+# 10.3 离线 RL 实验与 LLM 视角
 
 > [12.2](./sequence-modeling) 把 RL 写成序列建模。本节把视角拉回 LLM 时代——你会发现 **DPO 本质上就是离线 RL 的特例**，理解这一点就能解释 LLM 后训练中的许多经验现象。
 
@@ -36,7 +36,7 @@ $$\mathcal{L} = -\mathbb{E}\left[\log \sigma\left(\hat{A}(x, y_w) - \hat{A}(x, y
 
 ### Preference Data 作为离线轨迹数据集
 
-把 LLM 偏好数据集和 [第 12 章](../chapter11_continuous_control/intro) 的 D4RL 离线数据集对比：
+把 LLM 偏好数据集和 [第 10 章](../chapter11_continuous_control/intro) 的 D4RL 离线数据集对比：
 
 | 维度 | D4RL (MuJoCo) | LLM Preference Data |
 |------|---------------|----------------------|
@@ -58,7 +58,7 @@ $$\mathcal{L} = -\mathbb{E}\left[\log \sigma\left(\hat{A}(x, y_w) - \hat{A}(x, y
 
 DT 的思想在 LLM 时代获得了第二次生命。现代 LLM 本身就是序列模型，把 RL 后训练重新表述为"条件序列生成"几乎是自然的：
 
-- **Process Reward Model + Search**（[第 21 章](../chapter20_prm_search/inference-time-search)）：把 reasoning trajectory 当作决策序列，PRM 作为 step-level reward，beam search 类似 Trajectory Transformer
+- **Process Reward Model + Search**（[第 19 章](../chapter20_prm_search/inference-time-search)）：把 reasoning trajectory 当作决策序列，PRM 作为 step-level reward，beam search 类似 Trajectory Transformer
 - **Expert Iteration / STaR**：用当前模型生成 trajectory，过滤高 reward 轨迹，再 SFT——本质是 DT 的 iterative 版本
 - **In-Context RL（Algorithm Distillation, Laskin et al. 2022）**：把整个 RL 学习历史作为 prompt，让 transformer 学会"在 context 里做 RL"——直接继承 DT 的"RL as sequence modeling" 哲学
 
@@ -72,7 +72,7 @@ graph LR
 ```
 
 ::: tip 一句话总结
-**离线 RL 是 LLM 后训练的母学科**。CQL/IQL 处理外推误差的智慧，DPO 用 KL 约束 + 偏好学习继承了下来；Decision Transformer 把 RL 重写为序列建模的洞察，让 RL 训练栈和 LLM 训练栈合二为一。理解本章，是理解 [第 13 章 模仿学习与反向 RL](../chapter13_imitation_meta_rl/intro)、[第 21 章 PRM 搜索](../chapter20_prm_search/inference-time-search)、以及 [第 26 章 Code World Model](../chapter23_rl_based_swe/world-model-and-deep-swe) 的前提。
+**离线 RL 是 LLM 后训练的母学科**。CQL/IQL 处理外推误差的智慧，DPO 用 KL 约束 + 偏好学习继承了下来；Decision Transformer 把 RL 重写为序列建模的洞察，让 RL 训练栈和 LLM 训练栈合二为一。理解本章，是理解 [第 11 章 模仿学习与反向 RL](../chapter13_imitation_meta_rl/intro)、[第 19 章 PRM 搜索](../chapter20_prm_search/inference-time-search)、以及 [第 24 章 Code World Model](../chapter23_rl_based_swe/world-model-and-deep-swe) 的前提。
 :::
 
 ## 本章总结
@@ -83,7 +83,7 @@ graph LR
 4. **Trajectory Transformer + Diffuser** 进一步把"序列建模"推到联合轨迹分布建模与扩散生成
 5. **DPO 本质上是离线 RL**：偏好数据集 = 离线轨迹数据集，KL 约束 = 行为策略约束，隐式 Q-Learning = DPO 损失
 
-下一章 [第 13 章 模仿学习、反向 RL 与元 RL](../chapter13_imitation_meta_rl/intro) 我们处理另一类"无 reward signal" 的设定——只能观察专家行为，如何反推 reward 或策略；这与本章的离线 RL、以及 LLM 的 SFT/模仿学习有深厚联系。
+下一章 [第 11 章 模仿学习、反向 RL 与元 RL](../chapter13_imitation_meta_rl/intro) 我们处理另一类"无 reward signal" 的设定——只能观察专家行为，如何反推 reward 或策略；这与本章的离线 RL、以及 LLM 的 SFT/模仿学习有深厚联系。
 
 ## 延伸阅读
 

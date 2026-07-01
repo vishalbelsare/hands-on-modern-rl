@@ -1,4 +1,4 @@
-# 8.5 PPO-RLHF 与 按奖励练习
+# 13.5 PPO-RLHF 与 按奖励练习
 
 ## 本节导读
 
@@ -143,7 +143,7 @@ RM 给了正分 $R = +1.5$。
 | 学习效率 | 低：大量 token 被平均更新 | 高：关键 token 获得更强的梯度信号 |
 | 典型方法 | REINFORCE                 | PPO、GRPO                         |
 
-**粒度越细，模型越能区分哪些决策真正重要，学习效率越高。** 后面 GRPO（第 9 章）和 Agentic RL（第 14 章）会进一步利用这一特性，在更长、更复杂的轨迹上做细粒度信用分配。
+**粒度越细，模型越能区分哪些决策真正重要，学习效率越高。** 后面 GRPO（第 7 章）和 Agentic RL（第 12 章）会进一步利用这一特性，在更长、更复杂的轨迹上做细粒度信用分配。
 
 #### 目前论文的共识
 
@@ -200,7 +200,7 @@ $$
 - **DeepSeekMath** (Shao et al., 2024) — [arxiv.org/abs/2402.03300](https://arxiv.org/abs/2402.03300)。提出 GRPO，在数学推理场景中分析了 token 级信用分配对长推理链的重要性。
 - **TDPO** (Zeng et al., 2024) — [arxiv.org/abs/2404.11999](https://arxiv.org/abs/2404.11999)。Token-level Direct Preference Optimization，直接在 token 级做 DPO。论文 Section 3 对 token 级与序列级损失做了明确的数学对比。
 - **ReMax** (Li et al., 2024) — [arxiv.org/abs/2310.10505](https://arxiv.org/abs/2310.10505)。讨论 token 级与序列级信用分配的差异，提出基于 REINFORCE 的改进方法。
-- **Sutton & Barto, _Reinforcement Learning: An Introduction_** 第 13 章 — [incompleteideas.net/book](http://incompleteideas.net/book/the-book.html)。策略梯度的逐时间步（per time-step）推导，是 token 级策略梯度的理论基础。
+- **Sutton & Barto, _Reinforcement Learning: An Introduction_** 第 11 章 — [incompleteideas.net/book](http://incompleteideas.net/book/the-book.html)。策略梯度的逐时间步（per time-step）推导，是 token 级策略梯度的理论基础。
   :::
 
 ## PPO-RLHF 单步更新
@@ -299,7 +299,7 @@ $$
 | $A_t>0$ | 提高该 token 概率 | 提高到 $1+\epsilon$ 附近就别再猛推 |
 | $A_t<0$ | 降低该 token 概率 | 降到 $1-\epsilon$ 附近就别再猛压   |
 
-这和第 7 章 PPO 的直觉完全一致。区别只是：动作从“LunarLander 的推力方向”变成了“词表里的某个 token”。
+这和第 5 章 PPO 的直觉完全一致。区别只是：动作从“LunarLander 的推力方向”变成了“词表里的某个 token”。
 
 ### 一个极简 PPO 数值例子
 

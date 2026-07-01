@@ -1,4 +1,4 @@
-# 10.2 Test-time Compute Scaling
+# 17.3 Test-time Compute Scaling
 
 上一节我们看到 o1/o3/o4 在硬任务上远超传统 LLM。但 o1 的参数量并不比 GPT-4o 大，训练算力也不显著超过 GPT-4o。**那它为什么这么强？**
 
@@ -65,7 +65,7 @@ best = candidates[argmax(scores)]
 **缺点**：
 
 - 难题效果差——如果 base model 的单次解题概率 < 1/N，N 个采样也大概率全错
-- 需要 verifier（这是 [第 11 章 PRM](../chapter18_grpo/grpo-family) 的核心话题）
+- 需要 verifier（这是 [第 9 章 PRM](../chapter18_grpo/grpo-family) 的核心话题）
 
 ### 顺序修订（Sequential Revision）
 
@@ -91,7 +91,7 @@ for _ in range(K):
 
 ### 树搜索（Tree Search）
 
-更复杂的方式是树搜索——把推理过程展开成一棵树，每个节点是一个中间推理步骤，用搜索算法（MCTS、beam search）找最优路径。这是 [第 11 章 PRM 与推理时搜索](../chapter18_grpo/grpo-family) 的核心内容，这里先不展开。
+更复杂的方式是树搜索——把推理过程展开成一棵树，每个节点是一个中间推理步骤，用搜索算法（MCTS、beam search）找最优路径。这是 [第 9 章 PRM 与推理时搜索](../chapter18_grpo/grpo-family) 的核心内容，这里先不展开。
 
 ## 10.2.4 Gemini 3 Pro Deep Think 与 并行推理的旗舰
 

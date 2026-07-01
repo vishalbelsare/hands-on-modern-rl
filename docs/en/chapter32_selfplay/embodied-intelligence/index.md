@@ -2,7 +2,7 @@
 title: 12.1 Embodied Intelligence
 ---
 
-# 12.1 Embodied Intelligence -- Bringing RL into the Physical World
+# 10.1 Embodied Intelligence -- Bringing RL into the Physical World
 
 In the previous eight chapters, our agents lived in the "digital world" -- CartPole's inverted pendulum, Atari's pixels, LLM's tokens. These settings share a common property: trial-and-error is nearly free, `env.reset()` completes in milliseconds, and the environment is fully controllable. But the ultimate goal of RL goes far beyond this -- we want agents that can enter the real world, control robots, drive cars, and complete complex tasks in factories and hospitals.
 

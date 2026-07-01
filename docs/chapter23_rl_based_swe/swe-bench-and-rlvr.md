@@ -1,4 +1,4 @@
-# 23.1 SWE-bench 与 RL-based SWE 范式
+# 21.1 SWE-bench 与 RL-based SWE 范式
 
 这一节我们建立 SWE-RL 的基础概念——什么是 SWE-bench、为什么 SWE 是 RLVR 的理想战场、SWE-RL 与传统 code generation 的本质区别。
 
@@ -70,7 +70,7 @@ SWE-bench Verified（高质量子集，500 题）的 SOTA 表现：
 
 ## 12.1.2 为什么 SWE 是 RLVR 的理想战场
 
-回顾 [第 9 章 RLVR](../chapter18_grpo/rlvr)——RLVR 的核心思想是**用规则验证替代 RM**。RLVR 需要三个条件：
+回顾 [第 7 章 RLVR](../chapter18_grpo/rlvr)——RLVR 的核心思想是**用规则验证替代 RM**。RLVR 需要三个条件：
 
 1. **任务有明确答案**：对就是对，错就是错
 2. **验证可以自动化**：不需要人工判断

@@ -1,4 +1,4 @@
-# 11.7 Qwen3-VL 的推理反思与音频 RL
+# 24.2 视觉反思 RL
 
 这一节讨论两个 2025 年的多模态 RL 进展：
 
@@ -248,7 +248,7 @@ Step-Audio-R1 的工业能力：
 
 ### Embodied AI 的成熟
 
-VLA + world model + RL = 真正的通用机器人。这是 [第 14 章 embodied intelligence](../chapter28_vla/embodied-intelligence/) 的核心议题。
+VLA + world model + RL = 真正的通用机器人。这是 [第 12 章 embodied intelligence](../chapter28_vla/embodied-intelligence/) 的核心议题。
 
 ## 小结
 

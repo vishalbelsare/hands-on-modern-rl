@@ -1,4 +1,4 @@
-# 第 5 章 与 Policy-Based 方法——策略梯度与 REINFORCE
+# 第 6 章 · 策略梯度方法
 
 第 4 章走了路线一——先学 $Q(s,a)$ 给每个动作打分，再选分数最高的（回顾：[Q(s,a) 与贪心策略](../chapter03_mdp/value-q)）。DQN 在 CartPole 和 Atari 上效果很好，但它有一个根本性的局限：**只能处理有限个离散动作。**
 

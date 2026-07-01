@@ -1,4 +1,4 @@
-# 6.4 动手 与 Pendulum 摆杆平衡
+# 7.3 Pendulum 实验
 
 > **本节目标**：用 A2C 训练 `Pendulum-v1`，理解连续动作 Actor-Critic 为什么要输出高斯分布，以及 Critic 如何帮助 Actor 在连续控制中稳定学习。
 
@@ -187,7 +187,7 @@ python code/chapter09_actor_critic/render_pendulum.py \
 
 ## 6.4.6 实验结果 与 先学会摆上去，再学会稳住
 
-一次 300k 时间步训练的结果如下。由于 A2C 仍然是 on-policy Actor-Critic，数据用完即丢，单次实验波动会比后面第 7 章的 PPO 更明显；我们重点看滑动平均的趋势，而不是某一个回合的高低。
+一次 300k 时间步训练的结果如下。由于 A2C 仍然是 on-policy Actor-Critic，数据用完即丢，单次实验波动会比后面第 5 章的 PPO 更明显；我们重点看滑动平均的趋势，而不是某一个回合的高低。
 
 ![A2C Pendulum-v1 回放：策略能把摆杆摆到上方附近，但稳定性仍有限](./images/pendulum_actor_critic.gif)
 

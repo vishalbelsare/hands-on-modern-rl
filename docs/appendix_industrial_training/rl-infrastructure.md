@@ -1,4 +1,4 @@
-# B.1 RL 训练系统底座 与 Rollout、Buffer 与分布式
+# A.2 RL 训练系统底座 与 Rollout、Buffer 与分布式
 
 前面章节更多关注算法：策略梯度怎么写，PPO/GRPO 怎么更新，reward 从哪里来。进入工业训练以后，问题会多一层：**训练样本不是躺在磁盘里的固定数据，而是训练过程中被当前策略不断生产出来的。**
 
@@ -198,7 +198,7 @@ OpenRLHF 常见组合是 Ray + vLLM + DeepSpeed；veRL 同时支持 vLLM、SGLan
 
 ### 1.6 训练/编排层 与 TRL 的单机研究原型
 
-TRL（Transformer Reinforcement Learning）是 HuggingFace 生态内的 RL 训练库 [^trl]。前面各章的 DPO（第 2 章）和 GRPO（第 9 章）实验都用 TRL 完成。它的定位和前面三个框架不同：TRL 不是分布式编排系统——它不做 Ray 调度，不做 rollout engine 与 trainer 的进程分离，也不做跨 GPU 的 weight sync。它把 DPO/PPO/GRPO/REINFORCE++ 的训练循环封装成 `DPOTrainer`、`GRPOTrainer` 等 Trainer 类，在单机或少量 GPU 上运行 [^trl]。
+TRL（Transformer Reinforcement Learning）是 HuggingFace 生态内的 RL 训练库 [^trl]。前面各章的 DPO（第 2 章）和 GRPO（第 7 章）实验都用 TRL 完成。它的定位和前面三个框架不同：TRL 不是分布式编排系统——它不做 Ray 调度，不做 rollout engine 与 trainer 的进程分离，也不做跨 GPU 的 weight sync。它把 DPO/PPO/GRPO/REINFORCE++ 的训练循环封装成 `DPOTrainer`、`GRPOTrainer` 等 Trainer 类，在单机或少量 GPU 上运行 [^trl]。
 
 这意味着 TRL 的内部数据流比 OpenRLHF/veRL/slime 简单得多：
 

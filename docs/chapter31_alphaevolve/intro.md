@@ -1,4 +1,4 @@
-# 12.6 LLM 驱动的科学发现 与 AlphaEvolve、Genie 3 与 Titans
+# 第 29 章 · 进化式 LLM 搜索与生成式世界模型
 
 [前面几节](./intro) 我们讨论了 RL 的传统前沿——embodied intelligence、self-play、multi-agent。这一节我们看一个全新的方向：**LLM 驱动的科学发现**。
 

@@ -2,7 +2,7 @@
 title: 8.8 Extended Practice
 ---
 
-# 8.8 Extended Practice: Reward Hacking and the Data Flywheel
+# 6.8 Extended Practice: Reward Hacking and the Data Flywheel
 
 ## Reading Guide
 

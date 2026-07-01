@@ -1,4 +1,4 @@
-# 第 36 章 · 分布式 RL 训练系统
+# 14.4 分布式同步、异步与 MoE 训练
 
 > [附录 B.1 RL 训练系统](../appendix_industrial_training/rl-infrastructure) 已经讲了基础——采样、异步、分布式并行。本章把视角提升到**框架级架构**和**前沿工业实践**：veRL 如何用 HybridFlow 统一编排多模型、AReaL/LlamaRL 如何用纯异步打破生成-训练壁垒、DeepSeek V3 的 DualPipe 如何在 MoE 上做流水线并行、万卡集群如何 profile 与调优。
 
@@ -140,7 +140,7 @@ veRL 是第一个把这些维度都做成可配置的框架。DeepSpeed-Chat、O
 | **推理后端** | vLLM/SGLang | vLLM | TRT-LLM | HF generate |
 | **典型规模** | 8-1024 GPU | 8-256 GPU | 8-512 GPU | 1-8 GPU |
 
-[第 9 章 GRPO 实践](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) 用的就是 veRL。
+[第 7 章 GRPO 实践](../chapter09_grpo_rlvr/grpo-practice-and-mechanism) 用的就是 veRL。
 
 ## 36.2 OpenRLHF / NeMo-Aligner / TRL 对比
 
@@ -413,7 +413,7 @@ class CheckpointedBlock(nn.Module):
 | ZeRO-3 + Gradient Checkpointing | 30 GB | 1× |
 | ZeRO-3 + Gradient Checkpointing + LoRA | 8 GB | 1.2× |
 
-LoRA（[第 8 章](../chapter08_rlhf/industrial-post-training)）只训少量参数，显存需求大幅降低。工业级 70B RL 训练通常用 LoRA + FSDP。
+LoRA（[第 6 章](../chapter08_rlhf/industrial-post-training)）只训少量参数，显存需求大幅降低。工业级 70B RL 训练通常用 LoRA + FSDP。
 
 ## 36.5 异步 RL 训练
 
@@ -868,7 +868,7 @@ def monitor_expert_balance(model):
 6. **MoE + RL** 需要 GSPO、Expert Balancing、DualPipe、Best-Fit Packing 协同优化
 7. **万卡集群** 是工程极限——故障常态、通信瓶颈、监控告警、数据 pipeline
 
-[第 17 章 LLM RL 工业实战](../chapter09_alignment/industrial-post-training) 会从产品视角再讲一遍这些技术如何落地——这一章是工程视角。
+[第 15 章 LLM RL 工业实战](../chapter09_alignment/industrial-post-training) 会从产品视角再讲一遍这些技术如何落地——这一章是工程视角。
 
 ## 延伸阅读
 

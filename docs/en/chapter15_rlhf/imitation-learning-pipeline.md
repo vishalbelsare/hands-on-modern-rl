@@ -2,7 +2,7 @@
 title: 8.3 SFT Instruction Tuning
 ---
 
-# 8.3 SFT: Teaching Models to Follow Instructions
+# 6.3 SFT: Teaching Models to Follow Instructions
 
 ## Reading Guide
 

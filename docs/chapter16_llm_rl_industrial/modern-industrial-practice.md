@@ -1,4 +1,4 @@
-# 9.9 现代工业实战 与 GLM-4.6、Llama 4 与 MuonClip
+# 14.3 优化器与训练稳定性
 
 [9.8 节工业实践](./industrial-post-training) 讨论了 2024-2025 年的主流工业方案——MiniMax、Qwen、Kimi、Seed、DeepSeek。这一节我们补充几个 2025-2026 年的最新工业实践：
 
@@ -342,6 +342,77 @@ MuonClip 是训练**超大规模 LLM**的关键工具：
 - 2026 年可能下降到 $10M（更优算法 + 更便宜算力）
 - 这让小团队也能参与 SOTA 研究
 
+## 训推不一致：LLM-RL 训练稳定性的隐藏杀手
+
+前面讨论的 GLM-4.6、Llama 4、MuonClip 等方法都在解决"显式"的训练不稳定问题——loss spike、梯度爆炸、KV 崩塌。但 LLM-RL 中还有一个**被长期忽视的隐藏杀手**：**训推不一致（Training-Inference Mismatch）**。
+
+严格来说，训推不一致本身并不是大模型独有的问题——任何 RL 系统中，只要采样策略和待优化策略之间存在漂移，就都会产生类似的分布偏差。AlphaGo、Atari DQN 时代就已经有了策略滞后（Policy Lag）导致训练不稳定的经验。但这个问题**在大模型 RL 的工程实现中被急剧放大了**，因为在 LLM-RL 系统中，采样和训练使用的是完全不同的引擎和精度，导致了一个根本性的撕裂。
+
+### 问题根源：$\pi_{\text{rollout}}$ 与 $\pi_{\text{old}}$ 不是同一个策略
+
+> **"When Speed Kills Stability: Demystifying RL Collapse from the Training-Inference Mismatch"**
+> _(Richard Li et al., 2025)_
+
+在绝大多数 LLM-RL 实现中，$\pi_{\text{rollout}}$（负责采样数据的推理策略）和 $\pi_{\text{old}}$（训练框架里记录的"旧策略"）**根本就不是同一个策略**：
+
+- **推理侧**（生成 rollout 数据）：vLLM / SGLang，FP8/BF16 精度，KV Cache 优化
+- **训练侧**（计算 log prob 和梯度）：FSDP/Megatron，BF16/FP32 精度，激活重计算
+
+同一个模型参数在不同的精度、不同的计算图下，输出的 log-probability **天然就不一样**。你以为行为策略 $\mu$ 等于目标策略 $\pi_\theta$，实际上 $\mu \approx \pi_\theta$ 里的那个"约等于"可能已经偏离了几十个百分点。
+
+### 精度是首要嫌疑人
+
+> **"Defeating the Training-Inference Mismatch via FP16"**
+> _(Qi et al., 2025)_
+
+这篇论文把根因追到了浮点精度。BF16 的尾数位太少，在 token 级别的 log-probability 计算中引入了系统性舍入误差。而仅仅把精度切回 FP16，这个偏差就几乎消失了——几行代码解决了 LLM-RL 最令人头疼的训练崩溃。
+
+> **"Taming the Tail: Stable LLM Reinforcement Learning via Dynamic Vocabulary Pruning"**
+> _(arXiv 2512.23087, 2025)_
+
+这篇论文进一步揭示训推不一致的**非对称性**：偏差与 $(1-p)$ 成正比——高频 token 误差微乎其微，但长尾低频 token 会产生系统性偏差，在梯度估计中持续累积，最终导致崩溃。
+
+> **"Stabilizing Reinforcement Learning with LLMs: Formulation and Practices"**
+> _(Zheng et al., Qwen Team, arXiv 2512.01374, 2025)_
+
+阿里 Qwen 团队提出了统一的理论框架：token-level 的 REINFORCE 目标本质上是对序列级奖励的**一阶近似**，而这个近似成立需要两个前提——**(1) 训推一致**，**(2) 策略不过时**。一旦训推不一致成立，一阶近似就失效了。
+
+### 与 PPO Clipping 的关系
+
+读者可能会问：这跟 PPO 有什么关系？答案是：**PPO 的 Clipping 机制就是对训推不一致的一种"防御术"，但它只能防住一半**。
+
+PPO 的核心公式是：
+
+$$
+\mathcal{L}^{\text{CLIP}} = \mathbb{E}\left[\min\left( r_t(\theta) \hat{A}_t,\ \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right)\right]
+$$
+
+其中 $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\text{old}}(a_t|s_t)}$ 是重要性采样比率。但 PPO 的 Clipping 有一个默认的前提假设——**分母 $\pi_{\text{old}}$ 确实是"采样时真正执行的那个策略"**。
+
+在经典 RL 中，采样的进程和训练的进程是同一个 Python 进程，$\pi_{\text{old}}$ 就是采样那一瞬间保存下来的网络权重。但在 LLM-RL 中：
+
+- $\pi_{\text{rollout}}$：vLLM 引擎在 FP8 下采样时**真实生效的策略**
+- $\pi_{\text{old}}$：训练框架事后用 BF16/FP32 重新算出来的"你以为采样时用的策略"
+
+这两个**本来就不是同一个策略**。重要性采样比率 $r_t$ 的**分母本身就是有偏的**——PPO 的 Clipping 在试图纠正优化导致的漂移，但它没有机制去纠正推理引擎和训练引擎之间的不一致。
+
+打个比方：PPO 的 Clipping 保证了你**从旧策略出发不会走太远**，但它没保证"旧策略"那张地图本身是准的。训推不一致意味着**地图一开始就有偏差**，Clipping 发现不了这个问题。
+
+### 工业界的主流修复路线
+
+围绕训推不一致的修复方案，前沿工作大致沿着几条线展开：
+
+- **精度修复**：FP16/BF16 替代 FP8 做 Rollout，减少 $\pi_{\text{rollout}}$ 和 $\pi_{\text{old}}$ 之间的数值偏差（Qi et al., 2025）；也有工作反过来压低训练端精度——FP8-RL 在 veRL 框架中实现了 W8A8 全栈低精度训练，配合重要性采样纠正，Rollout 吞吐提升 44% 同时匹配 BF16 基线（Qiu et al., arXiv 2601.18150）。
+- **重要性采样（IS）纠正**：既然 $\pi_{\text{rollout}} \neq \pi_{\text{old}}$，那就显式引入重要性权重来纠正分布偏移。Truncated IS（TIS）是最直接的做法，剪掉极端的 IS 比率避免梯度爆炸（Yao et al., NeurIPS 2025）；更新的工作是 MinPRO（Lei et al., arXiv 2601.22718），用前缀内最小 token 级比率替代累积乘积，在 Off-policy 漂移较大时更稳定。
+- **剪枝长尾 token**：训推不一致集中在低概率区域，直接剔除极端长尾 token 可以从源头消除最大偏差源（"Taming the Tail", arXiv 2512.23087）。
+- **MoE 路由回放**：推理时的 Expert 路由与训练时天然不同，R3（Rollout Routing Replay）在训练时回放推理的路由分布，解决了 MoE-RL 独有的训推不一致放大效应（Zheng et al., arXiv 2512.01374）。
+- **优化视角**：将训推不一致视为动态优化问题，通过响应长度激增等信号触发学习率调度（Zhang et al., arXiv 2602.01826）。
+- **工程侧回滚纠正**：在训练前用当前训练引擎重新计算 Rollout 策略的 log-probability，暴力对齐 $\pi_{\text{rollout}}$ 和 $\pi_{\text{old}}$——成本高但最可靠。
+
+### 与现实和解
+
+这些论文共同指向一个结论：在 LLM-RL 的工程实践中，不存在"纯粹"的 On-policy。我们能做到的只是**把 $\mu$ 和 $\pi_\theta$ 的差距控制在可接受范围内**——PPO 的 Clipping 是一种控制，FP16 是一种控制，R3 路由回放也是一种控制。[第 4 章算法分类](../chapter03_mdp/algorithm-taxonomy)里讲的 On/Off-policy 理论是干净的二值分类，而工程现实是一个**连续的光谱**——理论上的 On-policy，实践中总是带着一点 Off-policy 的味道。
+
 ## 小结
 
 现代 LLM RL 工业实践的核心趋势：
@@ -355,6 +426,6 @@ MuonClip 是训练**超大规模 LLM**的关键工具：
 
 接下来：
 
-- [第 10 章 Reasoning Models](../chapter19_reasoning/intro)——推理模型的详细讨论
-- [第 11 章 PRM](../chapter20_prm_search/intro)——过程奖励的工业实践
-- [第 12 章 RL-based SWE](../chapter23_rl_based_swe/intro)——代码 agent 的训练
+- [第 8 章 Reasoning Models](../chapter19_reasoning/intro)——推理模型的详细讨论
+- [第 9 章 PRM](../chapter20_prm_search/intro)——过程奖励的工业实践
+- [第 10 章 RL-based SWE](../chapter23_rl_based_swe/intro)——代码 agent 的训练

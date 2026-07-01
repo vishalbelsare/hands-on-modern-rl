@@ -1,4 +1,4 @@
-# 9.5 RLVR 与 可验证奖励强化学习
+# 16.3 RLVR 可验证奖励
 
 在 9.3 节和 9.4 节中，我们看到 GRPO 如何在策略端省掉 Critic、DAPO 如何让纯 RL 不依赖 SFT。它们都有一个隐含前提：**奖励信号是可靠的**。在数学和代码领域，这个前提自然成立（答对就是答对）。RLVR（Reinforcement Learning with Verifiable Rewards）把这个前提正式化成了一个范式：**在那些有客观答案的领域，不需要训练 RM，直接用规则验证就行**。
 
@@ -359,4 +359,4 @@ RLVR 不是万能的，它有几个重要的局限：
 
 ---
 
-GRPO 在策略端省掉了 Critic，RLVR 在奖励端省掉了 RM。这两者结合，把 RL 训练的复杂度压缩到了极致。但 RL 的故事并没有结束——更激动人心的方向是 RL Scaling 和 Test-time Scaling。让我们在[第 16 章](../chapter32_selfplay/rl-scaling-outlook)看看这些前沿方向——RL Scaling 与未来展望。
+GRPO 在策略端省掉了 Critic，RLVR 在奖励端省掉了 RM。这两者结合，把 RL 训练的复杂度压缩到了极致。但 RL 的故事并没有结束——更激动人心的方向是 RL Scaling 和 Test-time Scaling。让我们在[第 14 章](../chapter32_selfplay/rl-scaling-outlook)看看这些前沿方向——RL Scaling 与未来展望。

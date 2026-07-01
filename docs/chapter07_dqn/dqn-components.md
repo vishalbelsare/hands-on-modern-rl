@@ -1,4 +1,4 @@
-# 4.2 DQN 的结构 与 Q 网络、经验回放与目标网络
+# 5.3 Distributional RL
 
 ## 本节导读
 

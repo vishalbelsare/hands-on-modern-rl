@@ -1,4 +1,4 @@
-# E.1.4 收敛性、特征值与信任域
+# D.1.4 收敛性、特征值与信任域
 
 > **前置知识**：[E.1.2 贝尔曼矩阵形式](./linear-algebra-bellman)——需了解贝尔曼方程的矩阵形式 $\boldsymbol{v} = \boldsymbol{r} + \gamma P\boldsymbol{v}$。[E.1.3 点积与范数](./linear-algebra-function-approx)——需了解 L2 范数的定义。
 

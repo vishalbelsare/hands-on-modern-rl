@@ -1,6 +1,6 @@
-# 第 17 章 · LLM RL 工业实战
+# 第 14 章 · 大模型 RL 工业实战
 
-[第 16 章 RLHF](../chapter15_rlhf/intro) 给出了对齐训练的完整闭环：Reward Model 训练、PPO 主循环、KL 约束、评测方法。那里的实验跑在 7B 模型、单机 8 卡上。但当训练对象换成 671B 的 MoE、上下文拉到 128K、rollout 跑在千卡集群上时，每一处工程细节都会决定训练能否收敛。本章把视角从"算法层面"提升到"工业系统层面"——讲清训练框架选型、奖励信号设计、训练成本核算和工业面试里反复出现的核心推导。
+[第 13 章 RLHF](../chapter15_rlhf/intro) 给出了对齐训练的完整闭环：Reward Model 训练、PPO 主循环、KL 约束、评测方法。那里的实验跑在 7B 模型、单机 8 卡上。但当训练对象换成 671B 的 MoE、上下文拉到 128K、rollout 跑在千卡集群上时，每一处工程细节都会决定训练能否收敛。本章把视角从"算法层面"提升到"工业系统层面"——讲清训练框架选型、奖励信号设计、训练成本核算和工业面试里反复出现的核心推导。
 
 为了保持章节连贯，本章把同一主题的不同侧面分散到四个文件，本文件覆盖 17.1、17.3、17.5、17.7 四节。其余三节按下表跳转：
 
@@ -44,7 +44,7 @@ flowchart TB
 
 veRL 的工程亮点是把训练栈和推理栈解耦：Actor 用 FSDP/Megatron 训练，Rollout 用 vLLM 推理，二者通过权重同步接口 `sync_weights` 衔接。这种解耦让 vLLM 的 PagedAttention、Continuous Batching、Tensor Parallelism 等推理优化能直接接入 RL 训练，rollout 吞吐比朴素 HuggingFace 生成高 5-10 倍。
 
-veRL 是 Qwen3、DeepSeek-R1、Llama 4、Mistral 等开源训练脚本的事实选择。详细架构参考 [第 36 章 36.1 veRL 架构深度解析](../chapter36_distributed_rl_training/intro)。
+veRL 是 Qwen3、DeepSeek-R1、Llama 4、Mistral 等开源训练脚本的事实选择。详细架构参考 [第 14 章 16.4 分布式同步、异步与 MoE 训练](./distributed-sync)。
 
 #### OpenRLHF
 
@@ -357,7 +357,7 @@ $$J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[\sum_t \gamma^t r_t\right]$
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\left[\nabla_\theta \log \pi_\theta(\tau) \cdot R(\tau)\right] = \mathbb{E}\left[\sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot G_t\right]$$
 
-其中 $G_t = \sum_{t' \geq t} \gamma^{t'-t} r_{t'}$ 是 return。详细推导见 [第 5 章 REINFORCE](../chapter08_policy_gradient/reinforce)。
+其中 $G_t = \sum_{t' \geq t} \gamma^{t'-t} r_{t'}$ 是 return。详细推导见 [第 6 章 REINFORCE](../chapter08_policy_gradient/reinforce)。
 
 #### 第 2 步 与 REINFORCE 的方差问题
 
@@ -373,7 +373,7 @@ REINFORCE 和 vanilla PG 有个工程问题：步长太大策略就崩溃。TRPO
 
 $$\max_\theta \; \mathbb{E}\left[\frac{\pi_\theta(a_t \mid s_t)}{\pi_{\theta_{\text{old}}}(a_t \mid s_t)} A_t\right] \quad \text{s.t.} \quad \bar{D}_{\text{KL}}(\pi_{\theta_{\text{old}}} \| \pi_\theta) \leq \delta$$
 
-TRPO 用共轭梯度法 + line search 求解这个约束优化，工程复杂。详细推导见 [第 7 章 PPO](../chapter10_ppo/intro)。
+TRPO 用共轭梯度法 + line search 求解这个约束优化，工程复杂。详细推导见 [第 8 章 PPO](../chapter10_ppo/intro)。
 
 #### 第 4 步 与 PPO 的 clip 近似
 
@@ -431,7 +431,7 @@ $$P(o_w \succ o_l \mid q) = \sigma\left(\beta \log \frac{\pi^*(o_w \mid q)}{\pi_
 
 $$\mathcal{L}_{\text{DPO}} = -\mathbb{E}\left[\log \sigma\left(\beta \log \frac{\pi_\theta(o_w \mid q)}{\pi_{\text{ref}}(o_w \mid q)} - \beta \log \frac{\pi_\theta(o_l \mid q)}{\pi_{\text{ref}}(o_l \mid q)}\right)\right]$$
 
-详细推导见 [第 18 章 DPO 入门](../chapter17_dpo/dpo-theory-and-family)。
+详细推导见 [第 15 章 DPO 推导](../chapter17_dpo/intro)。
 
 #### DPO 家族对比
 
@@ -580,7 +580,7 @@ $$\text{成本} = 3300 \times 2 = \$6,600$$
 
 ## 本章总结
 
-第 17 章把视角从算法层面提升到工业系统层面：
+第 14 章把视角从算法层面提升到工业系统层面：
 
 1. **训练框架对比**（17.1）：veRL、OpenRLHF、TRL、NeMo-Aligner 同步阵营 vs AReaL、AgentRL、SLIME、ROLL、LlamaRL 异步阵营。同步框架适合短 rollout 的 RLHF/GRPO；异步框架适合长 rollout 的 Agentic RL。
 2. **现代后训练流水线**（[17.2](../chapter17_dpo/industrial-post-training)）：cold-start SFT → reasoning RL → agentic RL → general preference 回填，是 2025 年工业界的事实范式。
@@ -592,7 +592,7 @@ $$\text{成本} = 3300 \times 2 = \$6,600$$
 
 这一章的真正价值不在于记住每个框架的细节——而在于建立**系统性判断力**：看到一个新模型或新论文，能立刻判断它用了什么训练栈、什么奖励设计、成本量级、训练稳定性挑战。这种判断力是从"读论文"到"能动手做工业级 RL"的关键一步。
 
-下一章 [第 18 章 DPO 家族](../chapter17_dpo/dpo-theory-and-family) 深入推导 DPO 及其变体；[第 36 章 分布式 RL 训练系统](../chapter36_distributed_rl_training/intro) 从系统架构层面解析 veRL/AReaL/LlamaRL 的工程设计。
+下一章 [第 15 章 DPO 家族](../chapter17_dpo/dpo-theory-and-family) 深入推导 DPO 及其变体；[第 14 章 16.4 分布式训练](./distributed-sync) 从系统架构层面解析 veRL/AReaL/LlamaRL 的工程设计。
 
 ## 延伸阅读
 

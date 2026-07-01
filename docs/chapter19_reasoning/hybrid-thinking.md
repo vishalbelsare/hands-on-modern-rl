@@ -1,4 +1,4 @@
-# 10.3 Hybrid Thinking 与思考预算
+# 17.4 Hybrid Thinking 思考预算
 
 上一节我们看到 test-time compute scaling 的潜力——模型思考越多，答案越好。但工业部署立刻遇到一个反向问题：**如果模型对所有问题都深度思考，每次 API 调用都要花 10K+ token 在思考上，这会让服务慢得无法用**。
 

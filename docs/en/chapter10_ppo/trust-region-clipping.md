@@ -2,7 +2,7 @@
 title: 7.3 Constraint Mechanisms for Policy Updates
 ---
 
-# 7.3 Constraint Mechanisms for Policy Updates
+# 5.3 Constraint Mechanisms for Policy Updates
 
 ## Section Overview
 

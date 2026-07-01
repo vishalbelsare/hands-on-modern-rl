@@ -1,4 +1,4 @@
-# B.3 RL 后训练与 Agentic RL Benchmark
+# A.4 RL 后训练与 Agentic RL Benchmark
 
 > 训练曲线告诉你 optimizer 正在移动，benchmark 才告诉你模型能力有没有变好。
 >

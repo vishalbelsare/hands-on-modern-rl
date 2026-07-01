@@ -1,4 +1,4 @@
-# E.4.3 PPO、RLHF 与 DPO 中的信息论
+# D.4.3 PPO、RLHF 与 DPO 中的信息论
 
 > **前置知识**：[E.4.1 熵](./information-basics)和[E.4.2 交叉熵与 KL](./information-cross-entropy-kl)——你需要知道熵、交叉熵和 KL 散度的定义。
 

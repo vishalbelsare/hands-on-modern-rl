@@ -1,4 +1,4 @@
-# E.4.5 KL、RLHF、DPO 与互信息完整公式
+# D.4.5 KL、RLHF、DPO 与互信息完整公式
 
 > **前置知识**：本页汇总 E.4 模块所有公式，建议在读完 [E.4.1](./information-basics) 到 [E.4.4](./information-mutual-info) 后再来回顾。
 

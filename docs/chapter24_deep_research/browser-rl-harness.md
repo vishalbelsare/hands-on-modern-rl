@@ -1,4 +1,4 @@
-# 24.1 浏览器 RL 动作空间与 harness 工程
+# 22.1 浏览器 RL 动作空间与 harness 工程
 
 > [24.1](./intro) 介绍了 Deep Research 的任务定义和主流模型。但当你真正动手训练一个 Deep Research Agent 时，会立刻撞上两个工程问题：(1) **动作空间怎么设计**——浏览器有成百上千种操作，哪些该暴露给 agent？(2) **harness 怎么搭**——agent 生成的动作要落到真实浏览器上，需要一套完整的执行、监控、奖励计算环境。本节解决这两件事，给出可复现的工程模板。
 
@@ -15,7 +15,7 @@ $$\mathcal{M}_{\text{browser}} = (\mathcal{S}, \mathcal{A}, P, R, \gamma, T)$$
 - $\gamma$：折扣因子，Deep Research 任务 $T = 20-100$ 步，$\gamma = 1$（无折扣）
 - $T$：最大步数（budget），通常 30-50
 
-与 [第 25 章 Computer Use](../chapter25_computer_use/intro) 的 GUI MDP 相比，Deep Research 的关键差异：
+与 [第 23 章 Computer Use](../chapter25_computer_use/intro) 的 GUI MDP 相比，Deep Research 的关键差异：
 
 | 维度             | Deep Research                         | Computer Use              |
 | ---------------- | ------------------------------------- | ------------------------- |
@@ -86,7 +86,7 @@ ACTIONS = {
 
 ### Set-of-Mark 混合
 
-借鉴 [第 25 章 GUI Grounding](../chapter25_computer_use/intro) 的 SoM 思路：每步把页面所有可交互元素编号，agent 只需输出编号：
+借鉴 [第 23 章 GUI Grounding](../chapter25_computer_use/intro) 的 SoM 思路：每步把页面所有可交互元素编号，agent 只需输出编号：
 
 ```
 Agent observes:
@@ -286,8 +286,8 @@ async def parallel_rollout(
 
 实测在 8×H100 GPU + 64-core CPU server 上，单次 GRPO step 处理 1024 prompts 约需 8-12 分钟。训练一个 7B Deep Research 模型到收敛通常需要 5000-10000 step，即 4-7 天。
 
-::: tip 与 [第 18 章 GRPO](../chapter18_grpo/grpo-practice-and-mechanism) 的衔接
-Deep Research 的 RL 训练流水线和 [第 18 章](../chapter18_grpo/grpo-practice-and-mechanism) 讲的 GRPO 没有本质区别——都是 group-normalized advantage + PPO-Clip。差异只在环境（浏览器 vs 文本 sandbox）和奖励（任务完成 vs 答案正确）。如果你已经跑通过 [18.8 金融 API 工具调用 GRPO](../chapter18_grpo/financial-tool-calling-grpo)，迁移到 Deep Research 只需要换 `Environment Wrapper` 和 `Reward Verifier` 两个模块。
+::: tip 与 [第 16 章 GRPO](../chapter18_grpo/grpo-practice-and-mechanism) 的衔接
+Deep Research 的 RL 训练流水线和 [第 16 章](../chapter18_grpo/grpo-practice-and-mechanism) 讲的 GRPO 没有本质区别——都是 group-normalized advantage + PPO-Clip。差异只在环境（浏览器 vs 文本 sandbox）和奖励（任务完成 vs 答案正确）。如果你已经跑通过 [18.8 金融 API 工具调用 GRPO](../chapter18_grpo/financial-tool-calling-grpo)，迁移到 Deep Research 只需要换 `Environment Wrapper` 和 `Reward Verifier` 两个模块。
 :::
 
 ## 本节总结

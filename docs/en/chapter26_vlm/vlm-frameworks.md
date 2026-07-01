@@ -2,7 +2,7 @@
 title: '11.3 VLM RL Frameworks and Frontiers'
 ---
 
-# 11.3 VLM RL Frameworks and Frontiers: The Bridge from Experiments to Applications
+# 9.3 VLM RL Frameworks and Frontiers: The Bridge from Experiments to Applications
 
 In the previous two sections we ran VLM GRPO experiments and analyzed the unique challenges of VLM RL. Those discussions focused mainly on the "problem" level — how to do reward attribution, how to prevent visual hallucination, whether to update the visual encoder. This section looks at "solutions" — what frameworks are currently addressing these problems systematically, and where VLM RL may be headed.
 

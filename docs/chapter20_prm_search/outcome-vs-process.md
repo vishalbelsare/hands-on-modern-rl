@@ -1,4 +1,4 @@
-# 11.1 Outcome 奖励 vs Process 奖励
+# 18.1 Outcome vs Process 奖励
 
 这一节我们从最基础的问题开始：**为什么 outcome reward 在长 CoT 任务上不够？为什么需要 process reward？**
 
@@ -54,7 +54,7 @@ $$G_t = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \ldots + \gamma^{T-t} r_T$$
 
 ### GAE（Generalized Advantage Estimation）
 
-[第 7 章 PPO 的 GAE](../chapter10_ppo/gae-reward-model) 通过引入 $\lambda$ 参数，在 bias 和 variance 之间做权衡。GAE 是 PPO 的标准做法，但它的根本局限是——**它需要 value function**，而 GRPO 故意省略了 value function。
+[第 5 章 PPO 的 GAE](../chapter10_ppo/gae-reward-model) 通过引入 $\lambda$ 参数，在 bias 和 variance 之间做权衡。GAE 是 PPO 的标准做法，但它的根本局限是——**它需要 value function**，而 GRPO 故意省略了 value function。
 
 ### Token-level loss
 

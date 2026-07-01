@@ -1,6 +1,6 @@
-# 第 13 章 · 模仿学习、反向 RL 与元 RL
+# 第 11 章 · 模仿学习、反向 RL 与元 RL
 
-> [第 12 章 离线强化学习](../chapter12_offline_rl/intro)处理"只有历史数据、不能交互"的场景，但仍假设数据带有显式奖励信号。本章处理两种更极端的情形：(1) **完全没有奖励函数**——只有专家示范轨迹，怎么办？(2) **环境本身在不断变化**——智能体必须学会"快速适应新任务"。前者引出**模仿学习（Imitation Learning, IL）**与**反向 RL（Inverse RL）**，后者引出**元 RL（Meta-RL）**。两者最终在 LLM 时代合流：SFT 本质是行为克隆，InstructGPT 三阶段可重写为 BC + RL + RL，而 In-Context RL 揭示了"RL 算法本身可被蒸馏进 transformer"。
+> [第 10 章 离线强化学习](../chapter12_offline_rl/intro)处理"只有历史数据、不能交互"的场景，但仍假设数据带有显式奖励信号。本章处理两种更极端的情形：(1) **完全没有奖励函数**——只有专家示范轨迹，怎么办？(2) **环境本身在不断变化**——智能体必须学会"快速适应新任务"。前者引出**模仿学习（Imitation Learning, IL）**与**反向 RL（Inverse RL）**，后者引出**元 RL（Meta-RL）**。两者最终在 LLM 时代合流：SFT 本质是行为克隆，InstructGPT 三阶段可重写为 BC + RL + RL，而 In-Context RL 揭示了"RL 算法本身可被蒸馏进 transformer"。
 
 ## 章节地图
 

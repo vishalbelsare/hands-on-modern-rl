@@ -2,7 +2,7 @@
 title: 8.6 Evaluation
 ---
 
-# 8.6 Evaluation
+# 6.6 Evaluation
 
 ## Reading Guide
 

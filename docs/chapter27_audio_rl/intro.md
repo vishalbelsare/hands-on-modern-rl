@@ -1,6 +1,6 @@
-# 第 27 章 · 音频与语音 RL（Step-Audio MGRD）
+# 第 25 章 · 音频与语音 RL（Step-Audio MGRD）
 
-> [第 26 章 VLM RL](../chapter26_vlm/intro) 把推理 RL 从文本扩展到了视觉——Qwen3-VL 学会"看一眼图、反思一下、再回答"。但视觉只是模态的一半：人类最自然的交互媒介是**语音**。本章解决音频领域的两个核心难题：(1) 当模型先转录再推理时，为什么"想得越多越差"（inverted scaling）？(2) 用可验证奖励训练得到的音频模型为什么变成了"机械答题机"？答案分别来自 **Step-Audio-R1 的 MGRD（模态接地推理蒸馏）** 和 **Step-Audio-R1.5 的 RLHF 范式迁移**。
+> [第 24 章 VLM RL](../chapter26_vlm/intro) 把推理 RL 从文本扩展到了视觉——Qwen3-VL 学会"看一眼图、反思一下、再回答"。但视觉只是模态的一半：人类最自然的交互媒介是**语音**。本章解决音频领域的两个核心难题：(1) 当模型先转录再推理时，为什么"想得越多越差"（inverted scaling）？(2) 用可验证奖励训练得到的音频模型为什么变成了"机械答题机"？答案分别来自 **Step-Audio-R1 的 MGRD（模态接地推理蒸馏）** 和 **Step-Audio-R1.5 的 RLHF 范式迁移**。
 
 ## 27.1 音频语言模型概览
 
@@ -56,7 +56,7 @@ StepFun（阶跃星辰）是国内音频 LLM 的代表厂商。Step-Audio 系列
 
 #### Inverted scaling 反常现象
 
-文本和视觉推理模型普遍遵循 test-time compute scaling law——给模型更多推理 token，性能可预测地提升（见 [第 13 章推理模型](../chapter19_reasoning/intro)）。但音频域出现反常：
+文本和视觉推理模型普遍遵循 test-time compute scaling law——给模型更多推理 token，性能可预测地提升（见 [第 11 章推理模型](../chapter19_reasoning/intro)）。但音频域出现反常：
 
 ```mermaid
 graph LR

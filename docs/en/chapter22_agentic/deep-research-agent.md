@@ -2,7 +2,7 @@
 title: 22.7 Deep Research
 ---
 
-# 22.5 Deep Research
+# 20.5 Deep Research
 
 Previous sections discussed multi-turn RL credit assignment, trajectory synthesis, and tool-use training for Web Agents and Code Agents. Now we look at an application that integrates all of these: the **Deep Research Agent**. Its goal is to make AI behave like a human researcher — autonomously conducting long-horizon, multi-step information search, analysis, and synthesis, ultimately outputting a trustworthy research report.
 

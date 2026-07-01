@@ -1,4 +1,4 @@
-# 6.5 动手 与 BipedalWalker 双足行走
+# 7.5 动手 与 BipedalWalker 双足行走
 
 > **本节目标**：用 A2C 训练 `BipedalWalker-v3`，观察 Actor-Critic 处理高维连续控制的能力与局限——并理解为什么下一章需要 PPO。
 
@@ -179,7 +179,7 @@ python code/chapter09_actor_critic/render_bipedalwalker.py \
 
 ## 6.5.5 A2C vs PPO 与 同一个任务，不同的稳定性
 
-本节和第 7 章 7.1 节使用了完全相同的环境（BipedalWalker-v3），但分别用 A2C 和 PPO 训练。对比两个实验的结果：
+本节和第 5 章 7.1 节使用了完全相同的环境（BipedalWalker-v3），但分别用 A2C 和 PPO 训练。对比两个实验的结果：
 
 | 指标            | A2C（本节） | PPO（7.1 节） |
 | --------------- | ----------- | ------------- |
@@ -237,4 +237,4 @@ model = A2C(
 
 但 BipedalWalker 的实验也暴露了 vanilla Actor-Critic 的核心问题：**训练不稳定**。没有对策略更新幅度的约束，A2C 在复杂任务上的奖励曲线剧烈波动，最终性能和一致性都不如 PPO。
 
-下一章，我们将解决 Actor-Critic 的这个问题——引出 PPO 算法：[第 7 章 PPO](../chapter10_ppo/intro)。
+下一章，我们将解决 Actor-Critic 的这个问题——引出 PPO 算法：[第 5 章 PPO](../chapter10_ppo/intro)。

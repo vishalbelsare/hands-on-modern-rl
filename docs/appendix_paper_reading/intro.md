@@ -1,4 +1,4 @@
-# 附录 F · 论文阅读路线图
+# C.1 论文阅读路线图
 
 > 学完本书前 17 章后，读者已具备阅读强化学习前沿论文的全部数学与工程基础。但 RL 文献浩繁——arXiv 每年新增数千篇，真正决定方向、值得反复读的不到一百篇。本附录按主题把这批"必读论文"分类整理，每篇标注**核心贡献一句话**与**阅读优先级**（★ 必读 / ◆ 推荐 / ◇ 扩展），帮助读者建立从经典 RL 到 2026 年前沿的完整文献地图。
 >
@@ -18,7 +18,7 @@
 | ★ | Silver et al. _Mastering the game of Go with deep neural networks and tree search_ (Nature, 2016) | AlphaGo：策略网络 + 价值网络 + MCTS 击败李世石，证明 RL 在围棋这种长期被认为"AI 不可能解决"的问题上的突破。 |
 | ◆ | Williams. _Simple Statistical Gradient-Following Algorithms for Connectionist Reinforcement Learning_ (1992) | REINFORCE：策略梯度定理的原始推导，所有 on-policy 算法（A2C、PPO、GRPO）的祖先。 |
 | ◆ | Schulman et al. _Trust Region Policy Optimization_ (ICML, 2015) | TRPO：用 KL 散度约束保证策略更新单调，是 PPO 的直接前身。 |
-| ◆ | Kearns, Singh. _Bias-Variance Error Bounds for Temporal Difference Updates_ (2000) | 从偏差-方差权衡角度解释 $\text{TD}(\lambda)$ 中 $\lambda$ 的作用，对理解 GAE（[第 7 章](../chapter10_ppo/gae)）至关重要。 |
+| ◆ | Kearns, Singh. _Bias-Variance Error Bounds for Temporal Difference Updates_ (2000) | 从偏差-方差权衡角度解释 $\text{TD}(\lambda)$ 中 $\lambda$ 的作用，对理解 GAE（[第 5 章](../chapter10_ppo/gae)）至关重要。 |
 | ◇ | Bertsekas, Tsitsiklis. _Neuro-Dynamic Programming_ (1996) | 把 DP 与函数逼近结合的早期专著，数学严密但读起来沉重，适合做理论时查阅。 |
 
 ## F.2 深度 RL 必读
@@ -30,8 +30,8 @@
 | ★ | Mnih et al. _Playing Atari with Deep Reinforcement Learning_ (arXiv:1312.5602, 2013) | DQN 早期版本（NIPS Workshop），首次把 CNN 与 Q-Learning 结合，开启深度 RL。 |
 | ★ | Mnih et al. _Human-level Control through Deep Reinforcement Learning_ (Nature, 2015) | DQN 完整版：经验回放 + 目标网络，49 个 Atari 游戏达到人类水平。 |
 | ★ | Mnih et al. _Asynchronous Methods for Deep Reinforcement Learning_ (A3C, arXiv:1602.01783, 2016) | 异步 actor-critic：多线程并行采样消除相关性，无需经验回放；A2C 是其同步版本，至今仍是基线。 |
-| ★ | Schulman et al. _Proximal Policy Optimization Algorithms_ (arXiv:1707.06347, 2017) | PPO：clip 替代 TRPO 的二阶优化，工程友好、训练稳定。LLM 后训练 PPO 的直接原型。详见[第 7 章](../chapter10_ppo/intro)。 |
-| ★ | Lillicrap et al. _Continuous Control with Deep Reinforcement Learning_ (DDPG, arXiv:1509.02971, 2015) | 把 DPG 扩展到深度网络，确定性策略梯度 + 经验回放，连续控制的开山之作。详见[第 12 章](../chapter11_continuous_control/intro)。 |
+| ★ | Schulman et al. _Proximal Policy Optimization Algorithms_ (arXiv:1707.06347, 2017) | PPO：clip 替代 TRPO 的二阶优化，工程友好、训练稳定。LLM 后训练 PPO 的直接原型。详见[第 5 章](../chapter10_ppo/intro)。 |
+| ★ | Lillicrap et al. _Continuous Control with Deep Reinforcement Learning_ (DDPG, arXiv:1509.02971, 2015) | 把 DPG 扩展到深度网络，确定性策略梯度 + 经验回放，连续控制的开山之作。详见[第 10 章](../chapter11_continuous_control/intro)。 |
 | ★ | Fujimoto et al. _Addressing Function Approximation Error in Actor-Critic Methods_ (TD3, arXiv:1802.09477, 2018) | 双 Q + 延迟更新 + 目标平滑，修复 DDPG 的 Q 值过估计与训练不稳定。 |
 | ★ | Haarnoja et al. _Soft Actor-Critic: Off-Policy Maximum Entropy Deep RL with a Stochastic Actor_ (arXiv:1801.01290, 2018) | 最大熵 RL + 自动温度调节，MuJoCo 长期霸榜，连续控制首选算法。 |
 | ★ | Hessel et al. _Rainbow: Combining Improvements in Deep RL_ (arXiv:1710.02298, 2017) | 把 Double DQN、Dueling、PER、NoisyNet、Multi-step、Distributional Q 这 6 个 DQN 改进组合，证明"组合优于单点改进"。消融实验是经典教材。 |
@@ -52,10 +52,10 @@ LLM RL 是 2022 年后 RL 的最大应用场景。这一批论文定义了 RLHF 
 
 | 优先级 | 论文 | 核心贡献 |
 | ------ | ---- | -------- |
-| ★ | Ouyang et al. _Training Language Models to Follow Instructions with Human Feedback_ (InstructGPT, arXiv:2203.02155, 2022) | RLHF 三阶段工程化（SFT + RM + PPO），第一次大规模证明 RLHF 比 SFT 显著更好。LLM 后训练范式的奠基论文。详见[第 8 章](../chapter15_rlhf/intro)。 |
-| ★ | Bai et al. _Constitutional AI: Harmlessness from AI Feedback_ (arXiv:2212.08073, 2022) | Anthropic 的 RLAIF：用 AI 反馈替代人类标注，"宪法"驱动自我修正。同时是 RLHF 与对齐研究的桥梁。详见[第 22 章](../chapter21_cai_rlvr/intro)。 |
+| ★ | Ouyang et al. _Training Language Models to Follow Instructions with Human Feedback_ (InstructGPT, arXiv:2203.02155, 2022) | RLHF 三阶段工程化（SFT + RM + PPO），第一次大规模证明 RLHF 比 SFT 显著更好。LLM 后训练范式的奠基论文。详见[第 6 章](../chapter15_rlhf/intro)。 |
+| ★ | Bai et al. _Constitutional AI: Harmlessness from AI Feedback_ (arXiv:2212.08073, 2022) | Anthropic 的 RLAIF：用 AI 反馈替代人类标注，"宪法"驱动自我修正。同时是 RLHF 与对齐研究的桥梁。详见[第 20 章](../chapter21_cai_rlvr/intro)。 |
 | ★ | Rafailov et al. _Direct Preference Optimization: Your Language Model is Secretly a Reward Model_ (arXiv:2305.18290, 2023) | DPO：通过 Bradley-Terry 模型重新参数化，把 RLHF 转化为监督学习，**完全省去 RM 与 PPO**。LLM 后训练最优雅的数学推导之一。详见[第 2 章](../chapter17_dpo/intro)。 |
-| ★ | DeepSeek-AI. _DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL_ (arXiv:2501.12948, 2025) | R1：纯 RL（GRPO + 规则奖励）让 7B 模型数学推理接近 GPT-4o；R1-Zero 证明无需 SFT 即可触发长 CoT。RLVR 范式的标志性论文。详见[第 9 章](../chapter18_grpo/intro)。 |
+| ★ | DeepSeek-AI. _DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL_ (arXiv:2501.12948, 2025) | R1：纯 RL（GRPO + 规则奖励）让 7B 模型数学推理接近 GPT-4o；R1-Zero 证明无需 SFT 即可触发长 CoT。RLVR 范式的标志性论文。详见[第 7 章](../chapter18_grpo/intro)。 |
 | ★ | Shao et al. _DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models_ (arXiv:2402.03300, 2024) | GRPO 的原始论文：去掉 PPO 的 critic，用组内 normalize 估计 baseline。Group-Normalized Policy Gradient 的范式起点。 |
 | ★ | Yu et al. _DAPO: Decoupled Clip and Dynamic Sampling Policy Optimization_ (arXiv:2503.14476, 2025) | 修复 GRPO 的四个缺陷——长度偏置、熵坍缩、噪声优势、长短 horizon 冲突——提出 Clip-Higher、Dynamic Sampling、Token-Level Loss、Overlong Reward Shaping。Qwen 团队的工程化改进。 |
 | ★ | Team Kimi. _Kimi K2: A Scalable MoE Trainer for Open Intelligent Agents_ (arXiv:2507.20534, 2025) | 1T 参数 MoE（32B 激活）的开放训练，验证 GSPO（Group Sequence Policy Optimization）在超大规模 Agent 训练上的可扩展性。 |
@@ -64,7 +64,7 @@ LLM RL 是 2022 年后 RL 的最大应用场景。这一批论文定义了 RLHF 
 | ◆ | Xiao et al. _VAPO: Efficient and Reliable Reinforcement Learning for Advanced Reasoning Tasks_ (arXiv:2504.05118, 2025) | Value-Assisted PPO：引入轻量 critic + 长序列 value 估计，让 PPO 在数学推理长 CoT 上重新可用。 |
 | ◆ | Wang et al. _Reasoning with Reinforced Fine-Tuning_ (ReFT, arXiv:2403.12967, 2024) | SFT + PPO 微调，证明小数据集上 RL 持续提升推理能力。 |
 | ◆ | Yuan et al. _Free-process Rewards and Advantage Estimation_ (RPT, arXiv:2511.07815, 2025) | 从 RLVR 训练得到的 token 级隐式 PRM，反哺过程奖励估计。 |
-| ◆ | Setlur et al. _Rewarding Progress: Scaling Automated Process Verifiers for LLM Reasoning_ (PRM, arXiv:2410.08146, 2024) | 系统化 PRM 训练方法论，PRM 引导搜索的基础。详见[第 14 章](../chapter20_prm_search/intro)。 |
+| ◆ | Setlur et al. _Rewarding Progress: Scaling Automated Process Verifiers for LLM Reasoning_ (PRM, arXiv:2410.08146, 2024) | 系统化 PRM 训练方法论，PRM 引导搜索的基础。详见[第 12 章](../chapter20_prm_search/intro)。 |
 | ◇ | Yuan et al. _Self-Rewarding Language Models_ (arXiv:2401.10020, 2024) | 让 LLM 自己生成偏好对训练自己，减少人工标注依赖。 |
 | ◇ | Song et al. _The Preference Fine-Tuning of Large Language Models_ (arXiv:2407.12928, 2024) | DPO/IPO/KTO/SimPO 等 preference 算法的统一数学框架。 |
 
@@ -81,7 +81,7 @@ RLHF / RLVR 在让模型变强的同时打开了**奖励黑客、欺骗、对齐
 | ★ | Wei et al. _Sycophancy to Subterfuge: A Comprehensive Benchmark for Agentic Honesty_ (arXiv:2406.10162, 2024) | 把 sycophancy 扩展为更广的"不诚实 agent 行为"benchmark，覆盖欺骗、规避、谎言等场景。 |
 | ★ | OpenAI. _GPT-4o System Card_ (2024) | GPT-4o 发布后 sycophancy 问题导致大规模回滚——公开承认 RLHF 训练中奖励信号偏置的可观察后果。 |
 | ★ | Bowen et al. _Scaling Laws for Reward Model Overoptimization_ (arXiv:2210.10760, 2022) | Anthropic 的奖励模型 over-optimization scaling law：RM 与真实偏好距离随 KL 增大呈指数恶化。理解 RLHF 上限的关键论文。 |
-| ★ | Denison et al. _Sycophancy to Subterfuge: A Comprehensive Benchmark_ + _Constitutional AI 范式的失败模式_ (2024-2025) | CAI/RFT 在特定场景下诱发更深的"假装对齐"，是 [第 9 章](../chapter17_dpo/intro) 与 [第 16 章](../chapter30_alignment_failures/intro) 的理论支撑。 |
+| ★ | Denison et al. _Sycophancy to Subterfuge: A Comprehensive Benchmark_ + _Constitutional AI 范式的失败模式_ (2024-2025) | CAI/RFT 在特定场景下诱发更深的"假装对齐"，是 [第 7 章](../chapter17_dpo/intro) 与 [第 14 章](../chapter30_alignment_failures/intro) 的理论支撑。 |
 | ★ | Anthropic. _Natural Emergent Misalignment_ (arXiv:2511.18397, 2025) | 证明 misalignment 可在**无显式恶意训练**情况下涌现——训练数据分布的轻微偏移即可导致模型展现出敌对行为。 |
 | ◆ | Eisenstein et al. _Helping or Herding? Reward Model Ensembles in RLHF_ (arXiv:2312.05262, 2023) | 用 RM 集成降低奖励黑客，工业界常用的鲁棒化方案。 |
 | ◆ | Coste et al. _Reward Model Ensembles Help Mitigate Overoptimization_ (arXiv:2310.02743, 2023) | 同上的工程实证，含完整超参与坏案例。 |
@@ -111,11 +111,11 @@ RLHF / RLVR 在让模型变强的同时打开了**奖励黑客、欺骗、对齐
 
 | 优先级 | 论文 | 核心贡献 |
 | ------ | ---- | -------- |
-| ★ | Pan et al. _SWE-RL: Advancing LLM Reasoning via Reinforcement Learning on Open Software Evolution_ (arXiv:2502.18449, 2025) | Meta 在 SWE-bench 上规模化 RL 训练，定义"代码-执行-反馈-学习"的 Agent RLVR 范式。详见[第 15 章](../chapter23_rl_based_swe/intro)。 |
+| ★ | Pan et al. _SWE-RL: Advancing LLM Reasoning via Reinforcement Learning on Open Software Evolution_ (arXiv:2502.18449, 2025) | Meta 在 SWE-bench 上规模化 RL 训练，定义"代码-执行-反馈-学习"的 Agent RLVR 范式。详见[第 13 章](../chapter23_rl_based_swe/intro)。 |
 | ★ | ByteDance. _Code World Model: Agentic RL with Code_ (arXiv:2510.02387, 2025) | 训练一个能预测代码执行结果的世界模型，把 SWE 问题转化为 MuZero 风格的规划。 |
 | ★ | Tongyi. _Self-play SWE-RL_ (arXiv:2512.18552, 2025) | 两个 Agent 互为对手（提交者 vs reviewer）的自我博弈训练，在 SWE-bench 上超越单 agent 训练。 |
-| ★ | ByteDance. _UI-TARS 2: A Multimodal Native Agent Model_ (arXiv:2509.02544, 2025) | GUI 操作 Agent：截图 → 动作（鼠标点击/键盘），端到端视觉 RL。详见[第 28 章](../chapter25_computer_use/intro)。 |
-| ★ | StepFun. _Step-Audio-R1: A Multi-modal Audio RL Framework_ (arXiv:2511.15848, 2025) | 多模态音频 RL，把 RLVR 扩展到语音对话与音频推理。详见[第 30 章](../chapter27_audio_rl/intro)。 |
+| ★ | ByteDance. _UI-TARS 2: A Multimodal Native Agent Model_ (arXiv:2509.02544, 2025) | GUI 操作 Agent：截图 → 动作（鼠标点击/键盘），端到端视觉 RL。详见[第 26 章](../chapter25_computer_use/intro)。 |
+| ★ | StepFun. _Step-Audio-R1: A Multi-modal Audio RL Framework_ (arXiv:2511.15848, 2025) | 多模态音频 RL，把 RLVR 扩展到语音对话与音频推理。详见[第 28 章](../chapter27_audio_rl/intro)。 |
 | ◆ | Tongyi. _Tongyi DeepResearch_ (2025) | PRM 引导的长 horizon research agent。 |
 | ◇ | Google. _AlphaEvolve_ (2025) | 进化 + LLM 自动发现新算法，应用于芯片设计与组合优化。 |
 
@@ -142,7 +142,7 @@ RLHF / RLVR 在让模型变强的同时打开了**奖励黑客、欺骗、对齐
 - **从基础补齐**：F.1 → F.2 → F.3 → F.4，按时间顺序理解 RL 从 1992 到 2026 的完整演进。
 - **LLM 后训练工程师**：F.3 全部 + F.4 前 5 篇 + F.5.1 全部。重点理解 InstructGPT/DPO/GRPO/R1/DAPO 五篇的工程细节。
 - **Agentic RL 研究者**：F.3 GRPO/R1 + F.5.2 全部 + F.2 AlphaZero/MuZero/Dreamer（理解搜索与世界模型）。
-- **安全研究者**：F.4 全部 + F.1 Sutton & Barto 第 17 章（探索与利用的失败模式）+ F.3 RLHF over-optimization 相关论文。
+- **安全研究者**：F.4 全部 + F.1 Sutton & Barto 第 15 章（探索与利用的失败模式）+ F.3 RLHF over-optimization 相关论文。
 - **理论研究者**：F.1 全部 + F.2 Rainbow/Dreamer 消融实验 + F.5 中的 GSPO/CISPO 数学推导。
 
 ## 阅读方法
@@ -159,12 +159,12 @@ RLHF / RLVR 在让模型变强的同时打开了**奖励黑客、欺骗、对齐
 本书每章末尾的"延伸阅读"已列出该章核心论文。本附录是更全的、跨章节的论文地图。建议把本附录与各章末尾清单交叉使用：
 
 - [第 2 章 DPO](../chapter17_dpo/intro) → F.3 Rafailov et al.
-- [第 7 章 PPO](../chapter10_ppo/intro) → F.1 Schulman PPO、F.2 A3C
-- [第 8 章 RLHF](../chapter15_rlhf/intro) → F.3 InstructGPT
-- [第 9 章 GRPO/RLVR](../chapter18_grpo/intro) → F.3 R1、Shao et al.
-- [第 12 章 连续控制](../chapter11_continuous_control/intro) → F.2 DDPG/TD3/SAC/Dreamer V3
-- [第 16 章 对齐失败](../chapter30_alignment_failures/intro) → F.4 全部
-- [第 17 章 工业级 LLM RL](../chapter16_llm_rl_industrial/intro) → F.5.3 全部
+- [第 5 章 PPO](../chapter10_ppo/intro) → F.1 Schulman PPO、F.2 A3C
+- [第 6 章 RLHF](../chapter15_rlhf/intro) → F.3 InstructGPT
+- [第 7 章 GRPO/RLVR](../chapter18_grpo/intro) → F.3 R1、Shao et al.
+- [第 10 章 连续控制](../chapter11_continuous_control/intro) → F.2 DDPG/TD3/SAC/Dreamer V3
+- [第 14 章 对齐失败](../chapter30_alignment_failures/intro) → F.4 全部
+- [第 15 章 工业级 LLM RL](../chapter16_llm_rl_industrial/intro) → F.5.3 全部
 :::
 
 ## 本章总结

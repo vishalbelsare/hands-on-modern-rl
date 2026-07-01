@@ -2,7 +2,7 @@
 title: 7.2 PPO Mathematical Derivation
 ---
 
-# 7.2 PPO Mathematical Derivation
+# 5.2 PPO Mathematical Derivation
 
 In the previous section, we trained LunarLander with SB3's PPO and looked at curves such as reward, entropy, and clip fraction. Now we should answer a more basic question:
 

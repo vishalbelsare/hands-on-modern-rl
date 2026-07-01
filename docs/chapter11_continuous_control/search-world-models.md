@@ -1,4 +1,4 @@
-# 11.4 AlphaZero、MuZero 与 Dreamer V3
+# 9.4 AlphaZero、MuZero 与 Dreamer V3
 
 > [11.3](./model-based) 讲了 model-based RL 的"数据增强"路线——Dyna/PETS/MBPO 用模型生成数据加速 model-free 训练。本节讲 model-based 的另一条旗舰路线：**显式搜索 + 神经网络估值**。从 AlphaGo（2016）到 AlphaZero（2017）到 MuZero（2019）再到 Dreamer V3（2023），这条线代表了 model-based RL 的理论天花板，也直接启发了 LLM 时代的 Process Reward Model 搜索。
 
@@ -224,8 +224,8 @@ Dreamer V3（Hafner et al. 2023）的关键贡献：**单一超参数设置**跨
 LLM 训练中：
 
 - **Model-Free**：RLHF/GRPO 直接用 RM 奖励训练（model-free）
-- **Model-Based**：Process Reward Model、Verifier 模型就是某种"环境模型"，PRM 引导的搜索（[第 20 章 PRM 与搜索](../chapter20_prm_search/inference-time-search)）类比 AlphaZero
-- **World Model**：Code World Model（[第 23 章 SWE-Agent](../chapter23_rl_based_swe/world-model-and-deep-swe)）预测代码执行结果，是 LLM 时代的 MuZero
+- **Model-Based**：Process Reward Model、Verifier 模型就是某种"环境模型"，PRM 引导的搜索（[第 18 章 PRM 与搜索](../chapter20_prm_search/inference-time-search)）类比 AlphaZero
+- **World Model**：Code World Model（[第 21 章 SWE-Agent](../chapter23_rl_based_swe/world-model-and-deep-swe)）预测代码执行结果，是 LLM 时代的 MuZero
 
 理解了 model-based 与 model-free 的权衡，你就能理解为什么 Tongyi DeepResearch 用 PRM 引导搜索、为什么 SWE-Agent 用 Code World Model 提升样本效率。
 
@@ -237,7 +237,7 @@ LLM 训练中：
 2. **Dyna → PETS → MBPO** 是 model-based 数据增强的演进：模型作为数据生成器
 3. **AlphaZero → MuZero → Dreamer V3** 是显式搜索 + 学习模型的旗舰路线，代表了 model-based RL 的天花板
 
-下一章 [第 12 章 离线强化学习](../chapter12_offline_rl/intro) 转向另一个角度——**当智能体不能交互，只能用历史数据时怎么办**？这是 LLM 后训练、推荐系统等真实场景的核心问题。
+下一章 [第 10 章 离线强化学习](../chapter12_offline_rl/intro) 转向另一个角度——**当智能体不能交互，只能用历史数据时怎么办**？这是 LLM 后训练、推荐系统等真实场景的核心问题。
 
 ## 延伸阅读
 

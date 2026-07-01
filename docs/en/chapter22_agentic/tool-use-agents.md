@@ -6,7 +6,7 @@ search: false
 
 > This page is kept as an entry point for old links. The core content has been merged into [22.2 Tool Use, Trajectory Synthesis, and Agentic Engineering](./tool-use-and-trajectory). The original material is preserved below so readers arriving from older links can still compare it with the new section.
 
-# 22.3 Tool-Use RL: Web Agents and Code Agents
+# 20.3 Tool-Use RL: Web Agents and Code Agents
 
 In the previous section, we unpacked the credit assignment problem in multi-turn RL: if a seven-turn interaction fails, which step should we blame? Now we turn to another key question: how does a model learn to "use tools"? Supervised fine-tuning (SFT) can teach a model what the JSON format of a tool call looks like, but it cannot reliably teach the model when to call a tool, which tool to call, or how to combine several tools. Those are strategic decisions, and this is exactly where RL is strong.
 

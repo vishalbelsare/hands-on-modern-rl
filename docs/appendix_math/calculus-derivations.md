@@ -1,4 +1,4 @@
-# E.3.4 策略梯度、Taylor 与 GRPO 推导
+# D.3.4 策略梯度、Taylor 与 GRPO 推导
 
 > **前置知识**：[E.3.2 策略梯度与优势函数](./calculus-policy-gradient)——你需要知道策略梯度的基本形式。
 

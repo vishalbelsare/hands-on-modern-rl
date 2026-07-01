@@ -1,4 +1,4 @@
-# 23.3 Self-play SWE-RL 与工业落地
+# 21.3 Self-play SWE-RL 与工业落地
 
 至此我们讨论了 SWE-RL 的三个支柱：
 
@@ -290,7 +290,7 @@ Reviewer Agent: 检查代码质量
 - **通信协议**：agent 间如何传递信息
 - **共享 value model**：评估整体 trajectory 质量
 
-这是 [第 22 章 Agentic RL 多智能体部分](../chapter22_agentic/build-agentic-training-system) 在 SWE 领域的具体应用。
+这是 [第 20 章 Agentic RL 多智能体部分](../chapter22_agentic/build-agentic-training-system) 在 SWE 领域的具体应用。
 
 ## 本章总结
 
@@ -311,6 +311,6 @@ Reviewer Agent: 检查代码质量
 
 **接下来的章节**：
 
-- [第 13 章 PRM 与搜索](../chapter20_prm_search/intro)——SWE-RL 中的 step-level reward
-- [第 14 章奖励黑客](../chapter15_rlhf/evaluation)——SWE 任务的 hacking（如"删除测试让 reward 变高"）
+- [第 11 章 PRM 与搜索](../chapter20_prm_search/intro)——SWE-RL 中的 step-level reward
+- [第 12 章奖励黑客](../chapter15_rlhf/evaluation)——SWE 任务的 hacking（如"删除测试让 reward 变高"）
 - [第 12.8 节 Agentic RL 训练系统](../chapter22_agentic/build-agentic-training-system)——SWE-RL 的工程实现

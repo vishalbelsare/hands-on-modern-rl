@@ -2,7 +2,7 @@
 title: 12.4 LLM Multi-Agent Reinforcement Learning
 ---
 
-# 12.4 LLM Multi-Agent Reinforcement Learning
+# 10.4 LLM Multi-Agent Reinforcement Learning
 
 Before discussing LLM-driven multi-agent systems, let us quickly review the core framework of traditional multi-agent RL (MARL). The biggest challenge in MARL is **non-stationarity**: when you learn a new policy, your teammates are also learning -- the "environment" you face is constantly changing. The current mainstream paradigm is **CTDE (Centralized Training with Decentralized Execution)**: during training, a "God's-eye view" global Critic sees all agents' observations and actions; during execution, each agent can only make decisions based on its local observations.
 

@@ -1,4 +1,4 @@
-# 5.4 策略梯度的方差与基线
+# 6.3 策略梯度改进
 
 上一节在 CartPole 上跑了一遍 REINFORCE，看到了高方差的直接后果：训练曲线抖动剧烈，策略被运气牵着走。本节回答一个关键问题：**能不能在不改变梯度方向的前提下，降低 $G_t$ 的方差？**
 
@@ -77,8 +77,8 @@ $$\hat{A}_t = G_t - V(s_t)$$
 后续章节会反复用到优势函数：
 
 - **第 6 章 Actor-Critic**：用 Critic 网络直接估计 $V(s)$，实现每步更新（不必等 episode 结束）
-- **第 7 章 PPO**：用 GAE（Generalized Advantage Estimation）在偏差和方差之间取折中
-- **第 9 章 RLHF**：奖励模型给出的信号本质上也是一种优势估计
+- **第 5 章 PPO**：用 GAE（Generalized Advantage Estimation）在偏差和方差之间取折中
+- **第 7 章 RLHF**：奖励模型给出的信号本质上也是一种优势估计
 
 ## 加入价值网络
 

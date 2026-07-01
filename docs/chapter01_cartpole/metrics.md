@@ -383,7 +383,7 @@ $$H(\pi) = -\sum_{a} \pi(a | s) \log \pi(a | s)$$
 则说明策略过早地收敛到某个可能并非最优的动作模式，
 这称为*过早收敛*（premature convergence）。
 强化学习算法通常通过*熵正则化*（entropy regularization）
-来缓解这个问题，我们将在第 6 章中详细讨论。
+来缓解这个问题，我们将在第 7 章中详细讨论。
 
 > **动手实验**：运行 [2-pytorch_ppo.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py)，
 > 在 SwanLab 中同时查看 `rollout/ep_rew_mean` 和 `train/entropy_loss`，
@@ -701,17 +701,17 @@ graph TD
     ROOT["RL = 最大化累计奖励"] --> VB["Value-Based<br/>先学每个动作值多少分"]
     ROOT --> PB["Policy-Based<br/>直接学做什么动作"]
 
-    VB --> DQN["DQN（第 4 章）"]
-    PB --> PG["REINFORCE（第 5 章）"]
+    VB --> DQN["DQN（第 5 章）"]
+    PB --> PG["REINFORCE（第 6 章）"]
 
-    DQN --> AC["Actor-Critic（第 6 章）"]
+    DQN --> AC["Actor-Critic（第 7 章）"]
     PG --> AC
 
-    AC --> PPO["PPO（第 7 章）<br/>← 你刚用的就是这个"]
+    AC --> PPO["PPO（第 8 章）<br/>← 你刚用的就是这个"]
 
     PPO --> LLM["LLM 对齐"]
-    LLM --> DPOG["DPO（第 2 章）<br/>← 第 2 章要用的"]
-    LLM --> GRPOG["GRPO（第 9 章）"]
+    LLM --> DPOG["DPO（第 15 章）<br/>← 第 15 章要用的"]
+    LLM --> GRPOG["GRPO（第 16 章）"]
 
     style ROOT fill:#f8f9fa,stroke:#24292f,color:#24292f
     style VB fill:#e3f2fd,stroke:#1976d2,color:#000
@@ -723,10 +723,10 @@ graph TD
 ```
 
 - **Value-Based**（蓝色）：先学习"每个动作的价值"（Q 值），
-  再选择价值最高的动作。代表算法是第 4 章的 DQN。
+  再选择价值最高的动作。代表算法是第 5 章的 DQN。
 - **Policy-Based**（橙色）：跳过价值估计，
   直接学习"在给定状态下应采取什么动作"的策略。
-  代表算法是第 5 章的 REINFORCE。
+  代表算法是第 6 章的 REINFORCE。
 - 两条路线在 **Actor-Critic** 架构中汇合——
   Actor 学习策略，Critic 学习价值函数。
   这正是 PPO 的基本架构。
@@ -738,7 +738,7 @@ graph TD
 这张图会在后续每章的开头再次出现。
 当前只需记住一个要点：
 **本章使用的 PPO，正是两条路线汇合后的产物。
-第 2 章将要介绍的 DPO，则是 PPO 在 LLM 时代的简化版本。**
+第 15 章将要介绍的 DPO，则是 PPO 在 LLM 时代的简化版本。**
 
 在下一章中，我们将看到强化学习不仅限于让小车平衡杆子——
 它同样能让大语言模型学会对齐人类偏好。

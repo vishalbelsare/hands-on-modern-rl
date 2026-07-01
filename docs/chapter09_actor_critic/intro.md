@@ -1,6 +1,6 @@
-# Actor-Critic——两条路线的融合
+# 第 7 章 · Actor-Critic 架构
 
-第 4 章走了路线一（Value-Based）：学 $Q(s,a)$，选分数最高的（回顾：[Q(s,a) 与贪心策略](../chapter03_mdp/value-q)）。打分准确，但不擅长探索，且只能处理离散动作。第 5 章走了路线二（Policy-Based）：直接优化 $J(\theta)$（回顾：[策略目标函数](../chapter03_mdp/policy-objective)）。擅长探索、支持连续动作，但方差太大——同一策略跑两次，梯度估计可能天差地别。
+第 5 章走了路线一（Value-Based）：学 $Q(s,a)$，选分数最高的（回顾：[Q(s,a) 与贪心策略](../chapter03_mdp/value-q)）。打分准确，但不擅长探索，且只能处理离散动作。第 6 章走了路线二（Policy-Based）：直接优化 $J(\theta)$（回顾：[策略目标函数](../chapter03_mdp/policy-value)）。擅长探索、支持连续动作，但方差太大——同一策略跑两次，梯度估计可能天差地别。
 
 上一章末尾我们发现了一个关键线索：减掉基线可以降低方差（回顾：[策略梯度的改进](../chapter08_policy_gradient/pg-improvements)），而最好的基线就是 $V(s)$（回顾：[状态价值函数](../chapter03_mdp/value-bellman)）。但 $V(s)$ 本身也需要学习——需要一个专门的网络来估计它。这个网络就是 **Critic**。
 

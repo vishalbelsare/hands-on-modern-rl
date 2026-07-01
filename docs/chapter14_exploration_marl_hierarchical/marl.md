@@ -1,4 +1,4 @@
-# 14.2 多智能体 RL 与 CTDE、MADDPG、MAPPO
+# 12.2 多智能体 RL 与 CTDE、MADDPG、MAPPO
 
 > [14.1](./intro) 讲了单 agent 的 hard-exploration 问题。本节转向多 agent 场景——当环境里有多个智能体同时学习，每个智能体看到的环境都在变（因为其他智能体在变），这就打破了 MDP 的平稳性假设。**CTDE**（Centralized Training Decentralized Execution）范式是工业级多智能体 RL 的标准答案。
 
@@ -77,7 +77,7 @@ class MADDPG:
             ...
 ```
 
-MADDPG 的弱点：(1) 集中 critic 的输入维度随智能体数爆炸，几十个智能体时不可行；(2) DDPG 系列的稳定性问题（见 [第 11 章](../chapter11_continuous_control/intro#_12-3-td3-ddpg-的稳定性补丁)）全部继承。
+MADDPG 的弱点：(1) 集中 critic 的输入维度随智能体数爆炸，几十个智能体时不可行；(2) DDPG 系列的稳定性问题（见 [第 9 章](../chapter11_continuous_control/intro#_12-3-td3-ddpg-的稳定性补丁)）全部继承。
 
 ### MAPPO 与 PPO 的多智能体扩展
 

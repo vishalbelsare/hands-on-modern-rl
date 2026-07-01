@@ -1,4 +1,4 @@
-# 第 22 章 · Agentic RL
+# 第 20 章 · Agentic RL
 
 ## 本章导读
 

@@ -2,7 +2,7 @@
 title: 8.5 PPO-RLHF
 ---
 
-# 8.5 PPO-RLHF
+# 6.5 PPO-RLHF
 
 ## Reading Guide
 

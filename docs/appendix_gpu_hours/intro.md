@@ -1,4 +1,4 @@
-# 附录 G · GPU 小时估算表
+# C.2 GPU 小时估算表
 
 > 工程实践中最常被问的问题是："训这个模型大概要多少 GPU 小时、烧多少钱？"——这不是算力公司销售的问题，而是研究方案可行性的核心约束。本附录把公开 tech report（DeepSeek、Qwen、Kimi、Llama、Claude）的预训练与后训练成本整理成可查表，再给出三档自训预算规划。
 >
@@ -183,9 +183,9 @@ Qwen3 tech report 描述了复杂的 4 阶段后训练（含冷启动、RL、合
 | 框架 | TRL、verl、OpenRLHF、LLaMA-Factory | - |
 
 ::: tip 入门档推荐任务
-- 用 GRPO 复现 R1-Zero 在 GSM8K 上的训练曲线（[第 9 章](../chapter18_grpo/intro)）
+- 用 GRPO 复现 R1-Zero 在 GSM8K 上的训练曲线（[第 7 章](../chapter18_grpo/intro)）
 - 用 DPO 在 Anthropic HH-RLHF 数据上微调（[第 2 章](../chapter17_dpo/intro)）
-- 在 CartPole / MuJoCo 上跑 SAC/TD3（[第 12 章](../chapter11_continuous_control/intro)）
+- 在 CartPole / MuJoCo 上跑 SAC/TD3（[第 10 章](../chapter11_continuous_control/intro)）
 :::
 
 ### 多卡实验（7B–13B 模型）

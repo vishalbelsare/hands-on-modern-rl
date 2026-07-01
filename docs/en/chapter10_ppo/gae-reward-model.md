@@ -2,7 +2,7 @@
 title: 7.4 Advantage Estimation and Reward Modeling
 ---
 
-# 7.4 Advantage Estimation and Reward Modeling
+# 5.4 Advantage Estimation and Reward Modeling
 
 ## Section Overview
 

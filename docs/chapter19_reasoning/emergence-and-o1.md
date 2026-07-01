@@ -1,4 +1,4 @@
-# 10.1 推理模型的兴起 与 从 o1 到推理即产品
+# 17.1 推理模型的兴起
 
 2024 年 9 月 12 日，OpenAI 发布了 o1——第一个被明确称为"reasoning model"的产品级大模型。它在 IOI（国际信息学奥林匹克）、Codeforces、GPQA Diamond、AIME 这些**有着明确正确答案的硬任务**上的表现，远超同期所有非推理模型。o1 的发布不仅是产品事件，更是一个**范式转移的标志**：从"模型一次前向给出答案"转向"模型显式思考再给答案"。
 
@@ -34,7 +34,7 @@ o3 还引入了一个工程参数：**推理努力（reasoning effort）**——
 - 工具调用的结果反过来影响下一步推理
 - 形成"思考 → 调工具 → 再思考 → 再调工具"的循环
 
-这种范式后来被定义为 **agentic reasoning**——推理不再是单次前向的 CoT，而是与外部环境交互的多步过程。这与 [第 12 章 Agentic RL](../chapter22_agentic/intro) 的内容深度交叉。
+这种范式后来被定义为 **agentic reasoning**——推理不再是单次前向的 CoT，而是与外部环境交互的多步过程。这与 [第 10 章 Agentic RL](../chapter22_agentic/intro) 的内容深度交叉。
 
 ## 10.1.2 Competitive Programming 论文 与 涌现的关键证据
 

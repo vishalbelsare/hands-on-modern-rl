@@ -234,9 +234,9 @@ Actor 生成回答
 
 经典 RLHF 的结构在小模型和大模型上是一致的：base model 先 SFT，再训练 RM，最后 PPO 优化策略，并用评估闭环防止 reward hacking 和能力回退。区别在于，大模型训练需要把这条简单流水线扩展成分布式系统。
 
-到这里，第 8 章完成了经典 RLHF 的主线。下一章我们会问一个自然的问题：既然这套流程这么重，能不能省掉一些组件？这就是 DPO、GRPO、RLVR 等现代 post-training 方法的出发点——[后训练对齐](../chapter17_dpo/intro)。
+到这里，第 6 章完成了经典 RLHF 的主线。下一章我们会问一个自然的问题：既然这套流程这么重，能不能省掉一些组件？这就是 DPO、GRPO、RLVR 等现代 post-training 方法的出发点——[后训练对齐](../chapter17_dpo/intro)。
 
-如果你想在进入第 9 章前多做一个实践，可以继续看扩展实验：故意写一个坏奖励函数，观察 reward hacking 如何发生，再用数据和评估把它修回来——[扩展实战：Reward Hacking 与数据飞轮](./extended-practice)。
+如果你想在进入第 7 章前多做一个实践，可以继续看扩展实验：故意写一个坏奖励函数，观察 reward hacking 如何发生，再用数据和评估把它修回来——[扩展实战：Reward Hacking 与数据飞轮](./extended-practice)。
 
 ## 练习
 

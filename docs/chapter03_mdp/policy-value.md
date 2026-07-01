@@ -1,6 +1,6 @@
-# 3.2 策略、价值与回报
+# 2.3 策略、价值与回报
 
-> [3.1](./mdp) 定义了 MDP 的五元组 $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$。但 MDP 本身只是"环境"——智能体如何在这个环境里决策？本节引入三个核心概念：**策略**（agent 怎么选动作）、**回报**（怎么衡量一条轨迹的好坏）、**价值函数**（怎么评估一个状态或动作的长期收益）。这三个概念是后续所有 RL 算法的基础。
+> [2.2](./mdp) 定义了 MDP 的五元组 $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$。但 MDP 本身只是"环境"——智能体如何在这个环境里决策？本节引入三个核心概念：**策略**（agent 怎么选动作）、**回报**（怎么衡量一条轨迹的好坏）、**价值函数**（怎么评估一个状态或动作的长期收益）。这三个概念是后续所有 RL 算法的基础。
 
 ## 策略与决策规则
 
@@ -122,7 +122,7 @@ $$A^\pi(s, a) = Q^\pi(s, a) - V^\pi(s)$$
 - $A < 0$：动作 $a$ 比平均差
 - $A = 0$：动作 $a$ 是平均水平
 
-优势函数在策略梯度（[第 8 章](../chapter08_policy_gradient/policy-gradient)）和 Actor-Critic（[第 9 章](../chapter09_actor_critic/actor-critic)）中是核心概念。
+优势函数在策略梯度（[第 6 章](../chapter08_policy_gradient/policy-gradient)）和 Actor-Critic（[第 7 章](../chapter09_actor_critic/actor-critic)）中是核心概念。
 
 ## 贝尔曼方程的预告
 
@@ -130,7 +130,7 @@ $$A^\pi(s, a) = Q^\pi(s, a) - V^\pi(s)$$
 
 $$V^\pi(s) = \sum_a \pi(a \mid s) \sum_{s'} P(s' \mid s, a) \left[R(s, a, s') + \gamma V^\pi(s')\right]$$
 
-这个方程是所有 RL 算法的核心。下一节 [3.3 折扣、轨迹与 POMDP](./panorama) 会进一步讨论轨迹的细节，然后 [第 4 章 价值函数与贝尔曼方程](./value-bellman) 会深入贝尔曼方程。
+这个方程是所有 RL 算法的核心。下一节 [2.4 折扣、轨迹与 POMDP](./panorama) 会进一步讨论轨迹的细节，然后 [第 3 章 价值函数与贝尔曼方程](./value-bellman) 会深入贝尔曼方程。
 
 ## 本节总结
 

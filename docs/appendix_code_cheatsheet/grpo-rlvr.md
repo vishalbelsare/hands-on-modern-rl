@@ -1,4 +1,4 @@
-# C.4 GRPO 与 Reward Model
+# B.4 GRPO 与 Reward Model
 
 ---
 

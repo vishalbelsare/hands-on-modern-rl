@@ -1,6 +1,6 @@
-# 11.1 动手 与 用 GRPO 训练 VLM 回答视觉问题
+# 24.3 中国多模态前沿
 
-第 9 章我们跑过 GRPO 训练纯文本模型做数学推理——给模型一道数学题，让它生成多个推理路径，用规则奖励（答案对不对）来计算组内相对优势，然后更新策略。现在我们要做一件更酷的事：给模型一张图片和一个关于图片的问题，让它先"看"再"想"再"答"。
+第 7 章我们跑过 GRPO 训练纯文本模型做数学推理——给模型一道数学题，让它生成多个推理路径，用规则奖励（答案对不对）来计算组内相对优势，然后更新策略。现在我们要做一件更酷的事：给模型一张图片和一个关于图片的问题，让它先"看"再"想"再"答"。
 
 这个实验的核心区别在于输入：纯文本 GRPO 的输入是一串 token，而 VLM GRPO 的输入是**视觉 token（图像编码）+ 文本 token（问题）**。奖励函数和优化算法本身没有变化——GRPO 的核心代码完全一样，只是模型的输入多了一个图像维度。
 
@@ -197,7 +197,7 @@ def vlm_grpo_train(model, tokenizer, dataset, num_epochs=3, group_size=4, lr=1e-
                 all_rewards.append(group_rewards)
 
             # GRPO 核心：计算组内相对优势
-            # 回顾第 8 章：Advantage = (R_i - mean) / std
+            # 回顾第 6 章：Advantage = (R_i - mean) / std
             rewards_tensor = torch.tensor(all_rewards)
             mean_r = rewards_tensor.mean(dim=-1, keepdim=True)
             std_r = rewards_tensor.std(dim=-1, keepdim=True) + 1e-8
@@ -207,7 +207,7 @@ def vlm_grpo_train(model, tokenizer, dataset, num_epochs=3, group_size=4, lr=1e-
             log_probs_tensor = torch.stack([torch.stack(lp) for lp in all_log_probs])
             loss = -(log_probs_tensor * advantages.detach()).mean()
 
-            # 加入 KL 惩罚（回顾第 8 章）
+            # 加入 KL 惩罚（回顾第 6 章）
             kl_penalty = compute_kl_penalty(model, ref_model, batch)
             loss = loss + 0.05 * kl_penalty
 
@@ -229,7 +229,7 @@ def vlm_grpo_train(model, tokenizer, dataset, num_epochs=3, group_size=4, lr=1e-
 
 ## 11.1.4 训练指标分析
 
-训练 VLM 时，除了第 8 章提到的标准指标（奖励、KL 散度、响应长度）之外，还有几个多模态特有的指标值得关注：
+训练 VLM 时，除了第 6 章提到的标准指标（奖励、KL 散度、响应长度）之外，还有几个多模态特有的指标值得关注：
 
 **注意力热力图变化。** VLM 的注意力机制决定了模型在"看"图片的哪些区域。训练前，注意力可能分散在整个图片上；训练后，注意力应该集中在与问题相关的图形上。你可以通过可视化注意力热力图来验证这一点——如果问"有几个圆形"，注意力应该集中在蓝色圆形区域。
 

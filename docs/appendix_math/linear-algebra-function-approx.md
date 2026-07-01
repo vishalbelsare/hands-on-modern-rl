@@ -1,4 +1,4 @@
-# E.1.3 点积、范数与函数近似
+# D.1.3 点积、范数与函数近似
 
 > **前置知识**：[E.1.1 向量与矩阵](./linear-algebra-basics)——需掌握向量和向量运算。[E.1.2 贝尔曼矩阵形式](./linear-algebra-bellman)——需掌握贝尔曼方程的矩阵形式 $\boldsymbol{v} = \boldsymbol{r} + \gamma P\boldsymbol{v}$。
 

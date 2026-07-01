@@ -1,4 +1,4 @@
-# 第 11 章 过程奖励模型与推理时搜索
+# 第 18 章 · 过程奖励模型与推理时搜索
 
 上一章我们看到推理模型在硬任务上取得了突破——o1、DeepSeek-R1、Claude Opus 4.6 都能做复杂数学、代码、科研推理。但这些模型都依赖一个关键假设：**最终答案的对错可以作为 RL 的奖励信号**。
 
@@ -61,14 +61,14 @@
 
 这一章假定你已经读过：
 
-- [第 8 章 RLHF 奖励模型](../chapter15_rlhf/reward-function-design)——Outcome Reward Model 的基础
-- [第 9 章 GRPO 改进家族](../chapter18_grpo/grpo-family)——信用分配问题在 GRPO 中的体现
-- [第 10 章推理模型](../chapter19_reasoning/intro)——为什么推理模型需要 PRM
+- [第 13 章 RLHF 奖励模型](../chapter15_rlhf/reward-function-design)——Outcome Reward Model 的基础
+- [第 16 章 GRPO 改进家族](../chapter18_grpo/grpo-family)——信用分配问题在 GRPO 中的体现
+- [第 17 章推理模型](../chapter19_reasoning/intro)——为什么推理模型需要 PRM
 
 本章后续会指向：
 
-- [第 12 章 Agentic RL](../chapter22_agentic/intro)——多步 trajectory 的过程奖励
-- [第 14 章奖励黑客](../chapter15_rlhf/evaluation)——PRM 的 reward hacking 问题
+- [第 20 章 Agentic RL](../chapter22_agentic/intro)——多步 trajectory 的过程奖励
+- [第 28 章奖励黑客](../chapter30_alignment_failures/intro)——PRM 的 reward hacking 问题
 
 ## 一个直觉性的开场
 

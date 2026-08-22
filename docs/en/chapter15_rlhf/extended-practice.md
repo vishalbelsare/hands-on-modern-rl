@@ -1,8 +1,8 @@
 ---
-title: 13.5 Extended Practice
+title: '13.7 Extended Practice: Reward Hacking and the Data Flywheel'
 ---
 
-# 13.5 Large-Scale Training Engineering
+# 13.7 Extended Practice: Reward Hacking and the Data Flywheel
 
 ## Reading Guide
 
@@ -31,7 +31,7 @@ $$
 >
 > Reward hacking is not the model being "bad." It is the model seriously optimizing the objective you wrote incorrectly. Fixing it is not about scolding the model — it is about fixing the reward, supplementing data, and adding evaluation gates.
 
-Sections 8.1–8.7 covered the main RLHF pipeline: SFT provides the starting policy, the RM provides preference signal, PPO optimizes under the reward, and evaluation confirms real improvement. This section adds two topics that do not fit cleanly into the main narrative: a controlled reward-hacking experiment and an engineering template for the data flywheel.
+Sections 13.1–13.6 covered the main RLHF pipeline: SFT provides the starting policy, the RM provides preference signal, PPO optimizes under the reward, large-scale engineering scales it up, and evaluation confirms real improvement. This section adds two topics that do not fit cleanly into the main narrative: a controlled reward-hacking experiment and an engineering template for the data flywheel.
 
 ## Deliberately Creating a Bad Reward
 
@@ -376,7 +376,7 @@ If the new reward drops but human quality rises, do not panic. That just means t
 
 Reward hacking requires controlled experiments to practice diagnosis; the data flywheel requires quality gates to prevent self-deception. The truly hard part of RLHF is not just the algorithms — it is making reward, data, and evaluation counterbalance each other.
 
-This chapter is now fully closed: a base model is not an assistant. SFT gives it a behavioral starting point, the RM gives it preference direction, PPO lets it practice under the reward, and evaluation plus the data flywheel prevent it from learning the wrong things. Chapter 14 continues with [DPO](../chapter17_dpo/intro); Chapter 18 later brings preference optimization, RLVR, reasoning models, and process rewards together at production scale.
+This chapter is now fully closed: a base model is not an assistant. SFT gives it a behavioral starting point, the RM gives it preference direction, PPO lets it practice under the reward, and evaluation plus the data flywheel prevent it from learning the wrong things. Chapter 14 continues with [DPO](../chapter17_dpo/dpo-objective-derivation); Chapter 18 later brings preference optimization, RLVR, reasoning models, and process rewards together at production scale.
 
 ## Exercises
 

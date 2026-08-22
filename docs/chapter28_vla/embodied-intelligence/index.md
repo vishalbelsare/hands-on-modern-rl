@@ -53,6 +53,8 @@
 - **技术原理**：传统方法依赖于 SLAM（同步定位与建图）建图后再进行 A\* 等路径规划。而在具身 RL 中，流行**端到端（End-to-End）学习**：直接输入 RGB-D 摄像头和 LiDAR 数据，通过 CNN/Transformer 提取特征，输出离散（前进、左转、右转）或连续的底盘速度指令。
 - **难点**：视觉特征与几何空间的映射（Mapping）、长时间记忆（探索过的死胡同不能再去）。
 
+<OnlineTraining studios="ai2thor" compact />
+
 ### 2. 抓取（Grasping）
 
 **核心目标**：机械臂从桌面上抓取指定形状、材质或堆叠状态的物体。
@@ -309,6 +311,8 @@ Isaac 系列的核心价值是**把仿真从 CPU 瓶颈解放出来**。PPO + Is
 </div>
 
 [ManiSkill](https://maniskill.readthedocs.io/)（基于 [Sapien](https://sapien.ucsd.edu/) 仿真器）是专注**机器人操作（Manipulation）** 的仿真基准。它提供了一系列标准化的操作任务——从简单的推物体到复杂的多步骤组装——以及统一的评测接口。如果你做的是抓取、放置、组装类任务，ManiSkill 是目前最成熟的 benchmark。
+
+<OnlineTraining studios="maniskill" compact />
 
 | 仿真器                | 核心优势                     | 最适合的场景                  |
 | --------------------- | ---------------------------- | ----------------------------- |
@@ -624,4 +628,4 @@ SAC 的离线策略框架虽然样本效率更高，但它需要一个大的经�
 - **文档链接**：[宇树科技支持文档 (Developer Support)](https://support.unitree.com/home/zh/developer)
 - **学习建议**：在这里你可以找到从零开始配环境的保姆级教程（例如怎么装 PyTorch、Isaac Gym，怎么配置 `rsl_rl`）。对于想要亲手把强化学习算法部署到真实电机上的开发者，这是必读的实战手册。
 
-VLA 讨论的是多模态模型如何感知并改变物理世界。下一节 [24.4 视觉生成与 DanceGRPO](../../chapter29_visual_generation/intro) 转向另一类动作空间：策略通过完整的去噪轨迹生成图像，再用视觉质量、文本一致性和人类偏好构造奖励。
+VLA 讨论的是多模态模型如何感知并改变物理世界。下一节 [24.4 视觉生成与 DanceGRPO](../../chapter29_visual_generation/visual-generation-dancegrpo) 转向另一类动作空间：策略通过完整的去噪轨迹生成图像，再用视觉质量、文本一致性和人类偏好构造奖励。

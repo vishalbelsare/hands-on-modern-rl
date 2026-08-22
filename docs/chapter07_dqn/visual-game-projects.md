@@ -9,7 +9,7 @@ outline:
 
 > **学习路径**：[5.1 从 Q-Learning 到 DQN](./from-q-to-dqn) → [5.4 LunarLander 实验](./lunar-lander) → **5.5 视觉游戏项目**
 
-> **本节代码**：[训练脚本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/dqn_atari_sb3.py) · [曲线导出](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/export_dqn_curves.py) · [回放渲染](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/render_atari.py) · [依赖](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/requirements.txt)
+> **本节代码与资源**：[训练脚本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/dqn_atari_sb3.py) · [曲线导出](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/export_dqn_curves.py) · [回放渲染](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/render_atari.py) · [依赖](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/requirements.txt)
 
 上一节的 LunarLander 会直接给出位置、速度和角度等 8 个数字，Q 网络只需根据这些物理量选择动作。Pong 只提供游戏画面：球在哪里、正向哪边飞、球拍是否来得及移动，都要由网络从像素中判断。
 
@@ -143,13 +143,15 @@ ALE 把几十款 Atari 2600 游戏包装成统一接口：
 同一个 DQN 程序从 Pong 换到 Breakout 或 Space Invaders，只需要改一个环境 ID。
 
 在本章里，Atari 的角色类似"像素版 CartPole"，但难度高了一档：
-CartPole 把状态整理成 4 个数字交给你，
+CartPole 把状态整理成 4 个数字交给策略，
 Atari 只给画面——球在哪里、往哪飞、球拍离球多远，都得从 84×84 灰度帧里自己学。
 
 ALE 里有几十款游戏，难度差异很大。
 本节选 Pong 做主实验：两个球拍、一个球，先到 21 分获胜。
 画面里物体少，动作只有上下，反馈极短——接住球或丢分几乎立刻发生。
 简洁的画面和极短的反馈链，让 Pong 成为像素 DQN 最自然的起点。
+
+<OnlineTraining studios="atari,jax" compact />
 
 ### 其他 Atari 游戏在哪里
 
@@ -397,7 +399,7 @@ CleanRL、RL-Zoo 和 SB3 的实现风格不同，
 
 DQN 通过 TD Target 把未来回报一步步传回。如果回放池里长期只有负样本或无意义转移，网络就不知道早期哪个动作有用。这不是公式写错了，是学习信号离动作太远。
 
-最后，ε-贪心探索要能产生有效经验。
+最后，$\epsilon$-贪心探索要能产生有效经验。
 
 当动作组合太多、episode 太长、失败反馈太晚时，随机探索可能长时间收集不到有意义样本。这时需要缩小动作集合、设计阶段性奖励，或者换用更适合长时探索的方法。
 
@@ -483,6 +485,8 @@ GridWorld 提供了最透明的任务设计方式。
 
 ![Gymnasium 自定义 GridWorld 环境示例动画：agent、target、移动和终止条件都由环境接口定义（来源：Gymnasium Environment Creation 教程）](./images/gymnasium-gridworld.gif)
 
+<OnlineTraining studios="gymnasium" compact />
+
 再往上走一步，任何动作空间为 `gym.spaces.Discrete(n_actions)` 的任务都可以尝试 DQN。
 
 低维向量用 `MlpPolicy`，图像用 `CnnPolicy`。但"动作离散"只是必要条件——如果奖励极其稀疏、观测严重缺少信息，或者随机探索几乎无法得到有效反馈，朴素 DQN 仍然难以收敛。
@@ -494,6 +498,8 @@ GridWorld 提供了最透明的任务设计方式。
 下面的附录沿着这条边界展开：ViZDoom 主要暴露部分可观测问题，宝可梦主要暴露稀疏奖励和长时规划问题，Minecraft 则进一步把开放世界、层级目标和长程探索推到更困难的位置。
 
 ViZDoom 原始论文就在简化场景上用卷积网络 + Q-learning + 经验回放训练了智能体。[^vizdoom-paper] DQN 可以训练，但依赖几个约束：场景专为学习设计、动作集合受控、奖励离目标行为较近、episode 长度适中。
+
+<OnlineTraining studios="vizdoom" compact />
 
 ![ViZDoom Basic 场景：单房间、少量敌人、射击反馈较近，适合作为 DQN 基础训练检查（来源：ViZDoom 官方环境文档）](./images/vizdoom-basic.gif)
 
@@ -532,7 +538,7 @@ ViZDoom 不是否定 DQN，而是说明另一条边界：当观测本身不满�
 | 动作组合     | 前进、转向、射击可组合         | 动作数膨胀后，随机探索很难采到好样本 |
 | 场景过拟合   | 一个 cfg 上学到的策略未必迁移  | 需在独立场景或固定测试集上检查评估   |
 
-## DQN 可以通关宝可梦吗？
+## 5.5.5 宝可梦任务的边界
 
 《宝可梦红》可以被包装成 DQN 环境：屏幕是观测，方向键和 A/B/Start 是离散动作，剧情推进可以变成奖励。[^pyboy] 但和 Pong 不同，宝可梦的目标和按键之间隔着很长的行动链，随机探索几乎不会产生足够的正样本。
 
@@ -607,11 +613,13 @@ tensorboard --logdir output/dqn_pokemon_red/tb
 | 无效操作         | 反复开菜单、对话卡住                 | action mask、anti-loop 惩罚     |
 | episode 太长     | 单次失败消耗大量采样                 | 存档起点、阶段目标、checkpoint  |
 
-因此，"DQN 可以通关宝可梦吗？"的精确回答是：DQN 可以在模拟器上训练早期子任务；若目标是完整通关，则需要任务拆分、奖励工程和更长时记忆。这与本节主线一致：DQN 的关键限制不是"不能看像素"，而是当奖励太远、状态太隐蔽、规划链条太长时，单纯增大 Q 网络并不能自动解决问题。
+在模拟器中，DQN 可以训练部分早期子任务。完整通关还需要任务拆分、奖励工程和更长时记忆；当奖励过于延迟、观测缺少关键信息、规划链条过长时，单纯增大 Q 网络不能解决这些问题。
 
-## DQN 可以通关我的世界吗？
+## 5.5.6 我的世界任务的边界
 
 Minecraft 是开放世界沙盒游戏，目标不是单一动作技能，而是一串相互依赖的长期任务链：砍树 → 木镐 → 石头 → 石镐 → 铁矿 → 铁锭 → 铁镐 → 钻石。
+
+<OnlineTraining studios="minestudio" compact />
 
 ![MineDojo 技术树任务示例：从木头一路合成到钻石剑，任务链条包含采集、加工、合成和资源升级（来源：MineDojo task suite）](./images/minecraft-minedojo-diamond-sword.png)
 
@@ -642,7 +650,7 @@ MineDojo 进一步把 Minecraft 组织成开放式任务平台，包含物品收
 - 宝可梦提醒我们：DQN 可以训练真实模拟器里的神经网络 Q 策略，但完整通关需要分任务、奖励工程和更长时记忆。
 - Minecraft 提醒我们：开放世界任务不仅奖励稀疏，还包含层级目标、背包状态、合成链和更复杂的动作空间。
 
-到这里，第 5 章完成了从表格 Q-Learning 到深度 Q 网络，再到像素游戏实验的过渡。下一章将转向另一条路线：不再先学习动作价值表，而是直接优化策略本身。[策略梯度与 REINFORCE](../chapter08_policy_gradient/policy-gradient)
+到这里，第 5 章完成了从表格 Q-Learning 到深度 Q 网络，再到像素游戏实验的过渡。下一章将转向另一条路线：不再先学习动作价值表，而是直接优化策略本身。[策略梯度与 REINFORCE](../chapter08_policy_gradient/reinforce)
 
 ## 参考文献
 

@@ -5,6 +5,9 @@ docs/.vitepress/cache
 .DS_Store
 __pycache__/
 *.pyc
+.venv-modelscope-games/
+.venv-test-*/
+_vizdoom.ini
 
 # Agents
 AGENTS.md
@@ -30,6 +33,11 @@ code/**/sft_results/
 code/**/rm_results/
 code/**/ppo_results/
 code/**/preference_data.json
+!code/chapter01_cartpole/output/
+!code/chapter01_cartpole/output/training_metrics_seed42.csv
+code/chapter01_cartpole/output/*.pth
+code/chapter01_cartpole/output/*.png
+!code/chapter01_cartpole/output/training_metrics_seed42.csv
 code/**/geometry_dataset/
 .claude/*
 
@@ -55,3 +63,7 @@ docs/public/sitemap.xml
 *.blg
 scripts/*.pdf
 swanlog/
+
+# Qoder local skills
+.qoder/
+docs/.vitepress/.temp/

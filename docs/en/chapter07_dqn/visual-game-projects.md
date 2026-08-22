@@ -5,13 +5,19 @@ outline:
 
 # 5.5 Hands-on: Visual Game Projects
 
+> **Section goal**: Train DQN directly from Pong frames, then use evaluation curves and checkpoint replays to determine whether the policy learned to return the ball and score.
+
+> **Learning path**: [5.1 From Q-Learning to DQN](./from-q-to-dqn) → [5.4 LunarLander Experiment](./lunar-lander) → **5.5 Visual Game Projects**
+
+> **Code and resources**: [training script](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/dqn_atari_sb3.py) · [curve export](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/export_dqn_curves.py) · [replay rendering](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/render_atari.py) · [dependencies](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter04_dqn/requirements.txt)
+
 The previous sections have discussed DQN's three core components separately: the Q-network estimates action values, experience replay breaks sample correlation, and the target network stabilizes TD targets. Section 5.4 placed these components into a LunarLander experiment: observing real training, evaluation returns, replay animations, training curves, Q-values, and ablation studies. By this point, low-dimensional state tasks have served their pedagogical purpose: they let us see clearly how DQN learns action values between 8 numbers and 4 discrete actions.
 
 This section addresses the next question: when the state is no longer a clean set of numbers but raw game frames, what else does DQN need to change?
 
 The answer is not to rewrite the TD target. From LunarLander to Atari, the core formula remains a one-step TD update. What actually changes are state representation and training conditions: MLP becomes CNN, single frames become frame stacks, and short experiments become long experiments with evaluation, checkpoints, and replay visualization. Finally, ViZDoom, Pokemon, and Minecraft serve as boundary cases to illustrate why discrete actions do not automatically make vanilla DQN a good fit.
 
-## Section Guide
+### Section Guide
 
 **Core ideas**
 
@@ -147,6 +153,8 @@ What turned Atari into a standard deep RL benchmark is ALE (Arcade Learning Envi
 In this chapter, Atari serves as a "pixel version of CartPole," but at a higher difficulty level: CartPole gives you the state as 4 numbers; Atari only gives you the screen — where the ball is, which direction it's flying, how far the paddle is from the ball, all must be learned from 84×84 grayscale frames.
 
 ALE contains dozens of games with widely varying difficulty. This section chooses Pong as the main experiment: two paddles, one ball, first to 21 points wins. Few objects on screen, actions are only up and down, extremely short feedback — catching the ball or losing a point happens almost immediately. Simple visuals and a very short feedback chain make Pong the most natural starting point for pixel DQN.
+
+<OnlineTraining studios="atari,jax" compact />
 
 ### Where Are Other Atari Games
 
@@ -403,6 +411,8 @@ If the agent fails to learn an effective policy, the reason can usually be trace
 
 ![Gymnasium custom GridWorld environment example animation: agent, target, movement, and termination conditions all defined by the environment interface (Source: Gymnasium Environment Creation tutorial)](../../chapter07_dqn/images/gymnasium-gridworld.gif)
 
+<OnlineTraining studios="gymnasium" compact />
+
 Stepping up, any task with action space `gym.spaces.Discrete(n_actions)` can try DQN. Low-dimensional vectors use `MlpPolicy`; images use `CnnPolicy`. But "discrete actions" is only a necessary condition — if rewards are extremely sparse, observations severely lack information, or random exploration almost never produces useful feedback, vanilla DQN still struggles to converge.
 
 In summary, DQN is suited for tasks with discrete actions, observable rewards, finite episode lengths, and where exploration can produce effective transitions. When tasks exhibit strong partial observability, extremely sparse rewards, or long-horizon planning needs, improvements like Double DQN, Dueling DQN, prioritized replay, n-step returns, or memory networks are needed.
@@ -410,6 +420,8 @@ In summary, DQN is suited for tasks with discrete actions, observable rewards, f
 The appendices below explore this boundary: ViZDoom mainly exposes partial observability issues, Pokemon mainly exposes sparse reward and long-horizon planning issues, and Minecraft further pushes open-world, hierarchical goals, and long-range exploration to a more difficult position.
 
 ViZDoom's original paper trained agents on simplified scenarios using convolutional networks + Q-learning + experience replay.[^vizdoom-paper] DQN can train, but depends on several constraints: scenarios designed for learning, controlled action sets, rewards close to target behavior, and moderate episode length.
+
+<OnlineTraining studios="vizdoom" compact />
 
 ![ViZDoom Basic scenario: single room, few enemies, close shooting feedback, suitable as a DQN basic training check (Source: ViZDoom official environment documentation)](../../chapter07_dqn/images/vizdoom-basic.gif)
 
@@ -448,7 +460,7 @@ ViZDoom does not disprove DQN — it illustrates another boundary: when observat
 | Action composition   | Move forward, turn, shoot can be combined                  | Action count bloats, random exploration rarely samples good actions |
 | Scenario overfitting | Policy learned on one cfg may not transfer                 | Need evaluation on independent scenarios or fixed test sets         |
 
-## Appendix: Can DQN Beat Pokemon?
+## 5.5.5 Boundaries of Pokémon Tasks
 
 Pokemon Red can be wrapped as a DQN environment: the screen is the observation, D-pad plus A/B/Start are discrete actions, and story progression becomes rewards.[^pyboy] But unlike Pong, Pokemon's goals and button presses are separated by a long chain of actions — random exploration almost never produces sufficient positive samples.
 
@@ -525,9 +537,11 @@ If the task is limited to early navigation and rewards provide clear feedback fo
 
 Therefore, the precise answer to "can DQN beat Pokemon?" is: DQN can train early subtasks in an emulator; if the goal is full completion, it requires task decomposition, reward engineering, and longer-term memory. This is consistent with this section's main theme: DQN's key limitation is not "cannot see pixels," but that when rewards are too distant, states too hidden, and planning chains too long, simply increasing the Q-network size does not automatically solve the problem.
 
-## Appendix: Can DQN Beat Minecraft?
+## 5.5.6 Boundaries of Minecraft Tasks
 
 Minecraft is an open-world sandbox game where the objective is not a single action skill, but a chain of interdependent long-term tasks: chop trees → wooden pickaxe → stone → stone pickaxe → iron ore → iron ingot → iron pickaxe → diamonds.
+
+<OnlineTraining studios="minestudio" compact />
 
 ![MineDojo tech-tree task example: from wood all the way to diamond sword, the task chain includes gathering, processing, crafting, and resource upgrading (Source: MineDojo task suite)](../../chapter07_dqn/images/minecraft-minedojo-diamond-sword.png)
 
@@ -558,7 +572,7 @@ So DQN can train constrained discrete subtasks in Minecraft; if the goal is obta
 - Pokemon reminds us: DQN can train neural-network Q-policies in real emulators, but full completion requires task decomposition, reward engineering, and longer-term memory.
 - Minecraft reminds us: open-world tasks not only have sparse rewards, but also contain hierarchical goals, inventory states, crafting chains, and more complex action spaces.
 
-With this, Chapter 5 completes the transition from tabular Q-learning to deep Q-networks to pixel game experiments. The next chapter turns to a different path: instead of first learning action-value tables, directly optimizing the policy itself. [Policy Gradient and REINFORCE](../chapter08_policy_gradient/policy-gradient)
+With this, Chapter 5 completes the transition from tabular Q-learning to deep Q-networks to pixel game experiments. The next chapter turns to a different path: instead of first learning action-value tables, directly optimizing the policy itself. [Policy Gradient and REINFORCE](../chapter08_policy_gradient/reinforce)
 
 ## References
 

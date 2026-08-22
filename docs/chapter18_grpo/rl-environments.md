@@ -1,4 +1,4 @@
-# 15.5 RL Environments 与 Verifier
+# 15.5 强化学习环境与验证器
 
 > [13.3 AI 反馈与安全原则](../chapter21_cai_rlvr/hhh-practice) 讨论了如何用 AI 反馈减少人工标注；本章则延续第 15 章的 RLVR，用规则验证器替代奖励模型。当任务从"数学题答对/答错"扩展到"写代码、调工具、订机票、修 Bug"时，**奖励信号本身成了瓶颈**。本章解决一个工程问题：如何把真实世界任务封装成可训练的 RL 环境，以及如何设计能抵抗作弊的 Verifier。这是 2025 年下半年 RL 训练流水线最受关注的工程方向。
 
@@ -492,7 +492,7 @@ AReaL 论文报告，在 agentic 任务上对 Llama-3-8B 训练：
 - 极长任务（> 1 小时）：异步是唯一可行方案
   :::
 
-更深入的工程细节见[附录 B.1：RL 训练系统](../appendix_industrial_training/rl-infrastructure)。
+更深入的工程细节见[附录 A.2 轨迹生成与策略更新](../appendix_industrial_training/rl-infrastructure)。
 
 ## 评测基准
 

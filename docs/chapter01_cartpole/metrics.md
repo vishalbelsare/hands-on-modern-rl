@@ -1,753 +1,415 @@
 ---
-outline: [2, 2]
+outline: [2, 3]
 ---
 
-# 1.2 奖励与训练指标
+# 1.2 CartPole 原理
 
-> 📁 **本章代码**：[1-ppo_cartpole.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/1-ppo_cartpole.py) · [2-pytorch_ppo.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [requirements.txt](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/requirements.txt)
+> **本节目标**：先讲清 CartPole 与 PPO 的原理，再从一次真实训练的原始记录出发，学会阅读回合奖励和四个 PPO 辅助指标。
 
-## 观察训练过程
+> **学习路径**：[1.1 跑通 CartPole](./principles) → **1.2 CartPole 原理** → [1.3 PPO 训练可视化](./training)
 
-观察训练过程中的控制台输出，
-你会发现训练脚本会持续打印各种数值。
-下面这段摘自一次真实训练日志
-（2026-04-21，`code/chapter01_cartpole/swanlog/` 目录下的本地备份）：
+> **本节代码与数据**：[纯 PyTorch PPO](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [原始训练指标 CSV](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/output/training_metrics_seed42.csv) · [绘图脚本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/plot_curves.py)
 
+::: tip 可选阅读
+本节属于选读内容。如果你已有一定的 Python、PyTorch 或深度学习基础，可以直接往下读；如果还没有，可以先跳到 [1.3 动手：PPO 训练可视化](./training)，等需要弄清训练背后的机制时，再倒回来看这一节。
+:::
+
+上一节我们跑通了第一次 CartPole 训练，看到奖励曲线从 20 分涨到 500 分。这一节先拆解它背后的原理——环境给智能体什么信息、智能体怎么做决策、PPO 怎样用一段交互数据改进策略；然后回到训练记录本身，学会阅读回合奖励和四个 PPO 辅助指标。
+
+## 环境规则：观测、动作与奖励
+
+我们先来看环境本身的规则——上一节的曲线变化，正是发生在每一步的交互里。
+
+CartPole 的画面很简单：一条水平轨道上有一辆小车，车顶通过转轴连着一根杆子。每隔一个很短的时间步，控制器要做一次选择——向左推小车，还是向右推小车。除此之外，它什么也做不了。
+
+杆子受重力影响，一旦开始倾斜就会越倒越快。控制器只有不断调整推的方向，才能让杆子尽量长时间保持直立。
+
+### 观测：环境每步返回四个数
+
+控制器要决定向哪边推，就得先知道当前局面。人看一眼画面就能判断杆子是否倾斜，程序拿不到画面，需要的是数值。CartPole 每一步返回四个数字，作为控制器能看到的状态：
+
+$$
+s_t=[x_t,\ \dot{x}_t,\ \theta_t,\ \dot{\theta}_t].
+$$
+
+下标 $t$ 表示当前时刻，四个量依次是小车位置、小车速度、杆子角度和杆子角速度。
+
+| 编号 | 观测量       | 含义                   | `observation_space` 中的边界 |
+| ---- | ------------ | ---------------------- | ---------------------------- |
+| 0    | $x$          | 小车位于轨道上的位置   | $[-4.8,\ 4.8]$               |
+| 1    | $\dot{x}$    | 小车移动的方向和快慢   | $(-\infty,\ +\infty)$        |
+| 2    | $\theta$     | 杆子偏离竖直方向的角度 | 约 $[-24^\circ,\ 24^\circ]$  |
+| 3    | $\dot\theta$ | 杆子转动的方向和快慢   | $(-\infty,\ +\infty)$        |
+
+角度和角速度必须同时出现。只知道杆子向右倾，还无法判断它正在快速倒向右侧，还是正在回到中间——这两种情况需要的动作可能完全相反。
+
+下面的代码可以读取环境声明的观测范围和终止阈值：
+
+```python
+import gymnasium as gym
+import numpy as np
+
+env = gym.make("CartPole-v1")
+print("观测上限:", env.observation_space.high)
+print("观测下限:", env.observation_space.low)
+print("小车位置阈值:", env.unwrapped.x_threshold)
+print(
+    "杆子角度阈值:",
+    np.degrees(env.unwrapped.theta_threshold_radians),
+    "度",
+)
 ```
-------------------------------------------------------------
-  迭代  1/20 | 回合数:  98 | 平均奖励:   20.8 | KL: 0.0047 | clip%: 6.2%
-  迭代  7/20 | 回合数:  10 | 平均奖励:  196.5 | KL: 0.0027 | clip%: 6.0%
-  迭代 13/20 | 回合数:   4 | 平均奖励:  410.0 | KL: 0.0075 | clip%: 10.6%
-  迭代 18/20 | 回合数:   4 | 平均奖励:  500.0 | KL: 0.0050 | clip%: 4.5%
-  迭代 19/20 | 回合数:   4 | 平均奖励:  500.0 | KL: 0.0041 | clip%: 4.0%
-  迭代 20/20 | 回合数:   4 | 平均奖励:  500.0 | KL: 0.0005 | clip%: 0.0%
-------------------------------------------------------------
+
+这里的无穷大表示 Gymnasium 没有给速度声明有限的观测边界，并不表示一次实际运行会产生无穷大的速度。
+
+### 动作：向左或向右
+
+知道了状态，控制器还要从中选择一个动作。CartPole 的动作集合为
+
+$$
+\mathcal{A}=\{0,1\}.
+$$
+
+| 动作 | 环境中的含义 |
+| ---- | ------------ |
+| 0    | 向左推小车   |
+| 1    | 向右推小车   |
+
+注意，动作集合里没有"不推"，也不能选择推力大小。程序每一步都必须在左和右之间做出选择。
+
+从控制的角度看，动作先改变小车的运动，再通过小车和杆子的连接影响杆子。一次动作通常不能立即消除倾斜，策略需要根据下一步的新观测继续调整。
+
+控制杆子需要连续决策，每一步的选择都会改变下一步的处境。
+
+### 奖励：每存活一步得一分
+
+观测和动作定义了"能看到什么"和"能做什么"，还差一个信号告诉程序哪些行为更好，这个信号就是奖励。环境每运行一步就给出 $+1$ 奖励。一个回合在以下任一情况发生时结束：
+
+- 小车位置超出 $\pm 2.4$；
+- 杆子角度超出约 $\pm 12^\circ$；
+- 回合达到 500 步时间上限。
+
+因此，CartPole-v1 的回合奖励与存活步数相等。坚持 37 步得到 37 分，撑满上限得到 500 分。
+
+细看这个奖励，会发现它并不直接指明"当前应该向左推"，只记录一次动作之后任务是否还在继续。程序需要比较许多次交互，逐渐找出哪些状态和动作更容易带来较长的回合——这就是后面策略和价值网络要做的事。
+
+## 策略与 Actor 网络
+
+有了观测、动作和奖励，还差一条规则：在某个状态下，应该选哪个动作。这条规则称为**策略**，记作 $\pi$。
+
+对 CartPole 来说，策略接收四维观测，输出两个动作的概率：
+
+$$
+\pi(a\mid s)=P(A_t=a\mid S_t=s).
+$$
+
+先看一个具体状态。假设杆子正在向右倾，策略可能给出
+
+$$
+\pi(0\mid s)=0.3,\qquad \pi(1\mid s)=0.7.
+$$
+
+这表示训练时有 30% 的概率向左推，70% 的概率向右推。策略根据完整的四维观测计算概率，不能只用杆子向哪边倾来决定动作——小车速度、杆子角速度等信息同样影响最优选择。
+
+实现上用一个小型神经网络表示策略。输入层接收四个数，输出层产生两个动作的分数，再通过概率分布采样：
+
+```mermaid
+flowchart LR
+    S["四维观测 s"] --> N["Actor 网络<br/>4 → 64 → 64 → 2"]
+    N --> L["向左的概率"]
+    N --> R["向右的概率"]
+```
+
+Actor 的输出层使用较小的初始权重，因此训练刚开始时，两个动作的概率通常都接近 0.5，策略会尝试左右两种动作。随着训练推进，策略逐渐学会在不同状态下给出不同的概率分布。
+
+## Critic 与状态价值
+
+策略能输出动作概率，但仅凭某一步的 $+1$ 奖励，很难判断这个动作是否改善了长期结果。在 CartPole 里，同一个"向右推"的动作，有时能让杆子多撑几十步，有时只是推迟了倒下的时间。单看一步的奖励区分不出这两种情况。
+
+PPO 为此增加了第二个网络，称为 **Critic**。
+
+Critic 接收状态 $s_t$，输出状态价值 $V(s_t)$。这个数表示：从当前状态继续按照现有策略行动，预计还能获得多少折扣回报。
+
+代码把两个网络放在同一个 `ActorCritic` 类中：
+
+```python
+class ActorCritic(nn.Module):
+    def __init__(self, obs_dim=4, act_dim=2, hidden=64):
+        super().__init__()
+        self.actor = nn.Sequential(
+            nn.Linear(obs_dim, hidden),
+            nn.Tanh(),
+            nn.Linear(hidden, hidden),
+            nn.Tanh(),
+            nn.Linear(hidden, act_dim),
+        )
+        self.critic = nn.Sequential(
+            nn.Linear(obs_dim, hidden),
+            nn.Tanh(),
+            nn.Linear(hidden, hidden),
+            nn.Tanh(),
+            nn.Linear(hidden, 1),
+        )
+```
+
+Actor 决定怎样行动，Critic 估计当前局面的长期价值。训练时，两个网络都根据采集到的轨迹更新。后面的 PPO 训练流程会用到 Critic 的输出来计算优势——也就是判断某一步的动作到底比预期好多少。
+
+## PPO 训练流程
+
+到目前为止，我们分别介绍了 Actor 和 Critic，但还没有说它们怎样配合。现在把两个网络连起来，看一次完整的 PPO 迭代怎样进行。
+
+一次迭代先使用当前策略收集 2048 步。每一步保存状态、动作、奖励、动作的对数概率和 Critic 给出的价值：
+
+```python
+for _ in range(num_steps):
+    action, log_prob, value = model.get_action(obs_tensor)
+    next_obs, reward, terminated, truncated, _ = env.step(action.item())
+```
+
+这段数据称为一段 **rollout**。它可以包含多个完整回合，也可能在某个回合中间结束。
+
+收集完之后，程序要做两件事：先判断每一步的动作比预期好多少（优势），再据此更新策略——但更新的幅度要有限制。
+
+### TD 误差与 GAE 优势
+
+采样结束后，程序先计算每一步的 TD 误差：
+
+$$
+\delta_t=r_t+\gamma V(s_{t+1})-V(s_t).
+$$
+
+$V(s_t)$ 是 Critic 在动作执行前给出的预期，$r_t+\gamma V(s_{t+1})$ 是执行动作后得到的新估计。若 $\delta_t>0$，说明这一步的结果高于 Critic 原来的预期。
+
+只使用一步的误差容易受到 Critic 估计偏差的影响。代码使用 GAE，把当前和后续若干步的 TD 误差合成优势 $A_t$：
+
+$$
+A_t=\delta_t+\gamma\lambda\delta_{t+1}
++(\gamma\lambda)^2\delta_{t+2}+\cdots.
+$$
+
+优势为正时，PPO 会提高这次动作在相同状态下出现的概率；优势为负时，则会降低这个概率。这正是 Critic 存在的意义：它给每一步的动作提供一个比较基准。
+
+### 概率比与裁剪目标
+
+有了优势，还需要一个更新规则来调整策略。这里有一个问题：同一批 rollout 数据来自更新前的旧策略。如果新策略可以随意偏离旧策略，一次更新就可能把策略推到一个很差的区域。
+
+为了比较新旧策略，PPO 计算已采样动作的概率比：
+
+$$
+r_t(\theta)=
+\frac{\pi_\theta(a_t\mid s_t)}
+{\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)}.
+$$
+
+代码取裁剪范围 $[0.8,1.2]$。当概率比超出这个范围时，裁剪目标会限制这条样本继续推动策略大幅变化：
+
+```python
+ratio = torch.exp(new_log_probs - batch_old_log_probs)
+surr1 = ratio * batch_advantages
+surr2 = torch.clamp(ratio, 0.8, 1.2) * batch_advantages
+policy_loss = -torch.min(surr1, surr2).mean()
+```
+
+裁剪不保证每次更新都更好，但它限制了同一批数据能带来的策略变化幅度，使新策略不会因为一批样本发生过大的单次偏移。
+
+## 终止、截断与 rollout 边界
+
+前面提到回合会在三种情况下结束。Gymnasium 用两个标记区分它们：`terminated` 和 `truncated`。它们都会让环境执行 `reset`，但在价值计算中含义不同。
+
+`terminated=True` 表示杆子倒下或小车越界——回合已经自然结束，后续不可能再获得奖励，因此后续价值为 0。
+
+`truncated=True` 表示回合达到 500 步时间上限——杆子此时可能仍然保持平衡，因此程序仍使用 $V(s_{t+1})$ 估计截断位置之后的价值。
+
+无论是哪一种结束，GAE 都必须在 `reset` 处切断。新回合的优势不能传回上一个回合，否则相当于让上一局的结果去影响下一局的判断。
+
+rollout 的 2048 步边界也不等于回合结束。如果采样在一个回合中间停止，下一轮应从当前状态继续，并继续累计这一回合的奖励。
+
+## 训练主循环
+
+现在可以把一次完整训练连起来。核心是三步：收集轨迹，计算优势，更新 Actor 和 Critic，然后重复。
+
+```mermaid
+flowchart LR
+    A["用当前策略<br/>收集 2048 步"] --> B["计算 TD 误差<br/>与 GAE 优势"]
+    B --> C["更新 Actor<br/>与 Critic"]
+    C --> A
+```
+
+脚本重复这个过程 40 次：
+
+```python
+for iteration in range(40):
+    transitions, obs = collect_rollout(model, env, obs, 2048)
+    advantages, returns = compute_gae(transitions)
+    metrics = ppo_update(
+        model,
+        optimizer,
+        transitions,
+        advantages,
+        returns,
+    )
+```
+
+第 1 轮使用接近随机的策略收集数据。更新后的策略会改变下一轮的数据分布，新的数据又会带来下一次更新。
+
+策略在迭代中逐步修正，奖励曲线也就从 20 分逐步接近 500。
+
+## 本页数据从哪里来
+
+原理讲完之后，训练记录里还有更多值得看的东西——曲线上的每个点、日志里的每个数字都对应着刚才的某个环节。本页分析仓库中保存的一次真实运行，训练曲线、诊断曲线和控制台数字都来自同一份 CSV，没有把不同脚本或不同随机种子的结果拼在一起。
+
+| 项目     | 本次运行设置                                                 |
+| -------- | ------------------------------------------------------------ |
+| 日期     | 2026-08-13                                                   |
+| 环境     | `CartPole-v1`                                                |
+| 算法     | 仓库中的纯 PyTorch PPO                                       |
+| 随机种子 | `42`                                                         |
+| 训练量   | 40 轮 × 2048 步 = 81,920 个环境步                            |
+| 评估     | 训练后使用确定性策略独立运行 20 回合                         |
+| 软件版本 | Python 3.12.13、PyTorch 2.13.0、Gymnasium 1.3.0、NumPy 2.5.2 |
+
+复现命令如下。`--swanlab-mode disabled` 只关闭看板记录，不改变训练过程。
+
+```bash
+cd code/chapter01_cartpole
+python 2-pytorch_ppo.py \
+  --seed 42 \
+  --iterations 40 \
+  --steps-per-rollout 2048 \
+  --swanlab-mode disabled \
+  --log-csv output/training_metrics_seed42.csv
+
+python plot_curves.py \
+  --input output/training_metrics_seed42.csv \
+  --output-dir output
+```
+
+下面摘录六轮训练日志。每个数字都可以在原始 CSV 中找到。
+
+```text
+迭代  1/40 | 回合数:  91 | 平均奖励:   21.4 | KL: 0.0087 | clip%: 14.5%
+迭代  5/40 | 回合数:  15 | 平均奖励:  133.4 | KL: 0.0043 | clip%:  5.2%
+迭代 10/40 | 回合数:   4 | 平均奖励:  500.0 | KL: 0.0059 | clip%:  7.4%
+迭代 11/40 | 回合数:   5 | 平均奖励:  460.4 | KL: 0.0077 | clip%: 12.8%
+迭代 20/40 | 回合数:   4 | 平均奖励:  500.0 | KL: 0.0019 | clip%:  1.6%
+迭代 40/40 | 回合数:   4 | 平均奖励:  500.0 | KL: 0.0004 | clip%:  0.0%
 训练完成！20 回合评估: 500.0 +/- 0.0
 ```
 
-这些数值包含丰富的训练信息。
-接下来的内容分成两个部分：
-**快速理解**部分聚焦最关键的指标，回答"训练是否成功"；
-**详细解释**部分则将所有指标逐个拆解，给出完整的数学定义和判读方法。
-初次阅读建议先看快速理解，建立整体印象后再查阅详细解释。
+## 先看回合奖励
 
----
+拿到记录后，我们最先看的是回合奖励。回合奖励等于存活步数，越高表示策略让杆子保持直立的时间越长。
 
-## 快速理解
+训练脚本每轮收集 2048 步。它只统计在这一轮中结束的完整回合；跨越两轮采样边界的回合会继续累计，直到环境真正结束该回合。
 
-训练一次 PPO 会产生十几个指标，
-但判断训练是否成功，只需关注以下四个。
+![seed=42 的实测奖励曲线](./images/cartpole_reward_seed42.png)
 
-### 回合平均奖励
+<div class="figure-caption">图 1-3：seed=42 的原始训练奖励。每个点表示该轮结束的完整回合的平均奖励。曲线没有平滑，虚线表示单回合 500 步上限。</div>
 
-_平均奖励_（mean reward）是判断训练效果最直接的指标。
-在 CartPole 中，智能体每保持平衡 1 步获得 +1 奖励，
-一局结束时的总步数即为该局的累积奖励，上限为 500 分。
-训练日志里的"回合数"和指标名里的 `ep`，
-说的都是 **episode（回合 / 一局）**：
-环境从 `reset` 开始，到杆子倒下、小车出界，或达到 500 步上限为止的一次完整尝试。
-由于单局得分存在较大波动
-（同一策略可能一局得 480 分、下一局仅得 200 分），
-实际中通常取最近若干局的得分均值，
-记为 `ep_rew_mean`（_rollout episode reward mean_），
-以更稳定地反映智能体当前的真实水平。
+第一轮结束了 91 个回合，平均奖励为 21.35。策略接近随机，因此多数回合很快结束。
 
-训练完成后得到的奖励曲线如下图所示，
-展示了 SB3 PPO（蓝色）和自研 PyTorch PPO（橙色）
-在同一个 CartPole 任务上的训练过程：
+第 10 轮结束了 4 个回合，平均奖励为 500.0。此时累计采样了 20,480 个环境步。
 
-![回合平均奖励曲线](./images/training_curves.png)
+第 11 轮的平均奖励降到 460.4。PPO 训练使用随机动作采样，每轮包含的完整回合数也很少，因此单个点可以暂时下降。后续大多数轮次重新达到 500 分。
 
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-3：回合平均奖励从约 20 分一路攀升至满分 500，蓝线为 SB3 PPO、橙线为自研 PyTorch PPO。虚线为 195 分解题线。</em>
-</div>
+这些数字只描述 seed=42 的一次运行。若要比较两个算法的样本效率，需要运行多个随机种子，并使用相同的训练量和评估方法。
 
-从图中可以清晰地看到三个阶段：
+## 训练奖励与独立评估
 
-1. **初始阶段（0 ~ 5K Total Timesteps）**：
-   两条曲线均在 `20 ~ 50` 附近，
-   与*随机策略*（random policy）的表现相当，
-   表明模型尚未学到有效的平衡策略。
-2. **快速上升阶段（5K ~ 25K Total Timesteps）**：
-   奖励从不到 100 迅速攀升至 300 以上，
-   越过 195 分解题线（图中虚线），
-   表明策略已初步掌握平衡控制。
-   PyTorch PPO（橙色）因采用线性学习率衰减，
-   收敛速度更快。
-3. **收敛阶段（25K Total Timesteps 之后）**：
-   奖励进入 `400 ~ 500` 区间，
-   最终稳定在满分 `500`。
-   两个实现最终均达到了 `500.0 +/- 0.0` 的评估结果。
+看懂曲线之后，还有一个问题需要澄清：曲线上的训练奖励，和"模型到底好不好"并不是一回事。训练时，程序按照策略给出的概率抽取动作——即使向右的概率更大，仍可能抽到向左。这样的随机性让策略继续尝试不同动作，也会给训练奖励带来波动。
 
-总结而言：**曲线持续上升并趋于稳定，即表明训练成功。**
-若曲线始终持平或出现突然暴跌，
-则说明训练过程存在异常。
+独立评估使用确定性策略。程序在每一步选择概率最大的动作，并从新的环境初始状态运行 20 个回合。本次结果为：
 
-### 策略熵
-
-_策略熵_（policy entropy）度量智能体在动作选择上的不确定性。
-熵来自信息论，在这里反映的是策略的随机性：
-高熵表示智能体仍在广泛探索（动作分布接近均匀），
-低熵表示智能体逐渐确定了最优动作（动作分布趋于集中）。
-
-一条健康的策略熵曲线应**从高到低缓慢下降**，
-与奖励曲线形成"剪刀交叉"——
-奖励上升的同时熵下降，这是强化学习训练的典型特征。
-若训练初期熵即迅速降至 0，
-则说明策略过早地收敛到某个可能并非最优的动作模式上，
-这称为*过早收敛*（premature convergence）。
-
-![策略熵曲线](./images/entropy_loss.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-4：策略熵从高到低缓慢下降，与奖励上升形成"剪刀交叉"——健康的训练信号。</em>
-</div>
-
-### 价值损失
-
-PPO 内部包含一个 _Critic_ 组件，
-其任务是预测*状态价值函数*——
-即"从当前状态出发，未来预期能获得的总奖励"。
-_价值损失_（value loss）度量的就是 Critic 的预测值与实际回报之间的偏差。
-
-训练初期，Critic 尚未学会准确评估状态价值（value_loss 较大）。
-随着训练推进，Critic 的预测逐渐趋近实际回报（value_loss 逐步减小）。
-
-需要注意的是：
-**value_loss 减小并不等同于策略在改善。**
-它仅表明 Critic 的评估更为准确。
-策略本身的表现应以平均奖励为判据。
-若 value_loss 长期不降或反而增大，
-通常意味着 Critic 未能跟上策略的变化速度。
-
-![价值损失曲线](./images/value_loss.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-5：Value Loss 逐步减小，说明 Critic 对状态价值的预测越来越准确。</em>
-</div>
-
-### KL 散度与裁剪比例
-
-PPO 的核心思想是"每次只对策略做小幅修改"。
-判断修改幅度是否合理，需要关注两个指标：
-_近似 KL 散度_（approximate KL divergence）和*裁剪比例*（clip fraction）。
-
-KL 散度衡量新旧策略之间的差异程度。
-KL = 0 表示完全没变，KL 越大说明改得越多。
-正常训练中，KL 应该始终压在 `0.001 ~ 0.02` 的低位；
-超过 `0.03` 就说明策略更新幅度过大，有崩溃的风险。
-
-裁剪比例表示当前更新中，
-触发 PPO 裁剪机制的样本占总样本的比例。
-可以将其理解为"安全阀触发率"。
-正常情况下该值应在 `5% ~ 15%`，
-偶尔冲高属于正常波动，但长期超过 `30%` 则意味着策略变化过于剧烈。
-
-![训练指标四合一面板](./images/training_metrics.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-6：Value Loss 逐步减小、Entropy 持续下降、KL 始终低于 0.01、Clip Fraction 最高约 10% 且后期归零——典型的 PPO 健康信号。</em>
-</div>
-
-上图四个面板综合展示了训练过程的核心信号：
-**Value Loss 在减小、Entropy 持续下降、
-KL 散度始终未失控上升、Clip Fraction 也未长期处于高位**——
-这正是 PPO"持续更新且幅度受控"的典型表现。
-
-### SB3 日志格式
-
-使用 `1-ppo_cartpole.py`（Stable-Baselines3 版本）时，
-控制台输出格式如下：
-
-```
------------------------------------------
-| time/              |                  |
-|    fps             | 5342             |
-|    iterations      | 1                |
-|    time_elapsed    | 3                |
-|    total_timesteps | 2048             |
-| train/             |                  |
-|    entropy_loss    | -0.683           |
-|    learning_rate   | 0.0003           |
-|    loss            | 0.0124           |
-|    policy_gradient_loss | -0.0187     |
-|    value_loss      | 8.2741           |
------------------------------------------
+```text
+mean = 500.0
+std  = 0.0
 ```
 
-阅读方法：首先查看 `total_timesteps` 确认训练进度，
-再通过 `value_loss` 和 `entropy_loss` 判断训练状态。
-SB3 版本在 80K 步训练设置下，
-评估结果为 `500.0 +/- 0.0`，
-演示 5 回合得分均为 `500.0`。
-
-训练完成后运行以下命令，即可在浏览器中查看完整曲线：
-
-```bash
-swanlab watch swanlog
-```
-
-### 训练诊断的核心问题
-
-在观察曲线的过程中，可以尝试回答以下三个问题，
-以加深对强化学习训练本质特征的理解。
-
-<details>
-<summary><strong>问题一：为什么刚开始得分这么低？</strong></summary>
-
-因为智能体尚未学习任何策略。
-第 1 轮平均奖励仅为 `20.8`，
-与随机策略的表现相当。
-CartPole-v1 的最大步数为 500 步（满分 500），
-而随机策略平均只能维持约 20 步。
-
-</details>
-
-<details>
-<summary><strong>问题二：为什么曲线不是平滑上升，而是锯齿状的？</strong></summary>
-
-强化学习训练使用随机采样，
-因此奖励曲线并非单调递增。
-即便在这次总体稳定的训练中，
-奖励也出现了波动：
-第 9 轮为 `319.0`，第 10 轮回落到 `276.9`，
-第 11 轮继续降至 `238.9`，
-但第 13 轮又回升至 `410.0`。
-这种局部回撤属于正常现象，
-只要整体趋势向上，训练即仍在有效推进。
-
-</details>
-
-<details>
-<summary><strong>问题三：如果把 <code>total_timesteps</code> 改成 5000，会怎样？</strong></summary>
-
-训练将提前结束，
-智能体可能尚未进入"稳定 500 分"的收敛阶段。
-从本次训练数据看，
-真正稳定在高分段大约发生在第 13 轮之后。
-缩短训练时间后，
-最常见的结果是模型停留在 `100 ~ 300` 分之间——
-偶尔能维持较长时间，但表现尚不稳定。
-
-</details>
-
-> **动手实验**：将 `total_timesteps` 分别修改为 5000、10000、50000，
-> 对比三次训练后智能体的表现差异，
-> 直观感受"训练步数"与"学习效果"之间的关系。
-
----
-
-## 指标详解
-
-上面"快速理解"部分覆盖了最关键的四个指标。
-接下来的内容将把 SwanLab 记录的**所有**指标逐个展开，
-包括数学定义、判读方法和异常信号。
-本节可作为参考手册，在遇到具体指标疑问时随时查阅。
-
-在我们的训练脚本中，SwanLab 会记录完整的训练指标，
-分成三大类：
-
-| 类别                    | 指标                   | 含义            |
-| ----------------------- | ---------------------- | --------------- |
-| **Rollout（策略表现）** | `ep_rew_mean`          | 回合平均奖励    |
-|                         | `ep_len_mean`          | 回合平均长度    |
-| **Train（训练过程）**   | `value_loss`           | Critic 预测误差 |
-|                         | `entropy_loss`         | 策略随机性      |
-|                         | `policy_gradient_loss` | 策略损失        |
-|                         | `approx_kl`            | 新旧策略差异    |
-|                         | `clip_fraction`        | 裁剪触发比例    |
-|                         | `explained_variance`   | Critic 拟合质量 |
-|                         | `learning_rate`        | 当前学习率      |
-|                         | `loss`                 | 总损失（SB3）   |
-|                         | `clip_range`           | 裁剪范围        |
-|                         | `n_updates`            | 梯度更新次数    |
-| **Time（进度追踪）**    | `total_timesteps`      | 累计交互步数    |
-|                         | `iterations`           | PPO 迭代轮数    |
-|                         | `fps`                  | 每秒步数（SB3） |
-|                         | `time_elapsed`         | 已用时间（SB3） |
-
-下面是 SB3 PPO 和自研 PyTorch PPO
-在同一个 CartPole 任务上的真实训练曲线对比
-（均约 80K Total Timesteps、40 轮迭代）：
-
-![CartPole 训练奖励曲线对比](./images/training_curves.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-7：SB3 PPO 与自研 PyTorch PPO 在 CartPole 上的奖励曲线对比，两者均收敛到 500 分。</em>
-</div>
-
-### Episode Reward（回合奖励）
-
-_回合奖励_（episode reward）是一个回合中所有步骤奖励的总和。
-在 CartPole 中，每步奖励固定为 +1，
-因此回合奖励就等于杆子保持平衡的总步数。
-SwanLab 中记录为 `rollout/ep_rew_mean`，
-即每次 _Rollout_（策略与环境交互收集数据的过程）
-中得到的所有回合的奖励均值：
-
-$$G = \sum_{t=0}^{T} r_t = T$$
-
-其中 $T$ 是回合结束时的步数。
-在 CartPole-v1 中，$T$ 的上限为 500。
-
-从上面的对比图中可以看到，
-两个实现在约 25K~80K Total Timesteps 后都收敛到了 500 分：
-PyTorch PPO（橙色）在约 25K 步首次达到满分，
-SB3 PPO（蓝色）在约 80K 步稳定达到 500。
-两者的收敛路径相似，但 PyTorch 版本因使用了线性学习率衰减而收敛更快。
-
-这是衡量强化学习智能体表现的核心指标。
-一条健康的曲线应该呈现以下特征：
-
-- **整体趋势上升**：策略在改进。
-  如果从头到尾都是一条平线，说明训练没有生效。
-- **上升速度先快后慢**：
-  早期从"完全随机"到"基本能平衡"的进步空间大，曲线陡峭；
-  后期改进越来越难，曲线趋于平缓。
-- **最终趋于稳定**：
-  策略收敛到一个较好的水平，
-  曲线在某个值附近小幅波动。
-  波动来源于采样的随机性。
-
-如果曲线出现以下异常，说明训练出了问题：
-
-| 异常现象                 | 可能原因                   | 严重程度 |
-| ------------------------ | -------------------------- | -------- |
-| 突然暴跌到 0             | 策略崩溃，学习率太大       | 严重     |
-| 始终不动（卡在 20 左右） | 策略没有在学习，超参数不当 | 严重     |
-| 剧烈震荡不收敛           | 训练不稳定，奖励信号太稀疏 | 中等     |
-| 稳定在 100 左右不上去了  | 探索不够，陷入局部最优     | 中等     |
-
-### Episode Length Mean（回合平均长度）
-
-SwanLab 中的 `rollout/ep_len_mean` 记录的是
-每次 Rollout 中所有回合的平均步数。
-在 CartPole 中，
-由于每步奖励固定为 +1，
-回合长度和回合奖励在数值上完全相等——
-一个回合走了 200 步，奖励就是 200。
-
-![Episode Length Mean 曲线](./images/ep_len_mean.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-8：回合平均长度与回合平均奖励在 CartPole 中数值完全一致。</em>
-</div>
-
-既然数值相等，为何还要单独记录该指标？
-因为**并非所有环境的奖励都与步数等价**。
-在后续章节中将遇到更复杂的环境，届时会发现：
+平均值 500.0 表示 20 个回合都运行到时间上限，标准差 0.0 表示这 20 个得分没有差异。
 
-- **非均匀奖励**：有些步给 +0.1，有些步给 +10，
-  奖励和长度不再一一对应。
-- **惩罚机制**：某些步可能扣分（比如碰壁 -5），
-  此时高奖励可能对应短回合。
-- **任务目标**：有些任务要尽快结束
-  （最少步数达到目标），
-  长回合反而是坏事。
-
-在这些场景下，
-_回合平均长度_（episode length mean）即成为
-独立于回合奖励的重要信号。
-建议从现在起养成同时观察两项指标的习惯。
-
-### Entropy（策略熵）
-
-训练日志中的 `entropy_loss` 对应的概念是*策略熵*（policy entropy）。
-熵来自信息论，衡量的是分布的不确定程度。
-对于离散策略，熵的定义为：
-
-$$H(\pi) = -\sum_{a} \pi(a | s) \log \pi(a | s)$$
-
-在 CartPole 中只有两个动作（左推和右推），所以：
-
-- 均匀分布 $\pi(\text{左}) = \pi(\text{右}) = 0.5$ 时，
-  熵最大，$H = \ln 2 \approx 0.69$。
-- 确定性策略 $\pi(\text{左}) = 1, \pi(\text{右}) = 0$ 时，
-  熵最小，$H = 0$。
-
-![Policy Entropy 曲线](./images/entropy_loss.png)
+独立评估检查保存下来的策略在固定规则下能达到什么结果。报告实验时，两者需要分开说明。
 
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-9：策略熵从 $\ln 2 \approx 0.69$ 逐步下降，反映策略从随机探索到确定性决策的转变。</em>
-</div>
+## 再看四个辅助指标
 
-训练过程中，熵从高到低的变化
-反映了策略从"广泛探索"到"逐渐确定"的过程。
-如果你在 SwanLab 中同时查看 Episode Reward 和 Entropy，
-会看到前者上升、后者下降——
-两条曲线形成剪刀交叉，
-这是强化学习训练的典型特征。
+回合奖励告诉我们任务完成得怎样，但训练失败时它给不出原因。下面的四个指标正好检查原理部分的三个环节：策略是否过早固定、Critic 是否学会预测、每次 PPO 更新是否过大。
 
-但熵并非越低越好。
-若训练初期熵即迅速降至接近 0，
-则说明策略过早地收敛到某个可能并非最优的动作模式，
-这称为*过早收敛*（premature convergence）。
-强化学习算法通常通过*熵正则化*（entropy regularization）
-来缓解这个问题，我们将在第 7 章中详细讨论。
+下面四条曲线与奖励曲线来自同一次运行。
 
-> **动手实验**：运行 [2-pytorch_ppo.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py)，
-> 在 SwanLab 中同时查看 `rollout/ep_rew_mean` 和 `train/entropy_loss`，
-> 观察两条曲线的变化。
+![同一次实测的四个训练诊断指标](./images/cartpole_diagnostics_seed42.png)
 
-### Value Loss（价值损失）
+<div class="figure-caption">图 1-4：Value Loss、Policy Entropy、Approximate KL 和 Clip Fraction 的原始值。四幅图共用 seed=42 的同一次训练记录。</div>
 
-训练日志中的 `value_loss` 是 Critic 网络的损失值。
-Critic 的工作是预测*状态价值函数*（state value function）$V(s)$，
-即"从当前状态出发，未来预期能拿多少总奖励"。
-_价值损失_（value loss）衡量的是 Critic 的预测值与实际回报之间的差距：
+### 策略熵：动作选择有多确定
 
-$$\mathcal{L}_{\text{value}} = \frac{1}{|B|} \sum_{i \in B} \left(V(s_i) - G_i\right)^2$$
+先看策略熵。原理部分说过，训练开始时两个动作的概率各接近 0.5。策略熵衡量的就是这种分散程度，此时熵接近
 
-其中 $V(s_i)$ 是 Critic 对状态 $s_i$ 的预测价值，
-$G_i$ 是从该状态出发的实际累积奖励，
-$B$ 是当前批次（batch）的样本集合。
+$$
+\ln 2\approx 0.693.
+$$
 
-![Value Loss 曲线](./images/value_loss.png)
+本次运行的策略熵从 0.685 降到 0.421。这说明动作概率逐渐拉开，但策略仍会根据不同状态给出不同结果。
 
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-10：Value Loss 从高位逐步减小，Critic 的预测越来越贴近实际回报。</em>
-</div>
+熵下降只表示策略变得更确定。若奖励没有同时上升，策略也可能只是更确定地选择了错误动作。
 
-训练初期，Critic 还没学会准确评估局面
-（value_loss 很大）。
-随着训练推进，Critic 的预测越来越准确
-（value_loss 逐步减小）。
+### 价值损失：Critic 的预测误差
 
-需要注意的是：
-**value_loss 减小不等于策略在变好。**
-它只说明 Critic 的评估更准了。
-策略本身的表现要看 Episode Reward。
-如果 value_loss 长期不降或者反而增大，
-通常意味着 Critic 没有跟上策略的变化。
+接下来看 Critic 学得怎样。Critic 预测从状态 $s_i$ 出发的折扣回报，价值损失比较预测值 $V(s_i)$ 和训练目标 $\hat G_i$：
 
-### Explained Variance（解释方差）
+$$
+L_V=\frac{1}{|B|}\sum_{i\in B}
+\left(V(s_i)-\hat G_i\right)^2.
+$$
 
-_解释方差_（explained variance）是 Critic 拟合质量的另一个角度。
-它的定义是：
+$B$ 表示一个训练小批次。预测与目标相差越大，价值损失越大。
 
-$$EV = 1 - \frac{\text{Var}(G - V(s))}{\text{Var}(G)}$$
+本次运行的价值损失前期在 41.8 到 64.1 之间波动，最后降到 0.00014。训练中间的上升表示策略到达了新的状态分布，Critic 需要重新调整预测。
 
-其中 $G$ 是实际回报，$V(s)$ 是 Critic 的预测值。
-直观理解：
+价值损失较小只说明 Critic 更接近当前目标。策略是否完成任务仍要看回合奖励和独立评估。
 
-- **EV = 1**：Critic 的预测完美匹配实际回报，没有任何误差。
-- **EV = 0**：Critic 的预测和直接猜平均值一样差，等于没学到东西。
-- **EV < 0**：Critic 的预测比猜平均值还差。
+### 近似 KL：新旧策略相差多大
 
-![Explained Variance 曲线](./images/explained_variance.png)
+第三个指标对应裁剪目标之前的概率比。近似 KL 比较更新前后的动作概率，数值越大，表示一次 PPO 更新使策略发生的变化越大。
 
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-11：Explained Variance 趋向 1 说明 Critic 预测质量高；收敛后的波动是低方差场景下的正常现象。</em>
-</div>
+本次 40 轮中的最大值为 0.00871，最后一轮为 0.00038。仓库代码没有根据 KL 提前停止训练，因此本页只报告实测值，不给出一个适用于所有任务的固定阈值。
 
-训练初期 EV 可能为负值（Critic 的预测尚不如直接取均值），
-随着训练推进 EV 逐步上升，
-在策略快速改进的阶段会达到 0.9 以上。
-但你会注意到一个看似反常的现象：
-**策略收敛后（所有回合都是 500 分），EV 反而会波动甚至回落**。
-这是因为当所有回报都相同（variance 趋近 0）时，
-Critic 的微小预测误差就会被分母放大。
-这并不代表 Critic 变差了——Value Loss 此时会降到接近 0，说明预测本身没有问题，
-只是 EV 这一指标在低方差场景下不再稳定。
+### 裁剪比例：多少样本触发限制
 
-它和 Value Loss 是同一问题的两个视角：
-Value Loss 度量"绝对误差的大小"，
-Explained Variance 度量"预测相对于均值基线的改善程度"。
-**判断 Critic 质量，建议以 Value Loss 为主、EV 为辅**。
+最后一个指标直接来自裁剪目标。PPO 使用 $\epsilon=0.2$，把概率比限制在 $[0.8,1.2]$ 附近。裁剪比例统计超出这个范围的样本占比：
 
-### Policy Gradient Loss（策略梯度损失）
+$$
+\operatorname{clipfrac}=\frac{1}{|B|}\sum_{i\in B}
+\mathbf 1\left[|r_i(\theta)-1|>\epsilon\right].
+$$
 
-日志中的 `policy_gradient_loss` 是策略网络的损失值。
-回顾「核心原理」一节中介绍的 PPO 裁剪目标：
+本次运行第一轮为 14.48%，最后三轮为 0%。后期学习率逐渐降到 0，策略变化也随之变小。
 
-$$\mathcal{L}_{\text{policy}} = -\min(r_t \hat{A}_t, \text{clip}(r_t, 1-\epsilon, 1+\epsilon) \hat{A}_t)$$
+裁剪比例需要与近似 KL、学习率和奖励一起阅读。单独一个高值或低值不能说明训练成功或失败。
 
-这个值的大小本身不太重要，
-重要的是它的符号和趋势：
+## 训练异常时的检查顺序
 
-- 在健康训练中，
-  这个值通常在一个小范围内波动（比如 -0.01 到 -0.02）。
-- 如果突然变成很大的正数或负数，
-  可能意味着策略更新出了问题。
+把指标和原理对应起来之后，训练出问题时就有了一条清晰的排查路径。如果奖励曲线没有达到预期，可以沿着数据产生的顺序检查：
 
-![Policy Gradient Loss 曲线](./images/policy_gradient_loss.png)
+1. 检查 `terminated` 与 `truncated`。自然终止后的价值为 0，时间截断仍要使用 $V(s')$。
+2. 检查 GAE 是否在每次 `reset` 处切断。优势不能从新回合传回旧回合。
+3. 检查日志是否只统计完整回合，并继续累计跨 rollout 边界的回合。
+4. 比较训练奖励和独立评估，确认问题发生在训练过程还是最终策略。
+5. 再用策略熵、价值损失、近似 KL 和裁剪比例定位具体环节。
 
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-12：Policy Gradient Loss 在小范围内波动，没有出现极端值——策略更新平稳。</em>
-</div>
+这个顺序先检查数据是否正确，再解释优化指标。错误的回合边界会直接改变训练目标，仅调学习率无法修正这类问题。
 
-### Total Loss（总损失）
+## 本节小结
 
-SB3 的日志中有一个 `loss` 字段
-（我们的自研 PPO 没有单独记录，
-因为它的值可以由其他指标算出来）。
-它是策略损失、价值损失和熵正则化项的加权和：
+- CartPole 用四个观测量、两个动作和每步 $+1$ 的奖励定义了任务；策略输出动作概率，Critic 估计长期价值，GAE 合成优势，裁剪目标限制更新幅度。
+- 回合奖励等于存活步数，直接反映任务表现；训练奖励包含随机采样带来的探索，独立评估使用确定性动作。
+- 策略熵、价值损失、近似 KL 和裁剪比例分别对应原理中的各个环节，用于解释训练过程，不能代替奖励。
+- 本页曲线来自一次可复现的单种子运行；算法比较需要多个随机种子。
 
-$$\mathcal{L}_{\text{total}} = \mathcal{L}_{\text{policy}} + c_1 \cdot \mathcal{L}_{\text{value}} - c_2 \cdot H(\pi)$$
-
-其中 $c_1 = 0.5$（价值损失系数），
-$c_2 = 0.01$（熵系数）。
-这个值就是优化器实际在最小化的目标。
-它本身不需要特别关注——
-如果各个分项指标都健康，总损失自然健康。
-但如果你只想看一条曲线做快速判断，
-Total Loss 的趋势可以作为一个综合信号。
-
-### Approx KL 和 Clip Fraction
-
-这两个指标是 PPO 独有的**安全监测仪**。
-回顾「核心原理」一节：
-PPO 的核心思想是"每次只改一点点策略"，
-而这两个指标就是在回答——
-"改了多少？有没有改过头？"
-
-**Approx KL** 衡量的是更新前后两个策略之间的差异程度，
-用的是 _KL 散度_（Kullback-Leibler Divergence）的近似值：
-
-$$\text{KL}(\pi_{\text{old}} \| \pi_{\text{new}}) \approx \mathbb{E}\left[\log \frac{\pi_{\text{old}}(a|s)}{\pi_{\text{new}}(a|s)}\right]$$
-
-直观理解：KL = 0 表示新旧策略完全相同；
-KL 越大，说明更新后策略偏离越远。
-PPO 的设计目标就是将该值控制在很小的范围内，
-确保每次更新都是小幅调整而非剧烈变动。
-
-![Approx KL 曲线](./images/approx_kl.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-13：SB3 PPO（蓝色）和自研 PyTorch PPO（橙色）的 Approx KL 整体保持在 0.02 以下，并远低于 0.03 警戒线，说明每次策略更新幅度都很小，符合 PPO"微调"的设计。</em>
-</div>
-
-**Clip Fraction** 表示在这一轮更新中，
-有多少比例的样本真的触发了 PPO 的裁剪机制
-（即*重要性采样比率* $r_t$ 超出了 $[1-\epsilon, 1+\epsilon]$ 的范围）：
-
-$$\text{ClipFrac} = \frac{1}{|B|} \sum_{i \in B} \mathbb{1}[|r_t - 1| > \epsilon]$$
-
-可以将裁剪机制理解为"安全阀"——
-当策略变化过大时自动截断。
-Clip Fraction 即安全阀被触发的比例。
-正常情况下该值应处于较低区间，偶尔升至 15%~20% 属于正常现象，
-说明安全阀确实在工作，但未对训练造成持续阻碍。
-
-![Clip Fraction 曲线](./images/clip_fraction.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-14：SB3 PPO 和 PyTorch PPO 的 Clip Fraction 偶尔冲高但不持续在高位，安全阀正常工作。</em>
-</div>
-
-| 指标              | 健康范围     | 危险信号   | 含义                                           |
-| ----------------- | ------------ | ---------- | ---------------------------------------------- |
-| **Approx KL**     | 0.001 ~ 0.02 | > 0.03     | 策略单步变化过大，有崩溃风险                   |
-| **Clip Fraction** | 0% ~ 20%     | 长期 > 30% | 太低说明裁剪范围过宽；太高说明策略变化过于剧烈 |
-
-> **动手实验**：打开 [2-pytorch_ppo.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py)，
-> 找到 `clip_eps` 参数，把它从 `0.2` 改成 `0.5`，重新运行。
-> 你会看到 Clip Fraction 急剧下降（裁剪范围太宽，几乎不会触发），
-> 同时 Approx KL 会升高（策略在"裸奔"，没有约束）。
-
-### Learning Rate（学习率）
-
-日志中的 `learning_rate = 0.0003` 是 Adam 优化器的*学习率*（learning rate），
-控制每次参数更新的步长：
-
-$$\theta \leftarrow \theta - \alpha \nabla_\theta \mathcal{L}$$
-
-学习率过大（如 0.01），
-每次更新幅度过大，策略容易崩溃；
-学习率过小（如 0.000001），
-每次更新幅度不足，训练收敛极慢。
-SB3 的默认值 0.0003 对 CartPole 这类简单任务效果良好。
-
-![Learning Rate 曲线](./images/learning_rate.png)
-
-<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
-  <em>图 1-15：SB3（蓝色）使用恒定学习率，自研 PPO（橙色）使用线性衰减——两者都能让 CartPole 收敛。</em>
-</div>
-
-从图中可以看到两条曲线的差异：
-**SB3 使用恒定学习率**（始终 0.0003），
-**我们的自研 PPO 使用线性衰减**（从 0.0003 线性降到 0）。
-两种策略都能让 CartPole 收敛，
-但线性衰减的训练后期更新更温和，
-有助于策略稳定收敛。
-在后面的章节中我们会看到，
-学习率调度策略对训练效果有显著影响。
-
-> **动手实验**：打开 [2-pytorch_ppo.py](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py)，
-> 把学习率从 `3e-4` 改成 `3e-2`（增大 100 倍），重新运行。
-> 你会看到训练曲线剧烈震荡甚至崩溃。
-
-### Clip Range（裁剪范围）
-
-`train/clip_range` 是 PPO 裁剪区间 $[1-\epsilon, 1+\epsilon]$ 中的 $\epsilon$ 值，
-默认为 0.2。
-它是一个*超参数*（hyperparameter），在训练过程中保持不变。
-该值决定了裁剪的"阈值"——
-需与 Clip Fraction 结合分析才有意义
-（见上方的动手实验）。
-
-### N Updates（梯度更新次数）
-
-`train/n_updates` 记录的是从训练开始到当前，
-优化器一共执行了多少次*梯度更新*（gradient update）。
-它是一个单调递增的计数器，计算方式为：
-
-$$n_{\text{updates}} = \text{iterations} \times \text{epochs} \times \frac{\text{steps\_per\_rollout}}{\text{batch\_size}}$$
-
-在我们的设置中（10 epochs, 2048 steps, batch_size=64），
-每轮迭代会执行 $10 \times 2048 / 64 = 320$ 次更新。
-这个指标主要用于确认训练进度是否符合预期——
-如果它突然停止增长，说明训练卡住了。
-
-### Time 指标（进度追踪）
-
-`time/` 前缀下的四个指标都是进度信息，
-不是训练诊断指标：
-
-| 指标              | 含义           | 说明                                  |
-| ----------------- | -------------- | ------------------------------------- |
-| `total_timesteps` | 累计交互步数   | 每次与环境交互（执行一步动作）加 1    |
-| `iterations`      | PPO 迭代轮数   | 每次"收集数据 → 更新策略"算一轮       |
-| `fps`             | 每秒交互步数   | 衡量训练速度（仅 SB3 记录）           |
-| `time_elapsed`    | 已用时间（秒） | 从训练开始到当前的耗时（仅 SB3 记录） |
-
-它们可用于估算剩余训练时间。
-例如 `fps = 5000` 且剩余 10000 步时，约需 2 秒。
-
-### Eval 指标（训练后评估）
-
-我们的自研 PPO 在训练结束后会运行 20 回合的独立评估
-（不探索，纯确定性策略），记录两个指标：
-
-| 指标               | 含义                |
-| ------------------ | ------------------- |
-| `eval/mean_reward` | 20 回合的平均得分   |
-| `eval/std_reward`  | 20 回合得分的标准差 |
-
-Eval 指标和训练时的 `rollout/ep_rew_mean` 有本质区别——
-训练时 Agent 仍在探索（策略具有随机性），
-评估时使用*确定性策略*（deterministic policy，即选择概率最大的动作）。
-因此 eval 指标更能反映 Agent 的实际能力。
-在本次 CartPole 训练中，eval 结果为 `500.0 +/- 0.0`，
-表明智能体已完全掌握了平衡控制。
-
----
-
-## 指标速查表
-
-### 核心指标（训练诊断用）
-
-| 指标                     | SwanLab Key                  | 数学定义                                                                   | 健康表现                   | 异常信号                         |
-| ------------------------ | ---------------------------- | -------------------------------------------------------------------------- | -------------------------- | -------------------------------- |
-| **Episode Reward**       | `rollout/ep_rew_mean`        | $G = \sum_{t=0}^{T} r_t$                                                   | 持续上升 → 趋于稳定        | 暴跌到 0 / 始终不动              |
-| **Episode Length**       | `rollout/ep_len_mean`        | 回合步数的均值                                                             | 趋势与 Reward 一致         | 与 Reward 趋势背离               |
-| **Entropy**              | `train/entropy_loss`         | $H = -\sum_a \pi(a\|s) \log \pi(a\|s)$                                     | 从高到低逐步下降           | 过快降到 0 / 长期不降            |
-| **Value Loss**           | `train/value_loss`           | $\frac{1}{\|B\|}\sum(V(s_i) - G_i)^2$                                      | 逐步减小                   | 长期不降 / 反而增大              |
-| **Explained Variance**   | `train/explained_variance`   | $1 - \frac{\text{Var}(G-V)}{\text{Var}(G)}$                                | 趋向 1                     | 始终 ≤ 0                         |
-| **Policy Gradient Loss** | `train/policy_gradient_loss` | $-\min(r_t \hat{A}_t, \text{clip}(r_t, 1-\epsilon, 1+\epsilon) \hat{A}_t)$ | 小范围波动                 | 突然出现极端值                   |
-| **Total Loss**           | `train/loss`                 | $\mathcal{L}_{\text{policy}} + 0.5 \mathcal{L}_{\text{value}} - 0.01 H$    | 各分项健康的综合信号       | 突然飙升                         |
-| **Approx KL**            | `train/approx_kl`            | $\mathbb{E}[\log \pi_{\text{old}}(a\|s) - \log \pi_{\text{new}}(a\|s)]$    | 0.001 ~ 0.02               | > 0.03 策略更新过猛              |
-| **Clip Fraction**        | `train/clip_fraction`        | $\frac{1}{\|B\|}\sum \mathbb{1}[\|r_t - 1\| > \epsilon]$                   | 0% ~ 20%                   | > 30% 变化太剧烈                 |
-| **Learning Rate**        | `train/learning_rate`        | $\theta \leftarrow \theta - \alpha \nabla \mathcal{L}$                     | SB3 恒定；PyTorch 线性衰减 | 调大 → 训练崩溃；调小 → 收敛过慢 |
-
-### 辅助指标（进度追踪）
-
-| 指标                | SwanLab Key            | 含义                            |
-| ------------------- | ---------------------- | ------------------------------- |
-| **Clip Range**      | `train/clip_range`     | 裁剪参数 $\epsilon$，训练中不变 |
-| **N Updates**       | `train/n_updates`      | 梯度更新累计次数                |
-| **Total Timesteps** | `time/total_timesteps` | 环境交互累计步数                |
-| **Iterations**      | `time/iterations`      | PPO 迭代轮数                    |
-| **FPS**             | `time/fps`             | 每秒交互步数（仅 SB3）          |
-| **Time Elapsed**    | `time/time_elapsed`    | 训练耗时（仅 SB3）              |
-| **Eval Mean**       | `eval/mean_reward`     | 训练后确定性策略评估得分        |
-| **Eval Std**        | `eval/std_reward`      | 评估得分标准差                  |
-
-## 本章小结
-
-在第 1 章中，我们完成了四件事：
-
-1. **运行了第一个 RL 训练**：
-   在数秒内完成了 CartPole 的策略学习。
-2. **学会了观察训练过程**：
-   掌握了 Episode Reward、Entropy、Value Loss、KL 散度等核心指标的判读方法，
-   能够区分健康的训练曲线与异常信号。
-3. **理解了 RL 的基本框架**：
-   状态、动作、奖励、策略——
-   这四个要素构成了所有强化学习问题的共同骨架。
-4. **解构了 SB3 的实现**：
-   用纯 PyTorch 实现了完整的 PPO 算法——
-   Actor-Critic 网络、Rollout 收集、GAE 优势估计、PPO 裁剪更新——
-   效果与 SB3 持平。
-
-值得注意的是：
-整个训练过程中并未向智能体提供
-"杆子向右倾倒时应向右推"之类的显式规则。
-智能体完全通过试错学习，
-从每步 +1 的反馈信号中自主习得了平衡策略。
-
-## RL 路线全景图
-
-上面完成的 CartPole 训练使用的算法是 PPO。
-目前暂不深入其实现细节，
-而是先了解它在整个强化学习算法版图中的位置。
-
-所有强化学习算法都在回答同一个问题：
-"怎么让 Agent 选出累计奖励最大的动作？"
-但有两条截然不同的思路：
-
-```mermaid
-graph TD
-    ROOT["RL = 最大化累计奖励"] --> VB["Value-Based<br/>先学每个动作值多少分"]
-    ROOT --> PB["Policy-Based<br/>直接学做什么动作"]
-
-    VB --> DQN["DQN（第 5 章）"]
-    PB --> PG["REINFORCE（第 6 章）"]
-
-    DQN --> AC["Actor-Critic（第 7 章）"]
-    PG --> AC
-
-    AC --> PPO["PPO（第 8 章）<br/>← 你刚用的就是这个"]
-
-    PPO --> LLM["LLM 对齐"]
-    LLM --> DPOG["DPO（第 14 章）<br/>← 第 14 章要用的"]
-    LLM --> GRPOG["GRPO（第 15 章）"]
-
-    style ROOT fill:#f8f9fa,stroke:#24292f,color:#24292f
-    style VB fill:#e3f2fd,stroke:#1976d2,color:#000
-    style PB fill:#fff3e0,stroke:#f57c00,color:#000
-    style AC fill:#e8f5e9,stroke:#388e3c,color:#000
-    style PPO fill:#e8f5e9,stroke:#388e3c,stroke-width:3px,color:#000
-    style DPOG fill:#fce4ec,stroke:#c62828,stroke-width:3px,color:#000
-    style GRPOG fill:#fce4ec,stroke:#c62828,color:#000
-```
-
-- **Value-Based**（蓝色）：先学习"每个动作的价值"（Q 值），
-  再选择价值最高的动作。代表算法是第 5 章的 DQN。
-- **Policy-Based**（橙色）：跳过价值估计，
-  直接学习"在给定状态下应采取什么动作"的策略。
-  代表算法是第 6 章的 REINFORCE。
-- 两条路线在 **Actor-Critic** 架构中汇合——
-  Actor 学习策略，Critic 学习价值函数。
-  这正是 PPO 的基本架构。
-- 在 LLM 时代，
-  DPO 绕过了 PPO 中的奖励模型，
-  GRPO 绕过了 Critic 网络——
-  路线趋于简洁，但底层逻辑不变。
-
-这张图会在后续每章的开头再次出现。
-当前只需记住一个要点：
-**本章使用的 PPO，正是两条路线汇合后的产物。
-第 14 章将要介绍的 DPO，则是 PPO 在 LLM 时代的简化版本。**
-
-在下一章中，我们将看到强化学习不仅限于让小车平衡杆子——
-它同样能让大语言模型学会对齐人类偏好。
-核心循环仍然是状态、动作、奖励、策略这四个要素。
+下一节 [PPO 训练可视化](./training) 将从同一条复现命令出发，生成原始 CSV、训练曲线和真实环境帧。
 
 ## 参考文献
 
-[^1]: Mnih, V., et al. (2013). Playing Atari with Deep Reinforcement Learning. _arXiv preprint_. [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
+[^1]: Schulman, J., Moritz, P., Levine, S., Jordan, M., & Abbeel, P. (2016). High-Dimensional Continuous Control Using Generalized Advantage Estimation. _ICLR 2016_.
 
-[^2]: Raffin, A., et al. (2021). Stable-Baselines3: Reliable Reinforcement Learning Implementations. _Journal of Machine Learning Research_, 22(268), 1-8.
+[^2]: Schulman, J., Wolski, F., Dhariwal, P., Radford, A., & Klimov, O. (2017). Proximal Policy Optimization Algorithms. _arXiv preprint_ arXiv:1707.06347. <https://arxiv.org/abs/1707.06347>
 
-[^3]: Sutton, R. S., et al. (1999). Policy Gradient Methods for Reinforcement Learning with Function Approximation. _Advances in Neural Information Processing Systems_, 12.
+[^3]: Sutton, R. S., & Barto, A. G. (2018). _Reinforcement Learning: An Introduction_ (2nd ed.). MIT Press.

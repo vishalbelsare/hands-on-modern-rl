@@ -57,6 +57,8 @@ Embodied intelligence tasks vary widely, but by how the agent interacts with the
 - **Technical principles**: Traditional methods rely on SLAM (Simultaneous Localization and Mapping) for map construction followed by A\* path planning. In embodied RL, **end-to-end learning** is popular: directly input RGB-D camera and LiDAR data, extract features through CNN/Transformer, and output discrete (forward, turn left, turn right) or continuous chassis velocity commands.
 - **Challenges**: Mapping between visual features and geometric space, long-term memory (explored dead ends should not be revisited).
 
+<OnlineTraining studios="ai2thor" compact />
+
 ### 2. Grasping
 
 **Core objective**: A robotic arm picks up objects of specified shapes, materials, or stacking configurations from a tabletop.
@@ -319,6 +321,8 @@ The core value of the Isaac series is **freeing simulation from the CPU bottlene
 
 [ManiSkill](https://maniskill.readthedocs.io/) (based on the [Sapien](https://sapien.ucsd.edu/) simulator) is a simulation benchmark focused on **robot manipulation**. It provides a series of standardized manipulation tasks -- from simple pushing to complex multi-step assembly -- and a unified evaluation interface. If you work on grasping, placing, or assembly tasks, ManiSkill is currently the most mature benchmark.
 
+<OnlineTraining studios="maniskill" compact />
+
 | Simulator             | Core Advantage                                            | Best Suited For                                            |
 | --------------------- | --------------------------------------------------------- | ---------------------------------------------------------- |
 | MuJoCo                | Accurate contact modeling, high physical fidelity         | Fine control, academic research benchmarks                 |
@@ -404,7 +408,7 @@ The core significance of VLA is that it advances embodied intelligence from "tra
 
 RT-2 established the basic VLA formulation, but its demonstrations focused mainly on short manipulation tasks such as picking and placing objects. Longer tasks introduce three additional requirements: the robot must plan several dependent actions, combine more than visual and language input, and adapt when the physical outcome differs from the plan.
 
-Google DeepMind's [Gemini Robotics](https://deepmind.google/models/gemini-robotics/) extends the VLA formulation toward this setting. Before issuing low-level controls, the system can represent an intermediate plan:
+Google DeepMind's [Gemini Robotics](https://deepmind.google/models/gemini-robotics/) and [Gemini Robotics 1.5](https://deepmind.google/blog/gemini-robotics-15-brings-ai-agents-into-the-physical-world/) extend the VLA formulation toward this setting. Before issuing low-level controls, the system can represent an intermediate plan:
 
 ```text
 Instruction: place the blue block on the red block

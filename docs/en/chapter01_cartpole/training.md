@@ -1,305 +1,166 @@
-# 1.3 Hands-On: Visualizing PPO Training
+---
+title: 1.3 Hands-On PPO Training Visualization
+---
 
-> **Section objective**: Complete a PPO training run on `CartPole-v1`, then use reward curves, policy replays, and training metrics to determine whether the cart has learned to balance the pole.
+# 1.3 Hands-on: PPO Training Visualization
 
-> **Learning path**: [1.1 How CartPole Control Works](./principles) → [1.2 Rewards and Training Metrics](./metrics) → **1.3 Visualizing PPO Training**
+> **Section goal**: Run the pure PyTorch PPO implementation, save the raw metrics, generate curves from the CSV file, and evaluate the trained policy in CartPole.
 
-> **Code for this section**: [Stable-Baselines3 version](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/1-ppo_cartpole.py) · [Pure PyTorch version](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [Curve plotting](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/plot_curves.py) · [Dependencies](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/requirements.txt)
+> **Learning path**: [1.1 Run CartPole](./principles) → [1.2 CartPole Principles](./metrics) → **1.3 PPO Training Visualization**
 
-The preceding two sections explained CartPole's states, actions, and rewards, as well as the return and episode length shown in training curves. We will now place these concepts into a complete training run. The policy first controls the cart with random weights. Through repeated sampling and updating, it gradually learns to keep the pole upright.
+> **Code and resources**: [training script](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [plotting script](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/plot_curves.py) · [frame capture script](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/capture_frames.py) · [raw CSV](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/output/training_metrics_seed42.csv)
 
-## Overview of the Training Process
+::: tip Use AI when you get stuck
+This section runs scripts on your own machine, where environment issues are common. When an install fails, versions conflict, or a run breaks, paste the full error into an AI coding assistant — it is the fastest way to get a diagnosis, a fix, or a runnable command.
+:::
 
-The complete process for training CartPole with PPO is as follows:
+The previous sections established the evidence we need: returns must be computed from complete episodes, and the final policy needs an independent evaluation. We now run that full chain.
 
-```
-┌─────────────────────────────────────────────────────┐
-│ 1. Initialize: random weights for policy π_θ(a|s)   │
-├─────────────────────────────────────────────────────┤
-│ 2. Rollout: run N trajectories with current π_θ     │
-│    Collect (s_t, a_t, r_t, s_{t+1}, done)           │
-├─────────────────────────────────────────────────────┤
-│ 3. Compute advantage Â_t (using GAE)                 │
-├─────────────────────────────────────────────────────┤
-│ 4. PPO update: maximize clipped objective            │
-│    L = E[min(r_t Â_t, clip(r_t, 1±ε) Â_t)]          │
-├─────────────────────────────────────────────────────┤
-│ 5. Repeat steps 2–4 until convergence                │
-│    (reward reaches 500)                              │
-└─────────────────────────────────────────────────────┘
-```
-
-## Complete Training Code
-
-The following is a minimal PPO implementation for CartPole. See `code/chapter01_cartpole/2-pytorch_ppo.py` for the complete runnable version.
-
-```python
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import gymnasium as gym
-import numpy as np
-from collections import deque
-
-# === Policy network: state → action probabilities ===
-class PolicyNetwork(nn.Module):
-    def __init__(self, state_dim=4, action_dim=2, hidden=64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, action_dim)
-        )
-
-    def forward(self, s):
-        logits = self.net(s)
-        return torch.distributions.Categorical(logits=logits)
-
-# === Value network: state → V(s) ===
-class ValueNetwork(nn.Module):
-    def __init__(self, state_dim=4, hidden=64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, 1)
-        )
-
-    def forward(self, s):
-        return self.net(s).squeeze(-1)
-
-# === GAE: Generalized Advantage Estimation ===
-def compute_gae(rewards, values, gamma=0.99, lam=0.95):
-    """Generalized Advantage Estimation."""
-    advantages = []
-    gae = 0
-    next_value = 0
-    for r, v in zip(reversed(rewards), reversed(values)):
-        delta = r + gamma * next_value - v
-        gae = delta + gamma * lam * gae
-        advantages.insert(0, gae)
-        next_value = v
-    return advantages
-
-# === Main training loop ===
-def train_ppo(env_name='CartPole-v1', n_iters=200, n_steps=2048,
-              gamma=0.99, lam=0.95, clip_eps=0.2, lr=3e-4,
-              n_epochs=10, batch_size=64):
-    env = gym.make(env_name)
-    policy = PolicyNetwork()
-    value_fn = ValueNetwork()
-    optimizer = optim.Adam(list(policy.parameters()) + list(value_fn.parameters()), lr=lr)
-
-    reward_history = deque(maxlen=20)
-
-    for iter in range(n_iters):
-        # === 1. Rollout ===
-        states, actions, rewards, dones, log_probs_old, values = [], [], [], [], [], []
-        s, _ = env.reset()
-        ep_reward = 0
-
-        for step in range(n_steps):
-            s_tensor = torch.FloatTensor(s)
-            dist = policy(s_tensor)
-            v = value_fn(s_tensor)
-            a = dist.sample()
-
-            s_next, r, terminated, truncated, _ = env.step(a.item())
-            done = terminated or truncated
-
-            states.append(s); actions.append(a.item()); rewards.append(r)
-            dones.append(done); log_probs_old.append(dist.log_prob(a).item()); values.append(v.item())
-            ep_reward += r
-
-            if done:
-                reward_history.append(ep_reward)
-                ep_reward = 0
-                s, _ = env.reset()
-            else:
-                s = s_next
-
-        # === 2. Compute advantages ===
-        advantages = compute_gae(rewards, values, gamma, lam)
-        advantages = torch.FloatTensor(advantages)
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        returns = advantages + torch.FloatTensor(values)
-
-        # === 3. PPO update (multiple epochs) ===
-        states_t = torch.FloatTensor(np.array(states))
-        actions_t = torch.LongTensor(actions)
-        log_probs_old_t = torch.FloatTensor(log_probs_old)
-
-        for epoch in range(n_epochs):
-            idx = torch.randperm(len(states_t))
-            for start in range(0, len(states_t), batch_size):
-                end = start + batch_size
-                mb_idx = idx[start:end]
-
-                mb_states = states_t[mb_idx]
-                mb_actions = actions_t[mb_idx]
-                mb_old_lp = log_probs_old_t[mb_idx]
-                mb_adv = advantages[mb_idx]
-                mb_ret = returns[mb_idx]
-
-                dist = policy(mb_states)
-                new_lp = dist.log_prob(mb_actions)
-                ratio = (new_lp - mb_old_lp).exp()
-
-                # PPO clipping
-                surr1 = ratio * mb_adv
-                surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * mb_adv
-                policy_loss = -torch.min(surr1, surr2).mean()
-
-                # Value loss
-                v_pred = value_fn(mb_states)
-                value_loss = ((v_pred - mb_ret) ** 2).mean()
-
-                loss = policy_loss + 0.5 * value_loss
-
-                optimizer.zero_grad()
-                loss.backward()
-                nn.utils.clip_grad_norm_(policy.parameters(), 0.5)
-                optimizer.step()
-
-        if iter % 10 == 0:
-            avg_r = np.mean(reward_history) if reward_history else 0
-            print(f"Iter {iter}: avg_reward = {avg_r:.1f} / 500")
-
-    return policy
-
-if __name__ == '__main__':
-    policy = train_ppo()
-```
-
-## Training Curves and Visualization
-
-Running the code above produces a typical training curve like this:
-
-```
-reward
- 500 │                              ╭───── converged
- 400 │                          ╭───╯
- 300 │                      ╭───╯
- 200 │                  ╭───╯
- 100 │              ╭───╯
-     0 │───────────╯
-       └─────────────────────────────────
-        0    50   100   150   200 iterations
-```
-
-The curve has four key stages:
-
-| Stage       | Iteration | Average reward | Behavior                                                     |
-| ----------- | --------- | -------------- | ------------------------------------------------------------ |
-| Exploration | 0–20      | 10–30          | The agent drops the pole randomly and receives little signal |
-| Learning    | 20–100    | 30–200         | Reward rises rapidly and the policy begins to stabilize      |
-| Convergence | 100–150   | 200–450        | Improvement slows but remains steady                         |
-| Solved      | 150+      | 475+           | Gymnasium defines "solved" as a mean ≥ 475 over 100 episodes |
-
-## The Effect of Hyperparameters
-
-PPO is not particularly sensitive to hyperparameters on CartPole, but the role of each parameter still matters:
-
-| Hyperparameter | Default | Effect                                                                                         |
-| -------------- | ------- | ---------------------------------------------------------------------------------------------- |
-| `lr`           | 3e-4    | Too high (>1e-3) causes collapse; too low (<1e-5) slows training                               |
-| `clip_eps`     | 0.2     | Larger values are more aggressive (closer to vanilla PG); smaller values are more conservative |
-| `gamma`        | 0.99    | Discount factor; on CartPole, 0.99 is almost equivalent to no discounting                      |
-| `lam` (GAE)    | 0.95    | Larger values approach Monte Carlo; smaller values approach TD                                 |
-| `n_epochs`     | 10      | Number of times each rollout is reused; values that are too large cause overfitting            |
-| `n_steps`      | 2048    | Rollout length; short tasks such as CartPole can reduce it to 512                              |
-
-### Diagnosing Failure Modes
-
-If training does not converge, check the following items in order:
-
-1. **Has policy entropy fallen to zero?** If action probabilities collapse prematurely to 1.0/0.0, add an entropy bonus: `loss += -0.01 * dist.entropy().mean()`
-2. **Are advantages normalized correctly?** Omitting normalization makes the gradient scale unstable
-3. **Has the value loss exploded?** Check whether the returns contain anomalous values
-4. **Is the learning rate too high?** Retry with `lr=1e-4`
-
-## Visualization with TensorBoard
-
-```python
-from torch.utils.tensorboard import SummaryWriter
-
-writer = SummaryWriter('runs/cartpole_ppo')
-
-for iter in range(n_iters):
-    # ... training code ...
-
-    writer.add_scalar('train/reward_mean', avg_r, iter)
-    writer.add_scalar('train/policy_loss', policy_loss.item(), iter)
-    writer.add_scalar('train/value_loss', value_loss.item(), iter)
-    writer.add_scalar('train/entropy', dist.entropy().mean().item(), iter)
-    writer.add_scalar('train/clip_frac', clip_fraction, iter)
-```
-
-Start TensorBoard:
+## 1.3.1 Install and run
 
 ```bash
-tensorboard --logdir=runs
+cd code/chapter01_cartpole
+pip install -r requirements.txt
+
+python 2-pytorch_ppo.py \
+  --seed 42 \
+  --iterations 40 \
+  --steps-per-rollout 2048 \
+  --swanlab-mode disabled \
+  --log-csv output/training_metrics_seed42.csv
 ```
 
-Monitor five key metrics:
+The run creates two local files:
 
-- **reward_mean**: the primary training metric; it should rise monotonically to 500
-- **policy_loss**: the loss after PPO clipping; oscillation is normal
-- **value_loss**: should decrease steadily
-- **entropy**: the policy entropy; it should slowly decrease from about 0.69 (the initial ln 2) to about 0.1
-- **clip_frac**: the clipped fraction; it should remain around 0.1–0.3, while a value above 0.5 indicates that the policy is changing too quickly
+- `output/pytorch_ppo_cartpole.pth`: trained model parameters;
+- `output/training_metrics_seed42.csv`: unsmoothed metrics for every iteration.
 
-## Comparing Experiments with a Plotting Tool
+To use the local SwanLab dashboard, change `--swanlab-mode disabled` to `--swanlab-mode local`, then run `swanlab watch swanlog`.
+
+## 1.3.2 PPO data flow
+
+Every training iteration has three stages:
+
+```mermaid
+flowchart LR
+    A["Collect 2,048 steps with the current policy"] --> B["Compute TD errors and GAE"]
+    B --> C["Run 10 PPO update epochs on that batch"]
+    C --> A
+```
+
+### 1. Collect a rollout
+
+Gymnasium returns both `terminated` and `truncated`:
 
 ```python
-import matplotlib.pyplot as plt
+next_obs, reward, terminated, truncated, _ = env.step(action.item())
 
-def plot_experiments(results):
-    """results: dict of name -> list of rewards"""
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for name, rewards in results.items():
-        # Moving average
-        smoothed = np.convolve(rewards, np.ones(20)/20, mode='valid')
-        ax.plot(smoothed, label=name)
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Average Reward (20-episode mean)')
-    ax.set_title('PPO on CartPole: Hyperparameter Sweep')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.axhline(y=475, color='r', linestyle='--', label='Solved threshold')
-    plt.savefig('cartpole_ppo_sweep.png', dpi=120, bbox_inches='tight')
-
-# Compare different hyperparameters
-results = {
-    'lr=3e-4 (default)': run_experiment(lr=3e-4),
-    'lr=1e-4 (slow)': run_experiment(lr=1e-4),
-    'lr=1e-3 (fast)': run_experiment(lr=1e-3),
-    'clip=0.1 (conservative)': run_experiment(clip_eps=0.1),
-    'clip=0.3 (aggressive)': run_experiment(clip_eps=0.3),
-}
-plot_experiments(results)
+with torch.no_grad():
+    if terminated:
+        next_value = 0.0
+    else:
+        _, next_value_tensor = model(torch.FloatTensor(next_obs))
+        next_value = next_value_tensor.item()
 ```
 
-Expected results:
+`terminated=True` means the pole fell or the cart left the allowed region, so future return is zero. `truncated=True` means the 500-step time limit was reached while the state still has value, so the target bootstraps from `V(s')`.
 
-- `lr=3e-4` + `clip=0.2` (default): converges in 150 iterations
-- `lr=1e-4`: converges in 300 iterations, but is more stable
-- `lr=1e-3`: has a 50% probability of failing to converge
-- `clip=0.1`: converges slowly but steadily
-- `clip=0.3`: converges quickly but oscillates
+A rollout can end in the middle of an episode. The script carries both the observation and unfinished episode counters into the next rollout. GAE stops at environment resets, while logged episode returns are not cut at training-batch boundaries.
+
+### 2. Compute GAE
+
+Each step first has a temporal-difference error:
+
+$$
+\delta_t=r_t+\gamma V(s_{t+1})-V(s_t).
+$$
+
+GAE accumulates those errors backward:
+
+```python
+episode_end = t["terminated"] or t["truncated"]
+delta = t["reward"] + gamma * t["next_value"] - t["value"]
+gae = delta + gamma * lam * (1.0 - float(episode_end)) * gae
+```
+
+The multiplier `1 - episode_end` stops recursion at every reset. A time-truncated step still uses `next_value` for its own TD error, but the next episode's advantage cannot propagate backward.
+
+The Critic learns an unnormalized target. Normalization applies only to policy advantages:
+
+```python
+returns = raw_advantages + values
+advantages = (raw_advantages - raw_advantages.mean()) / (
+    raw_advantages.std(unbiased=False) + 1e-8
+)
+```
+
+### 3. Apply the PPO clipped update
+
+The probability ratio for each sampled action is:
+
+$$
+r_t(\theta)=\frac{\pi_\theta(a_t\mid s_t)}
+{\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)}.
+$$
+
+The script uses `clip_eps=0.2`:
+
+```python
+ratio = torch.exp(new_log_probs - batch_old_log_probs)
+surr1 = ratio * batch_advantages
+surr2 = torch.clamp(ratio, 0.8, 1.2) * batch_advantages
+policy_loss = -torch.min(surr1, surr2).mean()
+```
+
+## 1.3.3 Plot from the raw CSV
+
+The training script exports CSV directly. The plotting script reads only that file, so every point maps to one raw record.
+
+```bash
+python plot_curves.py \
+  --input output/training_metrics_seed42.csv \
+  --output-dir output
+```
+
+The course page shows the result generated on 2026-08-13 with seed 42:
+
+![CartPole PPO reward curve for seed 42](../../chapter01_cartpole/images/cartpole_reward_seed42.png)
+
+The first rollout averaged `21.35`; the four complete episodes in iteration 10 averaged `500.0`. Iteration 11 dropped to `460.4`, so the single-run curve is not monotonic. The final deterministic 20-episode evaluation was `500.0 ± 0.0`.
+
+This single-seed curve verifies that the implementation can solve the task. It is not a multi-seed algorithm comparison.
+
+## 1.3.4 Capture frames from the real environment
+
+`capture_frames.py` loads the saved model, runs deterministic evaluation in Gymnasium `CartPole-v1`, and records frames returned by `env.render()`. The image is not a hand-drawn illustration.
+
+```bash
+python capture_frames.py \
+  --model output/pytorch_ppo_cartpole.pth \
+  --output output/cartpole_frames_seed42.png \
+  --seed 10042
+```
+
+![Measured Gymnasium frames from the trained policy](../../chapter01_cartpole/images/cartpole_frames_seed42.png)
+
+<div style="text-align: center; font-size: 0.9em; color: var(--vp-c-text-2); margin-top: -10px; margin-bottom: 20px;">
+  <em>Figure 1-4: steps 0, 125, 250, 375, and 500 from one deterministic evaluation episode. The episode scored 500. Angles in the panel titles come directly from the corresponding observations.</em>
+</div>
+
+A still frame proves only one moment. The complete episode score, frames at multiple times, and independent evaluation statistics jointly support the result.
+
+## 1.3.5 Reporting parameter changes
+
+Learning rate, clipping, and GAE settings change the curve, but one seed cannot establish a general result. A comparison should hold environment version, training budget, network, and evaluation protocol constant, then run multiple seeds.
+
+Useful questions are testable:
+
+- Does `lr=1e-4` require more environment steps than `3e-4` to reach the same evaluation score?
+- Does `clip_eps=0.1` reduce KL while slowing return improvement?
+- Across several seeds, how often does incorrectly propagating GAE across episodes make the final evaluation fail?
+
+Report raw curves for every seed, the environment steps needed to reach the chosen target, and final evaluation scores. Do not present one attractive curve as an algorithmic guarantee.
 
 ## Section Summary
 
-Training CartPole with PPO is the classic "hello world" of introductory RL. This section presented a complete, runnable PPO implementation covering rollout collection, GAE advantage estimation, PPO Clip updates, hyperparameter tuning, and TensorBoard visualization.
-
-The key lessons are:
-
-1. **PPO = Rollout + GAE + Clipped Update**, repeated in a three-step loop
-2. **Low hyperparameter sensitivity** is central to PPO's popularity—the defaults almost always work on CartPole
-3. **Visualizing training** is essential for debugging RL code—auxiliary metrics such as entropy and `clip_frac` often reveal training problems early
-
-The next chapter, [Basic Definitions of the Reinforcement Learning Process](../chapter03_mdp/bandit), returns to the simplest form of RL—the stateless, immediate-reward multi-armed bandit—to study exploration and exploitation before introducing state transitions and long-term returns.
+A complete experiment fixes the seed, saves raw metrics, plots from those metrics, evaluates independently, and captures rendered frames from the real environment. If one part cannot be traced, its numbers or images should not be described as measured results.

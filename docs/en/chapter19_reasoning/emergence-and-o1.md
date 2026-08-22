@@ -112,7 +112,7 @@ Public models adopt different interfaces, which can be compared based on three i
 | How much computation to invest      | OpenAI `reasoning_effort`, Qwen3 thinking budget, Claude effort                              | How to align the budget with the task difficulty                                         |
 | What to show to the user            | OpenAI provides reasoning summaries, while models like DeepSeek-R1 can output reasoning text | Whether the displayed content can be checked, and whether it leaks sensitive information |
 
-Model names and interfaces may change, but these three questions remain stable. They correspond respectively to 16.4 on modes and budgets, 16/C on adaptive allocation, and 16.6 on the display of reasoning chains.
+Model names and interfaces may change, but these three questions remain stable. They correspond respectively to Section 16.4 on modes and budgets, Section 16.5 on adaptive allocation, and Section 16.6 on the display of reasoning chains.
 
 The display method affects user verification, data distillation, and security monitoring, which will be discussed separately in Section 16.6. Here, we first examine how the training format separates the reasoning segment from the answer segment.
 
@@ -136,10 +136,10 @@ The final answer is X.
 <|end_of_solution|>
 ```
 
-After splitting, the system can extract only the answer to be passed to the result validator, or apply length constraints or process evaluations on the reasoning segment. The delimiter itself does not automatically provide correctness labels, but it establishes clear data boundaries for Hybrid Thinking, thinking budget, and long2short.
+After splitting, the system can extract only the answer to be passed to the outcome verifier, or apply length constraints or process evaluations on the reasoning segment. The delimiter itself does not automatically provide correctness labels, but it establishes clear data boundaries for Hybrid Thinking, thinking budget, and long2short.
 
 ## Summary
 
 o1 makes "investing more reasoning computation" a callable product capability, while o3 and o4-mini further integrate tool feedback into the reasoning process. Competitions in programming experiments further demonstrate that end-to-end RL can reinforce behaviors such as candidate generation, execution validation, and error correction; the pre-trained model's existing knowledge and coverage range still limit what RL can reinforce.
 
-[16.2 R1-Zero Pure Reinforcement Learning Reasoning](./intro) will elaborate on rewards, intra-group comparisons, and behavioral changes, specifically explaining how these reasoning behaviors can be formed during training without going through SFT cold start.
+[16.2 R1-Zero Pure Reinforcement Learning Reasoning](./r1-zero-pure-rl-reasoning) will elaborate on rewards, intra-group comparisons, and behavioral changes, specifically explaining how these reasoning behaviors can be formed during training without going through SFT cold start.

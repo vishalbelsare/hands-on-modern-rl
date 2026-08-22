@@ -158,7 +158,7 @@ Both networks share the same input (state $s$) but perform different tasks:
 | Actor   | select actions  | state $s$ | action probabilities $\pi(a\|s)$ | maximize cumulative reward       |
 | Critic  | evaluate states | state $s$ | value estimate $V(s)$            | predict future return accurately |
 
-If you look carefully at the Critic's update rule, $V(s) \leftarrow V(s) + \alpha \cdot \delta$ -- isn't this exactly [TD learning](../chapter03_mdp/dp-mc-td) from Chapter 4? **The Critic is, in essence, a neural-network implementation of the [value function $V(s)$](../chapter03_mdp/value-bellman) from Chapter 3**, independently learning "how many points each state is worth." The Actor is a neural-network implementation of the [policy $\pi(a|s)$](../chapter03_mdp/policy-objective), adjusting its behavior based on the evaluation provided by the Critic.
+The Critic update $V(s) \leftarrow V(s) + \alpha\delta$ is the [TD-learning](../chapter03_mdp/dp-mc-td) update from Chapter 3 with a neural function approximator. The Critic learns the [value function $V(s)$](../chapter03_mdp/value-bellman), while the Actor represents the [policy $\pi(a\mid s)$](../chapter03_mdp/policy-value) and changes its behavior using the Critic's evaluation.
 
 Two function approximators work in concert -- the Critic helps the Actor judge "how much better this action is than average," the Actor adjusts its policy accordingly, and the new policy generates new data that helps the Critic learn better. This is where the name Actor-Critic comes from.
 
@@ -509,9 +509,9 @@ Actor-Critic is not the destination; it is a skeleton. In later chapters you wil
 
 | Chapter                                                          | Variant                          | Key improvement                                                                                  |
 | ---------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| [Chapter 8 PPO](../chapter10_ppo/intro)                          | PPO-Clip                         | Limit the size of policy updates to avoid "taking steps that are too big"                        |
+| [Chapter 8 PPO](../chapter10_ppo/ppo-clip-objective)                          | PPO-Clip                         | Limit the size of policy updates to avoid "taking steps that are too big"                        |
 | [Chapter 8 GAE](../chapter10_ppo/gae-reward-model)               | Generalized Advantage Estimation | Exponentially weighted sum of multi-step TD errors; precisely control the bias-variance tradeoff |
-| [Chapter 14 DPO](../chapter17_dpo/intro)                         | Implicit Actor-Critic            | Replace the Critic with preference data; remove the on-policy constraint                         |
+| [Chapter 14 DPO](../chapter17_dpo/dpo-objective-derivation)                         | Implicit Actor-Critic            | Replace the Critic with preference data; remove the on-policy constraint                         |
 | [Chapter 15 GRPO](../chapter18_grpo/grpo-practice-and-mechanism) | Remove the Critic                | Replace $V(s)$ with an in-group mean; save one network                                           |
 
 All variants share the same skeleton: one network responsible for choosing, plus one signal responsible for evaluating. What changes is only "where the evaluation signal comes from" and "how the selection network is updated."

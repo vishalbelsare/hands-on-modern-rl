@@ -119,7 +119,7 @@ $$
 R_{\text{RLAIF}}(x, y) = r_\phi(x, y) - \beta \, D_{KL}\big(\pi_\theta(\cdot \mid x) \,\|\, \pi_{\text{ref}}(\cdot \mid x)\big)
 $$
 
-This step is identical to that in [Chapter 8 on PPO](../chapter10_ppo/intro). The KL coefficient $\beta$ still prevents the policy from drifting too far.
+This step is identical to that in [Chapter 8 on PPO](../chapter10_ppo/ppo-clip-objective). The KL coefficient $\beta$ still prevents the policy from drifting too far.
 
 ### RLHF vs RLAIF: Fundamental Differences
 
@@ -160,7 +160,7 @@ $$
 It produces not a score, but a **textual critique**. This has two advantages:
 
 1. **Interpretability**: The critique text can be directly read by humans, making it much more transparent than a black-box scalar score.
-2. **Chain-of-Thought Effect**: By making the model first write a critique and then a revision, it is forced to first "think through where it went wrong" before "fixing" it — this is the same mechanism as [CoT prompting](../chapter19_reasoning/intro).
+2. **Chain-of-Thought Effect**: By making the model first write a critique and then a revision, it is forced to first "think through where it went wrong" before "fixing" it — this is the same mechanism as [CoT prompting](../chapter19_reasoning/r1-zero-pure-rl-reasoning).
 
 Empirically, **critique followed by revision** is 10–20% better than directly having the model rewrite (Lee et al., 2023, "Star" self-correction experiment).
 

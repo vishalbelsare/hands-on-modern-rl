@@ -5,7 +5,7 @@ outline:
   level: [2, 3]
 ---
 
-# 补充阅读：PPO 游戏项目实践导论
+# 8.5 动手：PPO 游戏项目
 
 学完 PPO 的数学原理和代码实现后，下一步是把它放到真实的游戏环境里跑通。本节的目的不是罗列所有能用 PPO 做的游戏，而是帮你建立一条从"跑通"到"理解边界"的实践路径。
 
@@ -194,6 +194,8 @@ Mario 是经典项目，但**奖励很容易写歪**。只奖励向右走，策�
 ![Unity SoccerTwos PPO 示例，来源：Hugging Face Deep RL Course](https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit10/soccertwos.gif)
 
 SoccerTwos 是 2v2 足球，引入了一个全新维度：**多智能体**。PPO 在这里需要和 **self-play** 配合使用——智能体与历史版本的自己对战，通过 **ELO 评分**追踪进步。**Unity ML-Agents 内置 PPO** 是最直接的实现路径，batch_size **2048**、buffer_size **20480**、学习率 **$3 \times 10^{-4}$**、熵系数 **0.005**。
+
+<OnlineTraining studios="unity" compact />
 
 训练过程能看到明显的**策略演化**。初期所有智能体追着球跑，场面混乱；ELO 从初始 **1200** 慢慢爬到约 **1600** 后，开始出现简单的**前锋-后卫角色分化**。**SAC** 在这个环境上表现差很多，基本停留在 **1200-1250**，说明 **PPO 的稳定性对多智能体 competitive 场景很重要**。
 

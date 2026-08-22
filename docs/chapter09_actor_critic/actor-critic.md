@@ -154,7 +154,7 @@ Actor-Critic 数据流
 | Actor（演员）    | 选择动作 | 状态 $s$ | 动作概率 $\pi(a\|s)$ | 最大化累积奖励   |
 | Critic（评论家） | 评估局面 | 状态 $s$ | 价值估计 $V(s)$      | 准确预测未来回报 |
 
-如果你仔细看 Critic 的更新规则，$V(s) \leftarrow V(s) + \alpha \cdot \delta$——这不就是第 4 章的 [TD Learning](../chapter03_mdp/dp-mc-td) 吗？**Critic 本质上就是第 3 章[价值函数 $V(s)$](../chapter03_mdp/value-bellman)的神经网络实现**，它独立地学习"每个状态值多少分"。Actor 则是[策略 $\pi(a|s)$](../chapter08_policy_gradient/policy-gradient) 的神经网络实现，它根据 Critic 提供的评估来调整自己的行为。
+如果你仔细看 Critic 的更新规则，$V(s) \leftarrow V(s) + \alpha \cdot \delta$——这不就是第 4 章的 [TD Learning](../chapter03_mdp/dp-mc-td) 吗？**Critic 本质上就是第 3 章[价值函数 $V(s)$](../chapter03_mdp/value-bellman)的神经网络实现**，它独立地学习"每个状态值多少分"。Actor 则是[策略 $\pi(a|s)$](../chapter08_policy_gradient/reinforce) 的神经网络实现，它根据 Critic 提供的评估来调整自己的行为。
 
 两个函数逼近器协同工作——Critic 帮 Actor 判断"这个动作比平均好多少"，Actor 根据判断调整策略，然后新的策略又产生新的数据让 Critic 学得更好。这就是 Actor-Critic 名字的由来。
 
@@ -505,9 +505,9 @@ Actor-Critic 不是终点，而是一个骨架。后续章节中你会看到它�
 
 | 章节                                                           | 变体              | 关键改进                                          |
 | -------------------------------------------------------------- | ----------------- | ------------------------------------------------- |
-| [第 8 章 PPO](../chapter10_ppo/intro)                          | PPO-Clip          | 限制策略更新幅度，防止"步子迈太大"                |
+| [第 8 章 PPO](../chapter10_ppo/ppo-bipedal-walker)                          | PPO-Clip          | 限制策略更新幅度，防止"步子迈太大"                |
 | [第 8 章 GAE](../chapter10_ppo/gae-reward-model)               | 广义优势估计      | 多步 TD Error 的指数加权和，精确控制偏差-方差权衡 |
-| [第 14 章 DPO](../chapter17_dpo/intro)                         | 隐式 Actor-Critic | 用偏好数据替代 Critic，去掉 on-policy 的限制      |
+| [第 14 章 DPO](../chapter17_dpo/dpo-objective-derivation)                         | 隐式 Actor-Critic | 用偏好数据替代 Critic，去掉 on-policy 的限制      |
 | [第 15 章 GRPO](../chapter18_grpo/grpo-practice-and-mechanism) | 去掉 Critic       | 用组内均值替代 $V(s)$，省掉一个网络               |
 
 所有的变体都共享同一个骨架：一个负责选择的网络 + 一个负责评估的信号。变化的只是"评估信号怎么来"和"选择网络怎么更新"。
@@ -530,7 +530,7 @@ Actor 的价值在于：它直接输出动作概率，天然适用于连续动�
 
 </details>
 
-现在让我们看看 Actor-Critic 架构在大规模应用中的表现——[Actor-Critic 的前沿大规模应用](./ac-frontier)。
+但 Critic 怎么训练才能准确估计 $V(s)$？下一节我们展开 Critic 训练的三种方法对比：[7.3 Critic 训练细节](./critic-training)。
 
 ---
 

@@ -45,12 +45,12 @@
   <g transform="translate(146, 240)">
     <rect width="268" height="42" rx="4" fill="#ffffff" stroke="#334155" stroke-width="1.4"/>
     <text x="134" y="18" text-anchor="middle" font-size="13" font-weight="600" fill="#0f172a">训练完成，智能体学会平衡</text>
-    <text x="134" y="33" text-anchor="middle" font-size="9" fill="#475569">平均奖励 180+，可视化演示中能稳定保持平衡</text>
+    <text x="134" y="33" text-anchor="middle" font-size="9" fill="#475569">平均奖励接近 500（回合上限），演示中可稳定保持平衡</text>
   </g>
 
   <text x="111" y="148" text-anchor="middle" font-size="9" fill="#64748b">约 1 秒</text>
   <text x="276" y="148" text-anchor="middle" font-size="9" fill="#64748b">约 1 秒</text>
-  <text x="439" y="148" text-anchor="middle" font-size="9" fill="#64748b">约 5–10 秒</text>
+  <text x="439" y="148" text-anchor="middle" font-size="9" fill="#64748b">约 20–40 秒</text>
 
-  <text x="300" y="296" text-anchor="middle" font-size="9" fill="#64748b">整个流程在个人电脑上通常不到 30 秒即可完成</text>
+  <text x="300" y="296" text-anchor="middle" font-size="9" fill="#64748b">普通笔记本 CPU 上通常一分钟内可跑完全流程</text>
 </svg>

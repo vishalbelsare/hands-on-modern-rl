@@ -253,6 +253,38 @@ The 2026 mechanism analysis reframes OPD from "ability transfer" into a problem 
 
 This also explains why OPD is more selective about teachers than ordinary distillation. Off-policy SFT can force the student to look at teacher trajectories. OPD performs local navigation on the student's own terrain: if there is no gradient near the current position leading toward the teacher's mode, even a much larger teacher can only report the answer from far away.
 
+### Multi-Teacher OPD: How Industry Consolidates Specialists into One Model
+
+Consider a concrete post-training task. A team wants to improve mathematics, code, and instruction following at the same time. Mathematics fits RL with verifiable answers, code needs executable environments, and instruction following depends on a different reward system. Putting all three into one Mix-RL run couples their data ratios, reward scales, and hyperparameters. Training them serially allows later domains to damage capabilities learned earlier.
+
+A practical design first trains one SFT checkpoint spanning all target capabilities and then branches into three independent RL runs. Each branch only needs to produce one specialized capability, so the teachers can be developed in parallel. Retuning or restarting one domain does not interrupt the other branches. The public MiniCPM5-1B recipe and Xiaomi MiMo's MOPD both use this shared-SFT, domain-RL, final-integration structure.[^minicpm5_opd][^mopd]
+
+After the specialists are ready, the student restarts from the shared SFT checkpoint. It generates its own responses on multi-domain prompts: a math trajectory goes to the math teacher, and a code trajectory goes to the code teacher. The selected teacher prefills the entire student trajectory, and the student updates from token-level reverse KL. Teachers supply signals only during training; production still serves one student. Multi-teacher OPD thus performs **capability integration** in policy space.
+
+The shared starting point also keeps teacher and student generation distributions close. In MOPD's controlled experiment, the same-origin math teacher and student have an initial per-token KL of about 0.04. Replacing that teacher with the stronger but distributionally different Qwen3-235B-A22B raises the initial KL to about 0.19. The policy-gradient variant's normalized score falls from 0.9373 to 0.6003, while the top-$k$ run collapses around step 18. Teacher selection must therefore account for both task capability and **local teachability**; initial teacher-student KL provides a direct diagnostic.
+
+Correct routing still leaves a subtler problem. In Open-MOPD's controlled experiment, math, code, and instruction-following prompts occupy 39.8%, 39.8%, and 20.3% of the batch. Math and code responses average about 10,500 tokens, while instruction-following responses average only 409. Counting the response tokens that actually contribute gradients changes the domain shares to 49.7%, 49.3%, and 0.99%. Instruction following occupies about one fifth of prompts but receives only about one percent of the token-level training budget.[^open_mopd]
+
+This is **capability imbalance** in multi-teacher OPD. Every sample can be routed to the correct teacher, yet the domains still share one student's parameters and a finite number of updates. Long responses naturally produce more gradient tokens, so math and code dominate optimization while the short-response capability stagnates early.
+
+Teacher conflict does not explain this effect. Mean teacher disagreement is only 0.126 nat, and 0.62% of tokens exceed 1 nat. Masking high-disagreement tokens or replacing their signals with teacher consensus lowers the total score by 0.52 to 0.83 points. The main bottleneck is the optimization budget each domain actually receives.
+
+The optimization-budget imbalance instead enters through three stages:
+
+| Stage             | Source of imbalance                                                                                                                   | Treatment integrated into the pipeline                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Response length   | Long responses contribute more gradient tokens, leaving short tasks with few updates                                                  | Reweight domains so that each first receives an equal token budget                                                     |
+| Convergence speed | Teacher-student gaps shrink at different rates, so fixed weights keep spending updates on domains already close to their teachers     | Estimate the remaining gap with mean absolute token reward and allocate more budget to domains that have not converged |
+| Multiple updates  | When one rollout batch is split across several PPO updates, the student changes and the cached student-dependent reward becomes stale | Recompute the current student's token reward before every inner update                                                 |
+
+The second treatment deserves one more step of interpretation. When a domain's teacher and student have become close, its mean absolute token reward decreases. If another domain retains a larger gap, its reward magnitude stays higher. Using this quantity to adjust domain weights dynamically makes the budget follow capabilities that still need to be transferred instead of a static data ratio.
+
+The third treatment concerns the student term in the OPD reward. Teacher log-probabilities can be cached because the teacher remains frozen. After every student update, however, the current student log-probabilities change. Reusing rewards computed at rollout time makes later PPO updates follow an outdated teacher-student difference. The student-dependent reward must therefore be refreshed before every inner update.
+
+Taken together, the causal chain is now complete. Shared SFT gives every domain a comparable starting point; independent RL branches produce specialized capabilities; routing decides which teacher handles each trajectory; the token-level loss decides how each position learns; and budget balancing decides how much of each capability enters the final student.
+
+Two sets of experiments validate different links in this chain. On Qwen3-30B-A3B, MOPD reaches a normalized score of 0.9373 versus Mix-RL's 0.8818 and closes about 91–95% of the teacher-student headroom in every domain. The same recipe integrates math, code, instruction following, software engineering, and tool use into MiMo-V2-Flash. In a separate open-source study, dynamic budget balancing reduces the gap between a shared student and domain-routed RouteOPD from 3.50 to 0.31 points, while increasing recovered domain-RL capability from 35.6% to 83.4%.[^mopd][^open_mopd]
+
 ### Overlap Tokens Are the Main Battlefield
 
 One of the most illuminating experiments in the paper splits the token set apart: optimizing only on overlap tokens that both student and teacher assign high probability to almost does not hurt performance; looking only at non-overlap tokens barely helps. This explains why top-$k$ OPD is often enough, and also why the loss in a failed run may still move while capability does not improve.
@@ -272,6 +304,29 @@ This shows that OPD's scaling bottleneck is not only expensive teacher forward p
 ## Hands-On: Minimal OPD Scoring Implementation
 
 The previous sections clarified OPD's mechanism and pitfalls. Now we implement the most central OPD step in code: the student generates an answer, and the teacher scores the student's trajectory token by token.
+
+### First Understand Logits, Probabilities, and Logps
+
+To predict the next token, a model produces logits and converts them into probabilities and log-probabilities:
+
+| Candidate token           |   `4` |   `5` |  `\n` |
+| ------------------------- | ----: | ----: | ----: |
+| Logits                    |   2.0 |   1.0 |   0.0 |
+| Probability after softmax |  0.67 |  0.24 |  0.09 |
+| Log probability           | -0.41 | -1.41 | -2.41 |
+
+`logps` abbreviates log probabilities: a group of token log-probabilities. A value closer to 0 means the model favors that token more. A positive teacher-logp minus student-logp means the teacher favors it more.
+
+### What Is `full_ids`?
+
+The tokenizer splits text into tokens and assigns each token a numeric ID. `full_ids` stores every ID in “prompt + model response.”
+
+| Text piece |  `2+2` | `answer` |   `is` |            `4` |            `.` |
+| ---------- | -----: | -------: | -----: | -------------: | -------------: |
+| Token ID   |     18 |       42 |      9 |             27 |              6 |
+| Source     | prompt |   prompt | prompt | model response | model response |
+
+Thus, `full_ids = [[18, 42, 9, 27, 6]]`. The first three tokens belong to the prompt, so `prompt_len = 3`. The IDs are illustrative.
 
 ```python
 import torch
@@ -303,6 +358,7 @@ with torch.no_grad():
         temperature=0.7,
     )
 
+# full_ids contains every token ID in "prompt + student-generated response."
 full_ids = output_ids
 
 
@@ -313,8 +369,14 @@ def next_token_logps(model, input_ids):
     logps[:, i] is the log-prob of token i+1 predicted by the logits at position i.
     """
     logits = model(input_ids).logits
+
+    # log_softmax performs softmax and the logarithm together.
     logps = torch.log_softmax(logits[:, :-1], dim=-1)
+
+    # gather keeps only the actual next token; if 4 appears, keep only logp(4).
     next_ids = input_ids[:, 1:]
+
+    # Output shape: [batch_size, sequence_length - 1].
     return logps.gather(-1, next_ids.unsqueeze(-1)).squeeze(-1)
 
 
@@ -326,6 +388,7 @@ with torch.no_grad():
 gen_mask = torch.zeros_like(student_logps, dtype=torch.bool)
 gen_mask[:, prompt_len - 1 :] = True  # Only score the generated part.
 
+# Positive: teacher favors the token more; negative: teacher favors it less.
 token_rewards = teacher_logps - student_logps
 generated_ids = full_ids[:, 1:][gen_mask]
 generated_rewards = token_rewards[gen_mask]
@@ -334,12 +397,6 @@ for tok_id, reward in zip(generated_ids[:32], generated_rewards[:32]):
     token = tokenizer.decode([tok_id.item()])
     print(f"{token!r:12s} reward={reward.item():+.3f}")
 ```
-
-Design points:
-
-- `next_token_logps()` is used for both student and teacher to compute the log probability at each position. This is the same log-prob calculation used in GRPO; OPD reuses much of the same engineering infrastructure as RL.
-- `token_rewards = teacher_logps - student_logps`: this is OPD's per-token reward. A positive value means the teacher approves this token more than the student does; a negative value means the teacher does not approve it.
-- This code only performs the "scoring" part. To turn it into a training loop, three pieces remain: batch rollout, reward normalization/clipping, and policy-gradient updates.
 
 Pseudocode for the training loop:
 
@@ -364,7 +421,167 @@ for prompts in dataloader:
     optimizer.step()
 ```
 
-Real systems also add KL to a reference model, length control, repetition penalties, prompt difficulty sampling, and eval gating. OPD is not "one formula and done"; it connects teacher log-probs to existing RL training infrastructure.
+### Extending Scoring from One Teacher to Multiple Teachers
+
+We can now extend the same logic to multi-teacher OPD. Suppose one batch contains math, code, and instruction-following trajectories, each with a known domain label. Scoring does not require all three teachers to evaluate every trajectory. The domain label directly selects the corresponding teacher. Both MiMo MOPD and Open-MOPD use this prompt-domain routing pattern.
+
+The `samples` below come from a student batch rollout. The code processes trajectories one at a time to make routing explicit. A training system would first group them by `domain`, then send each domain batch to the corresponding teacher server.
+
+```python
+# Assume three Transformers teachers are loaded; production usually uses separate services.
+teachers = {
+    "math": math_teacher,
+    "code": code_teacher,
+    "if": instruction_teacher,
+}
+
+# full_ids contains every token ID in "prompt + student response."
+samples = [
+    {"domain": "math", "full_ids": math_ids, "prompt_len": math_prompt_len},
+    {"domain": "code", "full_ids": code_ids, "prompt_len": code_prompt_len},
+    {"domain": "if", "full_ids": if_ids, "prompt_len": if_prompt_len},
+]
+
+
+@torch.no_grad()
+def score_with_routed_teachers(samples, student, teachers):
+    scored = []
+
+    for sample in samples:
+        domain = sample["domain"]
+        teacher = teachers[domain]  # Hard routing: one teacher per trajectory.
+        full_ids = sample["full_ids"]
+        prompt_len = sample["prompt_len"]
+
+        student_ids = full_ids.to(student.device)
+        teacher_ids = full_ids.to(teacher.device)
+        student_logps = next_token_logps(student, student_ids)
+        teacher_logps = next_token_logps(teacher, teacher_ids).to(student_logps.device)
+
+        # Position prompt_len-1 predicts the first response token.
+        response_slice = slice(prompt_len - 1, None)
+        rewards = (teacher_logps - student_logps)[0, response_slice]
+
+        scored.append(
+            {
+                "domain": domain,
+                "rewards": rewards,
+                "num_tokens": rewards.numel(),
+            }
+        )
+
+    return scored
+
+
+scored = score_with_routed_teachers(samples, student, teachers)
+```
+
+#### Why the Slice Starts at `prompt_len - 1`
+
+`full_ids` contains the token IDs for “prompt + model response.” Continue with “`2+2 answer is 4.`”:
+
+| `logps` position | 0        | 1       | **2**        | **3**        |
+| ---------------- | -------- | ------- | ------------ | ------------ |
+| Predicted token  | `answer` | `is`    | **`4`**      | **`.`**      |
+| Token source     | prompt   | prompt  | **response** | **response** |
+| Reward           | discard  | discard | **keep**     | **keep**     |
+
+`logps[i]` predicts the next token. Thus, although `4` is at position 3 in the full sequence, its score is at `logps[2]`. The prompt contains three tokens, so response scores begin at `prompt_len - 1 = 2`.
+
+The dataset provides the prompt and the model generates only the response. Training therefore discards prompt rewards and keeps response rewards:
+
+```text
+all_rewards       = [[-0.20, +0.30, +0.70, -0.10]]
+all_rewards[0, 2:] = [               +0.70, -0.10]
+```
+
+`[0, 2:]` means: select sample 0, then take values from position 2 onward.
+
+This completes naive M-OPD multi-teacher scoring. `teachers[domain]` performs routing, and `rewards` stores the per-token signal from the selected teacher. The three teacher outputs are not averaged on the same sample; each teacher is responsible only for its own domain.
+
+#### Two Implementations of the Token-Level Signal
+
+The `rewards` above implement MOPD's policy-gradient form. For a token $y_t$ actually sampled by the student, the paper uses
+
+$$
+\hat A_{\text{MOPD},t}
+= \operatorname{sg}\!\left[
+\log \pi_{\phi_d}(y_t \mid c_t)
+- \log \pi_\theta(y_t \mid c_t)
+\right],
+$$
+
+where $\pi_{\phi_d}$ is the teacher for the current domain and $\operatorname{sg}$ stops gradients. Training clips this token-level advantage to $[-A_{\max},A_{\max}]$ to control unusually large teacher-student log-probability gaps. This form only requires the teacher log-probability of the sampled token, so it fits directly into PPO- or GRPO-style trainers.
+
+MOPD also gives a top-$k$ alternative that uses more of the teacher distribution at every position. Let $\mathcal T_t^d$ be the teacher's top-$k$ token set at position $t$. The per-position loss is
+
+$$
+\sum_{v\in\mathcal T_t^d}
+\left[
+\pi_\theta(v)\log\frac{\pi_\theta(v)}{\pi_{\phi_d}(v)}
+-\pi_\theta(v)+\pi_{\phi_d}(v)
+\right].
+$$
+
+The $-\pi_\theta(v)+\pi_{\phi_d}(v)$ terms correct for truncation. A naively truncated reverse KL is no longer minimized at $\pi_\theta=\pi_{\phi_d}$ on the retained tokens; the correction restores that optimum. Top-$k$ also reduces the teacher-service payload from a full-vocabulary distribution to sparse logits. With $k=64$ and same-origin teachers, the policy-gradient and top-$k$ variants score 0.9373 and 0.9093, respectively, showing comparable performance in this setting.
+
+Teacher prefill can run as a separate service. After a student rollout finishes, the trainer sends an asynchronous prefill request while the student sampler continues generating other sequences. This overlaps teacher computation with sampling, so extra teachers mainly require additional compute resources rather than adding proportional serial latency to every training step.
+
+The token-level loss answers how every position learns. The training loop must also decide how much each domain learns. For every domain, we therefore compute `token_share`, the fraction of response tokens in the full batch, and `mean_abs_reward`, the mean absolute per-token reward. The first captures budget differences caused by sequence length; the second approximates the remaining teacher-student gap for that domain.
+
+```python
+def compute_domain_weights(scored):
+    total_tokens = sum(item["num_tokens"] for item in scored)
+    stats = {}
+
+    for domain in {item["domain"] for item in scored}:
+        domain_rewards = torch.cat(
+            [item["rewards"] for item in scored if item["domain"] == domain]
+        )
+        stats[domain] = {
+            "token_share": domain_rewards.numel() / total_tokens,
+            "mean_abs_reward": domain_rewards.abs().mean(),
+        }
+
+    target_share = 1.0 / len(stats)
+    mean_gap = torch.stack(
+        [stat["mean_abs_reward"] for stat in stats.values()]
+    ).mean().clamp_min(1e-6)
+
+    raw_weights = {}
+    for domain, stat in stats.items():
+        share_weight = target_share / stat["token_share"]
+        gap_factor = torch.clamp(
+            stat["mean_abs_reward"] / mean_gap,
+            min=0.05,
+            max=20.0,
+        )
+        raw_weights[domain] = share_weight * gap_factor
+
+    # Keep the average batch reward scale close to its unweighted value.
+    normalizer = sum(
+        stats[domain]["token_share"] * weight
+        for domain, weight in raw_weights.items()
+    )
+    return {
+        domain: weight / normalizer
+        for domain, weight in raw_weights.items()
+    }, stats
+
+
+domain_weights, domain_stats = compute_domain_weights(scored)
+
+for item in scored:
+    item["weighted_rewards"] = (
+        item["rewards"] * domain_weights[item["domain"]]
+    )
+```
+
+This code maps Open-MOPD's first two corrections to concrete variables. `share_weight` compensates for token-share differences between long and short responses, while `gap_factor` directs budget toward domains that have not converged. The resulting `weighted_rewards` then enter normalization and the policy-gradient update.
+
+The third correction is reward refresh. When one rollout is reused for several PPO inner updates, teacher log-probabilities can be cached. Before every update, the system must recompute the current `student_logps`, then refresh `rewards`, domain statistics, and weights. Otherwise, `mean_abs_reward` measures the gap between the teacher and an outdated student.
+
+This minimal implementation places both constraints in one training chain: sampled-token log-prob differences or a top-$k$ loss first produce dense signals, and token shares plus remaining teacher-student gaps then adjust domain weights. Production systems additionally use PPO clipping, reference KL, length control, and eval gating, and batch same-domain trajectories before sending them to teacher servers.
 
 ## OPD and Neighboring Methods
 
@@ -800,6 +1017,8 @@ It is especially suitable for small models, specialized models, and post-trainin
 
 The most important insight from the 2026 mechanism analysis is to shift the core OPD question from "is the teacher stronger?" to "is the teacher more learnable?" A stronger model may only be good at scoring on its own trajectories. A more learnable teacher can provide new knowledge, similar thinking paths, and absorbable local preferences on the student's current trajectories. This perspective changes how the entire distillation pipeline should be designed: first cold-start both models into the same language, then use teacher-aligned prompts to keep the teacher in a familiar distribution, and finally use task rewards to make sure local preferences do not diverge from the global objective.
 
+With multiple domain teachers, the complete pipeline must handle three linked concerns: train same-origin teachers in parallel from a shared SFT checkpoint, integrate their capabilities through domain routing and token-level reverse KL, and refresh optimization budgets according to response length, the remaining teacher-student gap, and the current policy. Same-origin alignment determines whether the signal can be absorbed stably, routing determines who teaches each sample, and budget balancing determines how much of each capability is ultimately learned.
+
 From the main thread of this chapter, DPO, GRPO, RLVR, and OPD are all answering the same question: **when we do not want to run full traditional RLHF, where else can training signals come from?** DPO uses preference pairs, RLVR uses verifiers, and OPD uses a teacher. Understanding the boundaries of these three signals is the ability that truly transfers to new projects.
 
 ## References
@@ -821,6 +1040,12 @@ From the main thread of this chapter, DPO, GRPO, RLVR, and OPD are all answering
 [^tml_opd]: Lu K, Thinking Machines Lab. [On-Policy Distillation](https://thinkingmachines.ai/blog/on-policy-distillation/), 2025. Engineering OPD reproduction and Tinker implementation, including Qwen3 comparisons and personalization experiments.
 
 [^rethinking_opd]: Li Y, Zuo Y, He B, et al. [Rethinking On-Policy Distillation of Large Language Models: Phenomenology, Mechanism, and Recipe](https://arxiv.org/abs/2604.13016), arXiv 2026. Analyzes OPD success conditions, token-level mechanisms, and failure recovery strategies.
+
+[^minicpm5_opd]: OpenBMB. [MiniCPM5-1B Training Recipe](https://github.com/OpenBMB/MiniCPM#training-recipe), 2026. Describes the SFT, domain RL teacher, and OPD post-training stages; OPD distills multiple specialized teachers back into one release model.
+
+[^mopd]: Ma W, Wei J, Zhao L, et al. [MOPD: Multi-Teacher On-Policy Distillation for Capability Integration in LLM Post-Training](https://mimo.xiaomi.com/papers/mopd.pdf), arXiv:2606.30406, 2026. Proposes a three-stage pipeline of general SFT, domain RL teachers, and multi-teacher on-policy distillation, validated on Qwen3-30B-A3B and MiMo-V2-Flash.
+
+[^open_mopd]: Gao H, Chi H, Yan Y, et al. [Open-MOPD: Diagnosing and Fixing Capability Imbalance in Multi-Teacher On-Policy Distillation](https://arxiv.org/abs/2608.19098), arXiv 2026; [project page](https://bytedtsinghua-sia.github.io/Open-MOPD/). The first fully open-source multi-teacher OPD recipe from Tsinghua AIR/SIA-Lab and ByteDance Seed; it diagnoses cross-domain token-budget imbalance and introduces dynamic balancing mechanisms.
 
 [^lightning_opd]: Shi Z, Zhang J, Jiang W, et al. [Lightning OPD: Cost-effective On-Policy Distillation](https://arxiv.org/html/2604.13010v1), arXiv 2026. Offline-izes standard OPD by precomputing teacher log-probs and avoiding a live teacher server during training.
 

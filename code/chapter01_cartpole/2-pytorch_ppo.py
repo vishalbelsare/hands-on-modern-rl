@@ -1,26 +1,35 @@
 """
-第1章：撕开黑盒 —— 用纯 PyTorch 实现 PPO 训练 CartPole
-展示 SB3 的 model.learn() 背后的核心逻辑
+Chapter 1: Cracking open the black box - implementing PPO for CartPole in
+pure PyTorch, to reveal the core logic behind SB3's model.learn().
 
-训练过程通过 SwanLab 记录指标（奖励曲线、损失等），
-训练结束后可选弹出 GUI 窗口展示学习成果。
+Training metrics (reward curves, losses, etc.) are logged via SwanLab, and a GUI
+window can optionally pop up afterwards to show off what the agent learned.
 
-运行方式：
-    # 默认：训练 + SwanLab 曲线（不开 GUI，速度快）
+How to run:
+    # Default: train + SwanLab curves (no GUI, fast)
     python 2-pytorch_ppo.py
 
-    # 打开 GUI 演示（训练完弹出小车动画窗口）
+    # Show the GUI demo (pops up the cart animation window after training)
     python 2-pytorch_ppo.py --gui
 
-关于 --gui 参数：
-    训练阶段始终是 headless（无渲染），速度不受 GUI 影响。
-    --gui 只控制训练结束后的演示环节是否弹出 CartPole 动画窗口。
-    开启 GUI 时，演示环节每帧需要等待屏幕刷新（~16ms），会明显变慢；
-    关闭 GUI 时，演示环节纯计算，几秒内跑完。
+About the --gui flag:
+    Training itself is always headless (no rendering), so GUI has no effect on its speed.
+    --gui only controls whether the post-training demo pops up a CartPole animation window.
+    With the GUI on, the demo waits for a screen refresh (~16ms) each frame and is noticeably slower;
+    with it off, the demo is pure computation and finishes in a few seconds.
 """
 
 import argparse
+import csv
 import os
+import random
+import sys
+from pathlib import Path
+
+_CODE_ROOT = Path(__file__).resolve().parents[1]
+if str(_CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_CODE_ROOT))
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -28,33 +37,35 @@ import numpy as np
 import gymnasium as gym
 import swanlab
 
+from device_utils import describe_device, print_device_report, resolve_torch_device
+
 
 # ==========================================
-# 第一部分：Actor-Critic 网络（独立头 + 正交初始化）
+# Part 1: Actor-Critic network (separate heads + orthogonal initialization)
 # ==========================================
 class ActorCritic(nn.Module):
     """
-    独立 Actor-Critic 网络（与 SB3 MlpPolicy 对齐）：
-    - Actor 和 Critic 使用各自的隐藏层，避免梯度冲突
-    - 正交初始化：actor 输出层 gain=0.01 保证初始策略接近均匀分布
+    Separate Actor-Critic networks (matching SB3's MlpPolicy):
+    - Actor and Critic use their own hidden layers, avoiding gradient interference
+    - Orthogonal init: gain=0.01 on the actor output layer keeps the initial policy near-uniform
     """
 
     def __init__(self, obs_dim=4, act_dim=2, hidden=64):
         super().__init__()
         self.actor = nn.Sequential(
-            nn.Linear(obs_dim, hidden), nn.ReLU(),
-            nn.Linear(hidden, hidden), nn.ReLU(),
+            nn.Linear(obs_dim, hidden), nn.Tanh(),
+            nn.Linear(hidden, hidden), nn.Tanh(),
             nn.Linear(hidden, act_dim),
         )
         self.critic = nn.Sequential(
-            nn.Linear(obs_dim, hidden), nn.ReLU(),
-            nn.Linear(hidden, hidden), nn.ReLU(),
+            nn.Linear(obs_dim, hidden), nn.Tanh(),
+            nn.Linear(hidden, hidden), nn.Tanh(),
             nn.Linear(hidden, 1),
         )
         self._init_weights()
 
     def _init_weights(self):
-        """正交初始化，与 SB3 默认一致"""
+        """Orthogonal initialization, matching SB3's default"""
         for module in self.actor:
             if isinstance(module, nn.Linear):
                 nn.init.orthogonal_(module.weight, gain=np.sqrt(2))
@@ -63,10 +74,10 @@ class ActorCritic(nn.Module):
             if isinstance(module, nn.Linear):
                 nn.init.orthogonal_(module.weight, gain=np.sqrt(2))
                 nn.init.constant_(module.bias, 0)
-        # actor 输出层用小 gain → 初始策略接近均匀
+        # Use a small gain on the actor's output layer -> initial policy close to uniform
         nn.init.orthogonal_(self.actor[-1].weight, gain=0.01)
         nn.init.constant_(self.actor[-1].bias, 0)
-        # critic 输出层 gain=1
+        # Critic output layer gain=1
         nn.init.orthogonal_(self.critic[-1].weight, gain=1.0)
         nn.init.constant_(self.critic[-1].bias, 0)
 
@@ -87,26 +98,42 @@ class ActorCritic(nn.Module):
 
 
 # ==========================================
-# 第二部分：收集轨迹（Rollout）
+# Part 2: Collecting trajectories (Rollout)
 # ==========================================
-def collect_rollout(model, env, num_steps=2048):
+def collect_rollout(
+    model,
+    env,
+    obs,
+    device,
+    episode_reward=0.0,
+    episode_length=0,
+    num_steps=2048,
+):
     """
-    收集轨迹，正确处理 terminated vs truncated：
-    - terminated（杆子倒了）：V(s')=0
-    - truncated（达到步数上限）：V(s')需要 bootstrap
-    - rollout 末尾未结束：需要 bootstrap
+    Collect a trajectory, correctly handling terminated vs truncated:
+    - terminated (the pole fell over): V(s')=0
+    - truncated (hit the step limit): V(s') needs to be bootstrapped
+    - end of rollout without termination: also bootstrap with V(s')
     """
-    obs, _ = env.reset()
     transitions = []
+    completed_rewards = []
+    completed_lengths = []
 
     for _ in range(num_steps):
-        obs_tensor = torch.FloatTensor(obs)
+        obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
         with torch.no_grad():
             action, log_prob, value = model.get_action(obs_tensor)
 
         next_obs, reward, terminated, truncated, _ = env.step(action.item())
+        with torch.no_grad():
+            if terminated:
+                next_value = 0.0
+            else:
+                next_obs_tensor = torch.as_tensor(next_obs, dtype=torch.float32, device=device)
+                _, next_value_tensor = model(next_obs_tensor)
+                next_value = next_value_tensor.item()
 
-        # truncated 但没 terminated → 需要存 next_obs 用于 bootstrap
+        # Store this step's V(s') so termination, truncation, and end-of-rollout all share one GAE formula.
         transitions.append({
             "obs": obs,
             "action": action.item(),
@@ -115,89 +142,76 @@ def collect_rollout(model, env, num_steps=2048):
             "reward": float(reward),
             "terminated": terminated,
             "truncated": truncated,
-            "next_obs": next_obs if truncated and not terminated else None,
+            "next_value": next_value,
         })
+
+        episode_reward += float(reward)
+        episode_length += 1
 
         obs = next_obs
         if terminated or truncated:
+            completed_rewards.append(episode_reward)
+            completed_lengths.append(episode_length)
+            episode_reward = 0.0
+            episode_length = 0
             obs, _ = env.reset()
 
-    # rollout 末尾 bootstrap：如果最后一局没结束，计算 V(s_last)
-    if not (terminated or truncated):
-        with torch.no_grad():
-            _, _, bootstrap_value = model.get_action(torch.FloatTensor(obs))
-        last_bootstrap = bootstrap_value.item()
-    else:
-        last_bootstrap = 0.0
-
-    return transitions, last_bootstrap
+    return (
+        transitions,
+        obs,
+        completed_rewards,
+        completed_lengths,
+        episode_reward,
+        episode_length,
+    )
 
 
 # ==========================================
-# 第三部分：计算 GAE 优势
+# Part 3: Computing GAE advantages
 # ==========================================
-def compute_gae(model, transitions, last_bootstrap, gamma=0.99, lam=0.95):
+def compute_gae(transitions, gamma=0.99, lam=0.95):
     """
-    广义优势估计，正确处理：
-    - terminated（真正结束）：不传播 GAE，V(s')=0
-    - truncated（时间截断）：不传播 GAE，但用 V(next_obs) 作为 bootstrap
-    - 正常步：正常传播 GAE
+    Generalized Advantage Estimation, handling correctly:
+    - terminated (a genuine episode end): do not propagate GAE, V(s')=0
+    - truncated (time limit): bootstrap with V(s'), but do not propagate GAE across the reset
+    - end of rollout: bootstrap with the stored V(s')
     """
-    n = len(transitions)
-    rewards = [t["reward"] for t in transitions]
-    values = [t["value"] for t in transitions]
-
-    # 预计算每个 truncated 步的 bootstrap value
-    bootstrap_values = [0.0] * n
-    for i, t in enumerate(transitions):
-        if t["truncated"] and not t["terminated"] and t["next_obs"] is not None:
-            with torch.no_grad():
-                _, _, bv = model.get_action(torch.FloatTensor(t["next_obs"]))
-            bootstrap_values[i] = bv.item()
-
-    advantages = []
+    raw_advantages = []
     gae = 0
-    next_value = last_bootstrap
 
-    for step in reversed(range(n)):
+    for step in reversed(range(len(transitions))):
         t = transitions[step]
+        episode_end = t["terminated"] or t["truncated"]
+        delta = t["reward"] + gamma * t["next_value"] - t["value"]
+        gae = delta + gamma * lam * (1.0 - float(episode_end)) * gae
+        raw_advantages.insert(0, gae)
 
-        if t["terminated"]:
-            # 真正结束：V(s') = 0
-            delta = rewards[step] - values[step]
-            gae = delta
-        elif t["truncated"]:
-            # 时间截断：用 V(next_obs) bootstrap，但不传播 GAE
-            delta = rewards[step] + gamma * bootstrap_values[step] - values[step]
-            gae = delta
-        else:
-            # 正常步
-            delta = rewards[step] + gamma * next_value - values[step]
-            gae = delta + gamma * lam * gae
-
-        next_value = values[step]
-        advantages.insert(0, gae)
-
-    advantages = torch.FloatTensor(advantages)
-    returns = advantages + torch.FloatTensor(values)
-    advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+    raw_advantages = torch.tensor(raw_advantages, dtype=torch.float32)
+    values = torch.tensor([t["value"] for t in transitions], dtype=torch.float32)
+    # The Critic learns the unnormalized return target; normalization is only for the policy loss.
+    returns = raw_advantages + values
+    advantages = (raw_advantages - raw_advantages.mean()) / (
+        raw_advantages.std(unbiased=False) + 1e-8
+    )
 
     return advantages, returns
 
 
 # ==========================================
-# 第四部分：PPO 更新
+# Part 4: PPO update
 # ==========================================
-def ppo_update(model, optimizer, transitions, advantages, returns,
+def ppo_update(model, optimizer, transitions, advantages, returns, device,
                clip_eps=0.2, epochs=10, batch_size=64):
-    """PPO 裁剪目标函数更新"""
+    """PPO clipped objective update"""
     obs = np.array([t["obs"] for t in transitions])
     actions = np.array([t["action"] for t in transitions])
     old_log_probs = np.array([t["log_prob"] for t in transitions])
 
-    obs = torch.FloatTensor(obs)
-    actions = torch.LongTensor(actions)
-    old_log_probs = torch.FloatTensor(old_log_probs)
+    obs = torch.as_tensor(obs, dtype=torch.float32, device=device)
+    actions = torch.as_tensor(actions, dtype=torch.long, device=device)
+    old_log_probs = torch.as_tensor(old_log_probs, dtype=torch.float32, device=device)
+    advantages = advantages.to(device)
+    returns = returns.to(device)
 
     total_policy_loss = 0
     total_value_loss = 0
@@ -222,16 +236,16 @@ def ppo_update(model, optimizer, transitions, advantages, returns,
             dist = torch.distributions.Categorical(logits=logits)
             new_log_probs = dist.log_prob(batch_actions)
 
-            # PPO 裁剪目标
+            # PPO clipped objective
             ratio = torch.exp(new_log_probs - batch_old_log_probs)
             surr1 = ratio * batch_advantages
             surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * batch_advantages
             policy_loss = -torch.min(surr1, surr2).mean()
 
-            # 价值函数损失
+            # Value function loss
             value_loss = ((values - batch_returns) ** 2).mean()
 
-            # 熵奖励（鼓励探索）
+            # Entropy bonus (encourages exploration)
             entropy = dist.entropy().mean()
 
             loss = policy_loss + 0.5 * value_loss - 0.0 * entropy
@@ -241,9 +255,11 @@ def ppo_update(model, optimizer, transitions, advantages, returns,
             nn.utils.clip_grad_norm_(model.parameters(), 0.5)
             optimizer.step()
 
-            # 统计指标
+            # Track metrics
             with torch.no_grad():
-                total_kl += (batch_old_log_probs - new_log_probs).mean().item()
+                log_ratio = new_log_probs - batch_old_log_probs
+                # Non-negative KL approximation, matching SB3's approx_kl computation.
+                total_kl += ((log_ratio.exp() - 1) - log_ratio).mean().item()
                 total_clip_frac += ((ratio - 1.0).abs() > clip_eps).float().mean().item()
 
             total_policy_loss += policy_loss.item()
@@ -261,47 +277,80 @@ def ppo_update(model, optimizer, transitions, advantages, returns,
 
 
 # ==========================================
-# 第五部分：训练循环
+# Part 5: Training loop
 # ==========================================
 def parse_args():
-    parser = argparse.ArgumentParser(description="纯 PyTorch PPO CartPole 训练")
+    parser = argparse.ArgumentParser(description="Pure PyTorch PPO CartPole training")
     parser.add_argument(
         "--gui", action="store_true",
-        help="训练结束后弹出 GUI 窗口演示智能体（默认关闭，仅输出得分）",
+        help="Pop up a GUI window to demo the agent after training finishes (off by default, only prints scores)",
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Training random seed")
+    parser.add_argument("--iterations", type=int, default=40, help="Number of PPO iterations")
+    parser.add_argument("--steps-per-rollout", type=int, default=2048, help="Steps sampled per iteration")
+    parser.add_argument(
+        "--log-csv", default="output/training_metrics.csv",
+        help="Where to save the raw training-metrics CSV",
+    )
+    parser.add_argument(
+        "--device",
+        choices=["auto", "cuda", "mps", "cpu"],
+        default="auto",
+        help="Training device: auto prefers CUDA, then Apple MPS, then CPU",
+    )
+    parser.add_argument(
+        "--swanlab-mode",
+        choices=["local", "cloud", "disabled"],
+        default="local",
+        help="SwanLab logging mode; set to disabled to reproduce runs without a dashboard",
     )
     return parser.parse_args()
 
 
 def train():
     args = parse_args()
-    os.makedirs("output", exist_ok=True)
+    device = resolve_torch_device(args.device)
+    print_device_report(device)
+
+    model_path = os.path.join(
+        os.path.dirname(os.path.abspath(args.log_csv)),
+        "pytorch_ppo_cartpole.pth",
+    )
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
 
     env = gym.make("CartPole-v1")
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed(args.seed)
+    env.action_space.seed(args.seed)
+    obs, _ = env.reset(seed=args.seed)
 
-    # 打印环境信息（状态空间、动作空间、边界阈值）
+    # Print environment info (observation space, action space, termination thresholds)
     print("=" * 50)
-    print("CartPole-v1 环境信息")
+    print("CartPole-v1 environment info")
     print("=" * 50)
-    print(f"  观测空间:  {env.observation_space}")
-    print(f"  动作空间:  {env.action_space}")
-    print(f"  观测上限:  {env.observation_space.high}")
-    print(f"  观测下限:  {env.observation_space.low}")
-    print(f"  终止条件:  位置 > ±{env.unwrapped.x_threshold}, "
-          f"角度 > ±{env.unwrapped.theta_threshold_radians:.4f} rad "
+    print(f"  Observation space:  {env.observation_space}")
+    print(f"  Action space:  {env.action_space}")
+    print(f"  Observation upper bound:  {env.observation_space.high}")
+    print(f"  Observation lower bound:  {env.observation_space.low}")
+    print(f"  Termination condition:  position > ±{env.unwrapped.x_threshold}, "
+          f"angle > ±{env.unwrapped.theta_threshold_radians:.4f} rad "
           f"(≈ ±{np.degrees(env.unwrapped.theta_threshold_radians):.0f}°)")
     print("=" * 50)
 
-    model = ActorCritic()
+    model = ActorCritic().to(device)
     optimizer = optim.Adam(model.parameters(), lr=3e-4)
 
-    total_iterations = 40
-    steps_per_rollout = 2048
+    total_iterations = args.iterations
+    steps_per_rollout = args.steps_per_rollout
 
-    # 初始化 SwanLab
+    # Initialize SwanLab
     swanlab.init(
         project="cartpole-pytorch",
         experiment_name="PPO-PyTorch-CartPole-v1",
-        mode="local",
+        mode=args.swanlab_mode,
         config={
             "algorithm": "PPO",
             "lr": 3e-4,
@@ -312,65 +361,72 @@ def train():
             "clip_eps": 0.2,
             "epochs": 10,
             "batch_size": 64,
+            "seed": args.seed,
+            "device": str(device),
         },
     )
 
-    print("开始训练（纯 PyTorch PPO + SwanLab）...")
+    print(f"Starting training on {describe_device(device)} (pure PyTorch PPO + SwanLab)...")
     print("-" * 60)
 
     total_timesteps = 0
 
+    csv_dir = os.path.dirname(args.log_csv)
+    if csv_dir:
+        os.makedirs(csv_dir, exist_ok=True)
+    metric_rows = []
+    ongoing_episode_reward = 0.0
+    ongoing_episode_length = 0
+
     for iteration in range(total_iterations):
-        # 收集数据
-        transitions, last_bootstrap = collect_rollout(model, env, steps_per_rollout)
+        # Collect data
+        (
+            transitions,
+            obs,
+            ep_rewards,
+            ep_lengths,
+            ongoing_episode_reward,
+            ongoing_episode_length,
+        ) = collect_rollout(
+            model,
+            env,
+            obs,
+            device,
+            ongoing_episode_reward,
+            ongoing_episode_length,
+            steps_per_rollout,
+        )
 
         total_timesteps += len(transitions)
 
-        # 计算回合奖励和长度
-        ep_rewards = []
-        ep_lengths = []
-        ep_reward = 0
-        ep_length = 0
-        for t in transitions:
-            ep_reward += t["reward"]
-            ep_length += 1
-            if t["terminated"] or t["truncated"]:
-                ep_rewards.append(ep_reward)
-                ep_lengths.append(ep_length)
-                ep_reward = 0
-                ep_length = 0
+        # Compute advantages and the Critic's unnormalized return targets
+        advantages, returns = compute_gae(transitions)
 
-        # 计算优势
-        advantages, returns = compute_gae(model, transitions, last_bootstrap)
-
-        # PPO 更新
-        metrics = ppo_update(
-            model, optimizer, transitions, advantages, returns
-        )
-
-        # 解释方差（用更新后的 Critic 重新预测，与 SB3 一致）
-        with torch.no_grad():
-            obs_tensor = torch.FloatTensor(np.array([t["obs"] for t in transitions]))
-            _, updated_values = model(obs_tensor)
-        return_values = returns.numpy()
-        updated_values_np = updated_values.numpy()
-        var_returns = np.var(return_values)
-        if var_returns < 1e-6:
-            # 所有回报相同（如全部 500 分），EV 无意义，置为 0
-            explained_variance = 0.0
-        else:
-            explained_variance = 1 - np.var(return_values - updated_values_np) / var_returns
-
-        mean_reward = np.mean(ep_rewards) if ep_rewards else 0
-        mean_ep_len = np.mean(ep_lengths) if ep_lengths else 0
-
-        # 学习率线性衰减（与 SB3 默认行为一致）
+        # Set the learning rate before this iteration's update.
         frac = 1.0 - iteration / total_iterations
         lr = 3e-4 * frac
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
 
-        # 记录到 SwanLab（与 SB3 指标对齐）
+        # PPO update
+        metrics = ppo_update(
+            model, optimizer, transitions, advantages, returns, device
+        )
+
+        # Explained variance compares the value predictions made during rollout collection against the return targets.
+        return_values = returns.numpy()
+        rollout_values = np.array([t["value"] for t in transitions])
+        var_returns = np.var(return_values)
+        if var_returns < 1e-6:
+            # All returns are identical (e.g. every episode scored 500), EV is meaningless, set to 0
+            explained_variance = 0.0
+        else:
+            explained_variance = 1 - np.var(return_values - rollout_values) / var_returns
+
+        mean_reward = np.mean(ep_rewards) if ep_rewards else 0
+        mean_ep_len = np.mean(ep_lengths) if ep_lengths else 0
+
+        # Log to SwanLab (aligned with SB3's metrics)
         swanlab.log({
             "rollout/ep_rew_mean": mean_reward,
             "rollout/ep_len_mean": mean_ep_len,
@@ -387,23 +443,48 @@ def train():
             "time/iterations": iteration + 1,
         }, step=iteration)
 
+        metric_rows.append({
+            "seed": args.seed,
+            "iteration": iteration + 1,
+            "total_timesteps": total_timesteps,
+            "completed_episodes": len(ep_rewards),
+            "mean_episode_reward": mean_reward,
+            "mean_episode_length": mean_ep_len,
+            "policy_loss": metrics["policy_loss"],
+            "value_loss": metrics["value_loss"],
+            "entropy": metrics["entropy"],
+            "approx_kl": metrics["approx_kl"],
+            "clip_fraction": metrics["clip_fraction"],
+            "explained_variance": explained_variance,
+            "learning_rate": lr,
+        })
+
         print(
-            f"  迭代 {iteration + 1:2d}/{total_iterations} | "
-            f"回合数: {len(ep_rewards):3d} | "
-            f"平均奖励: {mean_reward:6.1f} | "
+            f"  Iteration {iteration + 1:2d}/{total_iterations} | "
+            f"Episodes: {len(ep_rewards):3d} | "
+            f"Mean reward: {mean_reward:6.1f} | "
             f"KL: {metrics['approx_kl']:.4f} | "
             f"clip%: {metrics['clip_fraction']:.1%}"
         )
 
     print("-" * 60)
 
-    # 最终评估
+    fieldnames = list(metric_rows[0].keys())
+    temporary_csv = f"{args.log_csv}.tmp"
+    with open(temporary_csv, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(metric_rows)
+    os.replace(temporary_csv, args.log_csv)
+    print(f"Raw training metrics saved to {args.log_csv}")
+
+    # Final evaluation
     eval_rewards = []
     for _ in range(20):
-        obs, _ = env.reset()
+        obs, _ = env.reset(seed=args.seed + 10_000 + len(eval_rewards))
         done, truncated, score = False, False, 0
         while not (done or truncated):
-            obs_tensor = torch.FloatTensor(obs)
+            obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
             with torch.no_grad():
                 action, _, _ = model.get_action(obs_tensor, deterministic=True)
             obs, reward, done, truncated, _ = env.step(action.item())
@@ -412,24 +493,24 @@ def train():
 
     mean_reward = np.mean(eval_rewards)
     std_reward = np.std(eval_rewards)
-    print(f"\n训练完成！20 回合评估: {mean_reward:.1f} +/- {std_reward:.1f}")
+    print(f"\nTraining complete! 20-episode evaluation: {mean_reward:.1f} +/- {std_reward:.1f}")
 
     swanlab.log({
         "eval/mean_reward": mean_reward,
         "eval/std_reward": std_reward,
     })
 
-    # 保存模型
-    torch.save(model.state_dict(), "output/pytorch_ppo_cartpole.pth")
-    print(f"模型已保存到 output/pytorch_ppo_cartpole.pth")
+    # Save the model
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
 
-    # GUI 演示
+    # GUI demo
     if args.gui:
         try:
             vis_env = gym.make("CartPole-v1", render_mode="human")
-            print("\n正在演示学习成果（5 个回合）...")
+            print("\nDemoing what the agent learned (5 episodes)...")
             for ep in range(5):
-                obs, _ = vis_env.reset()
+                obs, _ = vis_env.reset(seed=args.seed + 20_000 + ep)
                 done, truncated, score = False, False, 0
                 while not (done or truncated):
                     obs_tensor = torch.FloatTensor(obs)
@@ -437,18 +518,18 @@ def train():
                         action, _, _ = model.get_action(obs_tensor, deterministic=True)
                     obs, reward, done, truncated, _ = vis_env.step(action.item())
                     score += reward
-                print(f"  演示回合 {ep + 1} 得分: {score}")
+                print(f"  Demo episode {ep + 1} score: {score}")
             vis_env.close()
-            print("\nGUI 演示结束。")
+            print("\nGUI demo finished.")
         except Exception:
-            print("(跳过 GUI 演示，无图形界面)")
+            print("(Skipping GUI demo, no display available)")
     else:
-        print("\n提示: 加 --gui 可弹出小车动画窗口查看演示效果。")
+        print("\nTip: add --gui to pop up the cart animation window and watch the demo.")
 
     env.close()
     swanlab.finish()
 
-    print("SwanLab 实验看板: swanlab watch swanlog")
+    print("SwanLab experiment dashboard: swanlab watch swanlog")
 
 
 if __name__ == "__main__":

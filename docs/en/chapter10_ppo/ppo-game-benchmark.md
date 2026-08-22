@@ -5,7 +5,7 @@ outline:
   level: [2, 3]
 ---
 
-# Supplement: PPO Game Project Practice Guide
+# 8.5 Hands-on: PPO Game Projects
 
 After learning PPO's math and implementation, the next step is to put it into real game environments. The goal of this section is not to list every game that can be trained with PPO. It is to help you build a practical path from "it runs" to "I understand its boundary."
 
@@ -194,6 +194,8 @@ PPO often fails on unfamiliar terrain hazards rather than because the low-level 
 ![Unity SoccerTwos PPO example, source: Hugging Face Deep RL Course](https://huggingface.co/datasets/huggingface-deep-rl-course/course-images/resolve/main/en/unit10/soccertwos.gif)
 
 SoccerTwos is 2v2 soccer, so it introduces **multi-agent learning**. PPO is usually paired with **self-play**: agents play against historical versions of themselves, and progress is tracked with ELO. Unity ML-Agents provides the most direct PPO implementation path.
+
+<OnlineTraining studios="unity" compact />
 
 The training process often shows strategy evolution. Early agents chase the ball chaotically. As ELO rises from **1200** toward **1600**, simple attacker-defender role separation can appear. SAC tends to perform much worse in this setting, which highlights PPO's stability in competitive multi-agent training.
 

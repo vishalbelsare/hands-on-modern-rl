@@ -1,5 +1,11 @@
 # 环境配置
 
+::: tip 请编码助手帮你安装
+如果你正在使用 Codex 等编码助手，可以先和它说清楚你的学习目标，再请它完成安装：
+
+> 你好，我准备开始学习这门强化学习课程，想先把实验环境配置好。请帮我检查操作系统、Python 版本和 GPU/CUDA 情况，创建名为 `rl-course` 的 Python 3.10 环境，安装课程最小可运行环境所需的依赖，然后运行 CartPole 验证程序。遇到安装问题时请继续排查和修复；如果需要管理员权限或修改系统级配置，请先征求我的确认。
+:::
+
 > **本节目标**：从零开始搭建本课程所需的完整开发环境，涵盖 Python、PyTorch、RL 工具链和 LLM 训练框架。跟着步骤走完，你就能跑通全书所有实验。
 
 ## 最小可运行环境（5 分钟上手）
@@ -34,6 +40,7 @@ import torch
 
 print(f"PyTorch: {torch.__version__}")
 print(f"CUDA:    {torch.cuda.is_available()}")
+print(f"MPS:     {torch.backends.mps.is_available()}")
 
 env = gym.make("CartPole-v1", render_mode="human")
 obs, info = env.reset()
@@ -199,7 +206,7 @@ pip install mlagents
 python -c "from mlagents_envs.environment import UnityEnvironment; print('ML-Agents ready')"
 ```
 
-使用 ML-Agents 需要下载或自行构建 Unity 环境（`.exe` / `.app` / Linux 可执行文件）。预构建环境可从 [ML-Agents GitHub Releases](https://github.com/Unity-Technologies/ml-agents/releases) 获取。详细使用方式参见[学习资料与复现项目推荐](../appendix_paper_reading/intro)。
+使用 ML-Agents 需要下载或自行构建 Unity 环境（`.exe` / `.app` / Linux 可执行文件）。预构建环境可从 [ML-Agents GitHub Releases](https://github.com/Unity-Technologies/ml-agents/releases) 获取。详细使用方式参见[学习资料与复现项目推荐](../appendix_paper_reading/learning-resources)。
 
 ::: tip Unity ML-Agents 适用场景
 ML-Agents 的独特价值在于**3D 空间推理**：Atari 是 2D 像素，CartPole 是低维向量，而 ML-Agents 提供完整的 3D 物理环境（重力、碰撞、遮挡）。如果你的研究涉及视觉导航、空间推理或多智能体 3D 协作，ML-Agents 是 Gymnasium/PyBullet 之外的有力补充。

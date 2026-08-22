@@ -1,304 +1,198 @@
 # 1.3 动手：PPO 训练可视化
 
-> **本节目标**：在 `CartPole-v1` 上完成一次 PPO 训练，用奖励曲线、策略回放和训练指标判断小车是否学会保持平衡。
+> **本节目标**：运行纯 PyTorch PPO，保存原始训练指标，从 CSV 生成曲线，并用训练后的模型完成一次可见的 CartPole 评估。
 
-> **学习路径**：[1.1 CartPole 控制原理](./principles) → [1.2 奖励与训练指标](./metrics) → **1.3 PPO 训练可视化**
+> **学习路径**：[1.1 跑通 CartPole](./principles) → [1.2 CartPole 原理](./metrics) → **1.3 PPO 训练可视化**
 
-> **本节代码**：[Stable-Baselines3 版本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/1-ppo_cartpole.py) · [纯 PyTorch 版本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [曲线绘制](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/plot_curves.py) · [依赖](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/requirements.txt)
+> **本节代码与资源**：[训练脚本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/2-pytorch_ppo.py) · [绘图脚本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/plot_curves.py) · [环境帧脚本](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/capture_frames.py) · [原始 CSV](https://github.com/walkinglabs/hands-on-modern-rl/blob/main/code/chapter01_cartpole/output/training_metrics_seed42.csv)
 
-前两节已经说明了 CartPole 的状态、动作和奖励，也解释了训练曲线中的回报与回合长度。现在把这些概念放进一次完整训练：策略先用随机权重控制小车，再通过反复采样和更新，逐渐把杆子保持在竖直位置。
+::: tip 遇到困难时善用 AI
+本节需要在自己的机器上运行脚本，环境问题在所难免。安装报错、版本冲突、运行中断时，把完整的报错信息交给 AI 编码助手，让它帮你分析原因、修改代码或给出可运行的命令，是最有效的解决方式。
+:::
 
-## 训练流程概览
+1.2 节讲清了原理，也带我们读过仓库中保存好的训练记录。这一节从头操作一遍：自己运行训练脚本，保存原始指标，从 CSV 生成曲线，再用训练好的模型捕获环境画面。
 
-PPO 训练 CartPole 的完整流程：
+完成后，图上的每一个点都能追溯到 CSV，CSV 能追溯到训练日志，环境帧能追溯到保存的模型——整条证据链自己走通。
 
-```
-┌──────────────────────────────────────────────┐
-│ 1. 初始化：策略网络 π_θ(a|s) 随机权重       │
-├──────────────────────────────────────────────┤
-│ 2. Rollout：用当前 π_θ 跑 N 条轨迹          │
-│    收集 (s_t, a_t, r_t, s_{t+1}, done)       │
-├──────────────────────────────────────────────┤
-│ 3. 计算 advantage Â_t（用 GAE）              │
-├──────────────────────────────────────────────┤
-│ 4. PPO 更新：maximize clipped objective     │
-│    L = E[min(r_t Â_t, clip(r_t, 1±ε) Â_t)] │
-├──────────────────────────────────────────────┤
-│ 5. 重复 2-4 直到收敛（reward 达到 500）     │
-└──────────────────────────────────────────────┘
-```
+## 1.3.1 安装依赖
 
-## 完整训练代码
-
-下面是一个最小化的 PPO + CartPole 实现。完整可运行版本见 `code/chapter01_cartpole/2-pytorch_ppo.py`。
-
-```python
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import gymnasium as gym
-import numpy as np
-from collections import deque
-
-# === 策略网络：状态 → 动作概率 ===
-class PolicyNetwork(nn.Module):
-    def __init__(self, state_dim=4, action_dim=2, hidden=64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, action_dim)
-        )
-
-    def forward(self, s):
-        logits = self.net(s)
-        return torch.distributions.Categorical(logits=logits)
-
-# === 价值网络：状态 → V(s) ===
-class ValueNetwork(nn.Module):
-    def __init__(self, state_dim=4, hidden=64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, hidden),
-            nn.Tanh(),
-            nn.Linear(hidden, 1)
-        )
-
-    def forward(self, s):
-        return self.net(s).squeeze(-1)
-
-# === GAE：广义优势估计 ===
-def compute_gae(rewards, values, gamma=0.99, lam=0.95):
-    """Generalized Advantage Estimation."""
-    advantages = []
-    gae = 0
-    next_value = 0
-    for r, v in zip(reversed(rewards), reversed(values)):
-        delta = r + gamma * next_value - v
-        gae = delta + gamma * lam * gae
-        advantages.insert(0, gae)
-        next_value = v
-    return advantages
-
-# === 主训练循环 ===
-def train_ppo(env_name='CartPole-v1', n_iters=200, n_steps=2048,
-              gamma=0.99, lam=0.95, clip_eps=0.2, lr=3e-4,
-              n_epochs=10, batch_size=64):
-    env = gym.make(env_name)
-    policy = PolicyNetwork()
-    value_fn = ValueNetwork()
-    optimizer = optim.Adam(list(policy.parameters()) + list(value_fn.parameters()), lr=lr)
-
-    reward_history = deque(maxlen=20)
-
-    for iter in range(n_iters):
-        # === 1. Rollout ===
-        states, actions, rewards, dones, log_probs_old, values = [], [], [], [], [], []
-        s, _ = env.reset()
-        ep_reward = 0
-
-        for step in range(n_steps):
-            s_tensor = torch.FloatTensor(s)
-            dist = policy(s_tensor)
-            v = value_fn(s_tensor)
-            a = dist.sample()
-
-            s_next, r, terminated, truncated, _ = env.step(a.item())
-            done = terminated or truncated
-
-            states.append(s); actions.append(a.item()); rewards.append(r)
-            dones.append(done); log_probs_old.append(dist.log_prob(a).item()); values.append(v.item())
-            ep_reward += r
-
-            if done:
-                reward_history.append(ep_reward)
-                ep_reward = 0
-                s, _ = env.reset()
-            else:
-                s = s_next
-
-        # === 2. 计算 advantage ===
-        advantages = compute_gae(rewards, values, gamma, lam)
-        advantages = torch.FloatTensor(advantages)
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
-        returns = advantages + torch.FloatTensor(values)
-
-        # === 3. PPO 更新（多个 epoch） ===
-        states_t = torch.FloatTensor(np.array(states))
-        actions_t = torch.LongTensor(actions)
-        log_probs_old_t = torch.FloatTensor(log_probs_old)
-
-        for epoch in range(n_epochs):
-            idx = torch.randperm(len(states_t))
-            for start in range(0, len(states_t), batch_size):
-                end = start + batch_size
-                mb_idx = idx[start:end]
-
-                mb_states = states_t[mb_idx]
-                mb_actions = actions_t[mb_idx]
-                mb_old_lp = log_probs_old_t[mb_idx]
-                mb_adv = advantages[mb_idx]
-                mb_ret = returns[mb_idx]
-
-                dist = policy(mb_states)
-                new_lp = dist.log_prob(mb_actions)
-                ratio = (new_lp - mb_old_lp).exp()
-
-                # PPO Clip
-                surr1 = ratio * mb_adv
-                surr2 = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps) * mb_adv
-                policy_loss = -torch.min(surr1, surr2).mean()
-
-                # Value loss
-                v_pred = value_fn(mb_states)
-                value_loss = ((v_pred - mb_ret) ** 2).mean()
-
-                loss = policy_loss + 0.5 * value_loss
-
-                optimizer.zero_grad()
-                loss.backward()
-                nn.utils.clip_grad_norm_(policy.parameters(), 0.5)
-                optimizer.step()
-
-        if iter % 10 == 0:
-            avg_r = np.mean(reward_history) if reward_history else 0
-            print(f"Iter {iter}: avg_reward = {avg_r:.1f} / 500")
-
-    return policy
-
-if __name__ == '__main__':
-    policy = train_ppo()
-```
-
-## 训练曲线与可视化
-
-运行上述代码，典型的训练曲线如下：
-
-```
-reward
- 500 │                              ╭───── converged
- 400 │                          ╭───╯
- 300 │                      ╭───╯
- 200 │                  ╭───╯
- 100 │              ╭───╯
-     0 │───────────╯
-       └─────────────────────────────────
-        0    50   100   150   200 iterations
-```
-
-观察 4 个关键阶段：
-
-| 阶段   | iteration | 平均 reward | 现象                                              |
-| ------ | --------- | ----------- | ------------------------------------------------- |
-| 探索期 | 0-20      | 10-30       | 智能体随机倒杆，几乎学不到信号                    |
-| 学习期 | 20-100    | 30-200      | reward 快速上升，策略开始稳定                     |
-| 收敛期 | 100-150   | 200-450     | 进步变慢，但仍稳定提升                            |
-| 已解决 | 150+      | 475+        | Gymnasium 定义"解决"为最近 100 episode 平均 ≥ 475 |
-
-## 超参数的影响
-
-PPO 在 CartPole 上对超参数不算敏感，但仍需理解每个参数的作用：
-
-| 超参数      | 默认值 | 影响范围                                         |
-| ----------- | ------ | ------------------------------------------------ |
-| `lr`        | 3e-4   | 学习率太高（>1e-3）训练崩溃；太低（<1e-5）训练慢 |
-| `clip_eps`  | 0.2    | 越大越激进（更接近原 PG）；越小越保守            |
-| `gamma`     | 0.99   | 折扣因子；CartPole 设 0.99 几乎等同于无折扣      |
-| `lam` (GAE) | 0.95   | 越大越接近 Monte Carlo；越小越接近 TD            |
-| `n_epochs`  | 10     | 每次 rollout 数据复用次数；太大 overfit          |
-| `n_steps`   | 2048   | rollout 长度；CartPole 短任务可减到 512          |
-
-### 失败模式排查
-
-如果训练不收敛，按以下顺序排查：
-
-1. **策略 entropy 是否归零**：如果动作概率过早 collapse 到 1.0/0.0，加 entropy bonus `loss += -0.01 * dist.entropy().mean()`
-2. **advantage 是否正确归一化**：忘归一化会导致梯度尺度不稳定
-3. **value loss 是否爆炸**：检查 returns 是否包含异常值
-4. **学习率是否过大**：用 `lr=1e-4` 重试
-
-## 用 TensorBoard 可视化
-
-```python
-from torch.utils.tensorboard import SummaryWriter
-
-writer = SummaryWriter('runs/cartpole_ppo')
-
-for iter in range(n_iters):
-    # ... 训练代码 ...
-
-    writer.add_scalar('train/reward_mean', avg_r, iter)
-    writer.add_scalar('train/policy_loss', policy_loss.item(), iter)
-    writer.add_scalar('train/value_loss', value_loss.item(), iter)
-    writer.add_scalar('train/entropy', dist.entropy().mean().item(), iter)
-    writer.add_scalar('train/clip_frac', clip_fraction, iter)
-```
-
-启动 TensorBoard：
+运行训练之前，先把环境搭好。进入第一章代码目录，安装 `requirements.txt` 中的依赖：
 
 ```bash
-tensorboard --logdir=runs
+cd code/chapter01_cartpole
+pip install -r requirements.txt
 ```
 
-监控 5 个关键指标：
+CartPole 的网络很小，默认使用 CPU 训练，不要求独立显卡。
 
-- **reward_mean**：训练核心指标，应单调上升到 500
-- **policy_loss**：PPO clip 后的 loss，振荡正常
-- **value_loss**：应平稳下降
-- **entropy**：策略熵，应从 ~0.69（初始 ln 2）缓慢下降到 ~0.1
-- **clip_frac**：被 clip 的比例，应稳定在 0.1-0.3；> 0.5 说明策略变化太快
+## 1.3.2 运行一次固定配置的训练
 
-## 用绘制工具对比实验
+依赖装好之后，开始训练。为了让运行条件可以核对，我们固定随机种子、训练轮数和每轮采样步数：
+
+```bash
+python 2-pytorch_ppo.py \
+  --seed 42 \
+  --iterations 40 \
+  --steps-per-rollout 2048 \
+  --swanlab-mode disabled \
+  --log-csv output/training_metrics_seed42.csv
+```
+
+训练共与环境交互
+
+$$
+40\times 2048=81\,920
+$$
+
+步。运行结束后，`output/` 目录中包含两个主要文件：
+
+- `pytorch_ppo_cartpole.pth`：训练后的模型参数；
+- `training_metrics_seed42.csv`：每一轮未经平滑的训练指标。
+
+控制台最后还会给出 20 个确定性评估回合的平均奖励和标准差。本书保存的这次运行得到 `500.0 ± 0.0`。
+
+若要使用本地 SwanLab 看板，可以把 `--swanlab-mode disabled` 改为 `--swanlab-mode local`。训练结束后运行：
+
+```bash
+swanlab watch swanlog
+```
+
+浏览器打开 `http://127.0.0.1:5092` 即可查看本地记录。看板用于交互查看，后续绘图仍以导出的 CSV 为数据源。
+
+## 1.3.3 训练循环中的三个步骤
+
+训练跑通之后，我们来对照 1.2 节的原理，看看脚本每轮到底做了什么。
+
+```mermaid
+flowchart LR
+    A["用当前策略<br/>收集 2048 步"] --> B["计算 TD 误差<br/>与 GAE 优势"]
+    B --> C["对同一批数据<br/>执行 PPO 更新"]
+    C --> A
+```
+
+### 收集轨迹
+
+第一个环节是收集轨迹。环境的 `step` 方法返回新观测、奖励和两个结束标记：
 
 ```python
-import matplotlib.pyplot as plt
+next_obs, reward, terminated, truncated, _ = env.step(action.item())
 
-def plot_experiments(results):
-    """results: dict of name -> list of rewards"""
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for name, rewards in results.items():
-        # 滑动平均
-        smoothed = np.convolve(rewards, np.ones(20)/20, mode='valid')
-        ax.plot(smoothed, label=name)
-    ax.set_xlabel('Iteration')
-    ax.set_ylabel('Average Reward (20-episode mean)')
-    ax.set_title('PPO on CartPole: Hyperparameter Sweep')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    ax.axhline(y=475, color='r', linestyle='--', label='Solved threshold')
-    plt.savefig('cartpole_ppo_sweep.png', dpi=120, bbox_inches='tight')
-
-# 对比不同超参数
-results = {
-    'lr=3e-4 (default)': run_experiment(lr=3e-4),
-    'lr=1e-4 (slow)': run_experiment(lr=1e-4),
-    'lr=1e-3 (fast)': run_experiment(lr=1e-3),
-    'clip=0.1 (conservative)': run_experiment(clip_eps=0.1),
-    'clip=0.3 (aggressive)': run_experiment(clip_eps=0.3),
-}
-plot_experiments(results)
+with torch.no_grad():
+    if terminated:
+        next_value = 0.0
+    else:
+        _, next_value_tensor = model(torch.FloatTensor(next_obs))
+        next_value = next_value_tensor.item()
 ```
 
-预期结果：
+`terminated=True` 表示杆子倒下或小车越界。回合已经自然结束，所以后续价值取 0。
 
-- `lr=3e-4` + `clip=0.2`（默认）：150 iteration 收敛
-- `lr=1e-4`：300 iteration 收敛，但更稳定
-- `lr=1e-3`：50% 概率不收敛
-- `clip=0.1`：收敛慢但稳定
-- `clip=0.3`：收敛快但有抖动
+`truncated=True` 表示达到 500 步时间上限。这个状态仍可能保持平衡，所以代码使用 Critic 的 $V(s')$ 作为后续价值估计。
+
+如果 2048 步采样在一个回合中间结束，脚本不会重置环境。下一轮从当前观测继续采样，并继续累计该回合的奖励和长度。
+
+### 计算 GAE
+
+第二个环节是计算优势。每一步先计算 TD 误差：
+
+$$
+\delta_t=r_t+\gamma V(s_{t+1})-V(s_t).
+$$
+
+程序从 rollout 的末尾向前递推优势：
+
+```python
+episode_end = t["terminated"] or t["truncated"]
+delta = t["reward"] + gamma * t["next_value"] - t["value"]
+gae = delta + gamma * lam * (1.0 - float(episode_end)) * gae
+```
+
+乘数 `1 - episode_end` 在每次环境重置处切断递推。时间截断处的当前 TD 误差仍使用 `next_value`，新回合的优势不会传回旧回合。
+
+Critic 的目标由未归一化优势得到：
+
+```python
+returns = raw_advantages + values
+advantages = (raw_advantages - raw_advantages.mean()) / (
+    raw_advantages.std(unbiased=False) + 1e-8
+)
+```
+
+归一化后的 `advantages` 用于更新 Actor。未归一化的 `returns` 用于训练 Critic，因此两者不能互换。
+
+### 执行 PPO 更新
+
+第三个环节是更新策略。PPO 比较新旧策略对已采样动作给出的概率：
+
+$$
+r_t(\theta)=\frac{\pi_\theta(a_t\mid s_t)}
+{\pi_{\theta_{\mathrm{old}}}(a_t\mid s_t)}.
+$$
+
+配套实现取 `clip_eps=0.2`：
+
+```python
+ratio = torch.exp(new_log_probs - batch_old_log_probs)
+surr1 = ratio * batch_advantages
+surr2 = torch.clamp(ratio, 0.8, 1.2) * batch_advantages
+policy_loss = -torch.min(surr1, surr2).mean()
+```
+
+优势为正的动作会得到更高概率，优势为负的动作会得到更低概率。裁剪目标限制同一批数据推动概率变化的幅度。
+
+## 1.3.4 从原始 CSV 生成曲线
+
+三个环节跑完，训练脚本已经把每一轮指标写入 CSV。现在我们把这些数字变成曲线。运行绘图脚本：
+
+```bash
+python plot_curves.py \
+  --input output/training_metrics_seed42.csv \
+  --output-dir output
+```
+
+脚本读取 CSV 后生成奖励曲线和四指标诊断图，不会重新训练模型，也不会修改原始指标。
+
+![seed=42 的 CartPole PPO 奖励曲线](./images/cartpole_reward_seed42.png)
+
+<div class="figure-caption">图 1-4：seed=42 的原始训练奖励。曲线由仓库中的绘图脚本直接读取 CSV 生成。</div>
+
+第 1 轮的平均奖励为 21.35，第 10 轮为 500.0，第 11 轮回落到 460.4。最终确定性策略在 20 个评估回合中得到 `500.0 ± 0.0`。
+
+这条单种子曲线可以验证当前代码和配置能够完成任务。它不能表示所有随机种子都会在第 10 轮达到 500 分。
+
+## 1.3.5 从模型捕获环境画面
+
+曲线说明了得分怎样变化，但它终究是抽象的数字。我们还可以加载保存的模型，观察它在环境里的实际动作。运行：
+
+```bash
+python capture_frames.py \
+  --model output/pytorch_ppo_cartpole.pth \
+  --output output/cartpole_frames_seed42.png \
+  --seed 10042
+```
+
+脚本创建 `render_mode="rgb_array"` 的 CartPole-v1 环境，使用确定性动作运行一个回合，并从 `env.render()` 返回的画面中选取五个时间点。
+
+![训练后策略在 Gymnasium CartPole-v1 中的实测帧](./images/cartpole_frames_seed42.png)
+
+<div class="figure-caption">图 1-5：同一个确定性评估回合的第 0、125、250、375 和 500 步。该回合得到 500 分，标题中的角度来自对应时刻的环境观测。</div>
+
+一幅静态画面只能展示一个时刻。这里同时保存五个时间点、完整回合得分和 20 回合评估结果，用来检查策略是否持续完成控制任务。
+
+## 1.3.6 改参数后怎样比较
+
+基准跑通之后，自然会想试试改了参数会怎样。可以改变学习率、裁剪范围或 GAE 参数。每次只改变一个设置，其他条件保持一致，结果才容易解释。
+
+例如，可以比较 `lr=1e-4` 和 `lr=3e-4` 达到相同评估分数所需的环境步数。两组实验需要使用相同的环境版本、网络结构、训练量、随机种子集合和评估回合数。
+
+一次运行容易受到随机初始化和动作采样影响。正式比较时，应运行多个随机种子，并报告每个种子的原始曲线、达到目标分数的环境步数以及最终评估结果。
 
 ## 本节小结
 
-PPO 训练 CartPole 是 RL 入门最经典的"hello world"。本节给出了完整可运行的 PPO 实现，覆盖了 rollout 收集、GAE 优势估计、PPO Clip 更新、超参数调优、TensorBoard 可视化的全流程。
+- 训练脚本保存模型参数和未经平滑的 CSV 指标；绘图脚本只读取 CSV，图上的每个点都能回到原始记录。
+- 三个步骤对应 1.2 节的原理：收集轨迹、计算 GAE 优势、执行 PPO 裁剪更新。
+- `terminated`、`truncated` 和 rollout 边界在价值计算中具有不同含义，归一化优势用于 Actor、未归一化 returns 用于 Critic，两者不能互换。
+- 环境帧由保存的模型在 Gymnasium 中实际运行得到。
+- 参数比较需要统一实验条件，并使用多个随机种子。
 
-关键收获：
-
-1. **PPO = Rollout + GAE + Clipped Update** 的三步循环
-2. **超参数不敏感** 是 PPO 流行的关键——默认值在 CartPole 上几乎一定 work
-3. **可视化训练** 是 debug RL 代码的核心工具——entropy、clip_frac 等辅助指标往往能提前发现训练问题
-
-下一章 [强化学习过程的基本定义](../chapter03_mdp/bandit) 会先把视角拉回到 RL 的最简形式——无状态、即时奖励的多臂老虎机——专门研究探索和利用问题，然后再引入状态转移和长期回报。
+下一章从多臂老虎机开始，把本章已经运行过的状态、动作、奖励和策略写成更正式的强化学习问题。

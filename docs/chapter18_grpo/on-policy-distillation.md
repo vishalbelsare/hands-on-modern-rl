@@ -1,4 +1,4 @@
-# 15.7 On-Policy Distillation
+# 15.7 在线策略蒸馏 OPD
 
 上一节讨论了 RLVR 如何用规则验证器替代 RM，在数学、代码等有客观答案的领域给出精确的奖励信号。本节看另一条路线：**不让小模型从零探索，而是让强模型在它自己生成的轨迹上逐 token 给指导**。这条路线叫在线策略蒸馏（On-Policy Distillation, OPD）。
 
@@ -249,6 +249,38 @@ Thinking Machines Lab 的复现实验也是这样：先做 off-policy reasoning 
 
 这也解释了为什么 OPD 比普通蒸馏更"挑老师"。off-policy SFT 可以强行把 student 拉去看 teacher 轨迹；OPD 则是在 student 自己的地形上做局部导航——如果当前位置附近没有通向 teacher 模式的梯度，再大的 teacher 也只是站在远处报答案。
 
+### 多教师 OPD：工业界如何把专项模型合回一个模型
+
+先看一个具体的后训练任务。一个团队希望同时提升数学、代码和指令遵循能力。数学适合使用可验证答案的 RL，代码需要可执行环境，指令遵循又依赖另一套奖励。把三种任务塞进同一段 Mix-RL 训练，会让数据比例、奖励尺度和超参数彼此牵制；串行训练则会让后面的领域损害先前学到的能力。
+
+一种可执行的做法是先训练一个覆盖所有目标能力的 SFT 检查点，再从这个检查点分出三条独立的 RL 分支。每条分支只需要把一项专项能力训好，因此三位 teacher 可以并行开发。某个领域调整奖励或重启训练时，其他分支不受影响。MiniCPM5-1B 的公开配方和 MiMo 团队的 MOPD 都采用了这种“共享 SFT、分领域 RL、最后整合”的结构。[^minicpm5_opd][^mopd]
+
+专项 teacher 训好后，student 回到共享 SFT 检查点开始训练。它在多领域 prompt 上生成自己的回答，数学轨迹送给数学 teacher，代码轨迹送给代码 teacher。被选中的 teacher 对整条 student 轨迹做 prefill，student 再根据逐 token reverse KL 更新。Teacher 只在训练时提供信号，产品上线时仍然只部署一个 student。所谓多教师 OPD，就是用这种方式在策略空间里完成**能力整合**。
+
+这里的共享起点还有第二层作用：它让 teacher 和 student 保持相近的生成分布。在 MOPD 的受控实验中，同源数学 teacher 与 student 的初始逐 token KL 约为 0.04。换成数学能力更强、但分布不同的 Qwen3-235B-A22B 后，初始 KL 上升到约 0.19，策略梯度版的归一化分数从 0.9373 降到 0.6003，top-$k$ 版在约第 18 步崩溃。Teacher 选择因此要同时考察任务能力和**局部可教性**，初始师生 KL 是一个直接的诊断量。
+
+路由正确以后，还有一个更隐蔽的问题。Open-MOPD 的受控实验中，数学、代码和指令遵循 prompt 分别占 39.8%、39.8% 和 20.3%；数学与代码回答平均约有 10,500 个 token，指令遵循回答平均只有 409 个 token。换成真正参与梯度计算的回答 token 后，三个领域的份额变成 49.7%、49.3% 和 0.99%。指令遵循占了约五分之一的 prompt，却只得到约百分之一的 token 级训练预算。[^open_mopd]
+
+这就是多教师 OPD 中的**能力失衡**。每条样本都路由给了正确的 teacher，多个领域仍然在争用同一个 student 的参数和有限更新次数。长回答天然产生更多 token，于是数学和代码会主导梯度；短回答对应的能力很早就停止增长。
+
+Teacher 冲突并没有解释这个现象。实验中，teacher 分歧的均值只有 0.126 nat，超过 1 nat 的 token 占 0.62%。屏蔽高分歧 token 或改用 teacher 共识信号，总分下降了 0.52 到 0.83 分。主要瓶颈出在每个领域实际获得的优化预算。
+
+真正的优化预算失衡来自三个环节：
+
+| 环节     | 失衡怎样产生                                                                                      | 整合进训练流程的处理                                              |
+| -------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| 回答长度 | 长回答贡献更多梯度 token，短任务获得的更新很少                                                    | 按领域重加权，使每个领域先获得相同的 token 预算                       |
+| 收敛速度 | 各领域的师生差距缩小速度不同，固定权重会继续训练已经接近 teacher 的领域                           | 根据各领域平均绝对 token 奖励估计剩余差距，把更多预算给尚未收敛的领域 |
+| 多步更新 | 一批 rollout 被拆成多次 PPO 更新后，student 已经变化，采样时缓存的 student-dependent 奖励逐渐过时 | 每次内部更新前重新计算当前 student 对应的 token 奖励                  |
+
+第二项处理需要再解释一步。若某个领域当前的 teacher 与 student 已经很接近，它的平均绝对 token 奖励会变小；另一个领域仍有较大差距时，奖励幅度会更大。用这个量动态调整领域权重，训练预算就会跟随尚未迁移完的能力，而非静态数据比例。
+
+第三项处理针对 OPD 奖励里的 student 项。teacher 的 log-prob 可以缓存，因为 teacher 保持冻结；student 每完成一次参数更新，当前 log-prob 就会改变。继续使用 rollout 时计算的旧奖励，会让后续 PPO 更新依据过时的师生差异。每次内部更新前都要刷新 student-dependent reward，使密集反馈重新对应当前策略。
+
+把这些环节放到一起，多教师 OPD 的完整因果链就清楚了：共享 SFT 为各领域提供可比的起点，独立 RL 分支负责产生专项能力，领域路由决定每条轨迹由谁教，逐 token 损失决定每一步怎样学，预算平衡决定各种能力最终能学到多少。
+
+两组实验分别验证了这条链的不同部分。在 Qwen3-30B-A3B 上，MOPD 的平均归一化分数为 0.9373，高于 Mix-RL 的 0.8818，三个领域分别恢复了约 91%–95% 的师生差距；同一流程也用于整合 MiMo-V2-Flash 的数学、代码、指令遵循、软件工程和工具使用能力。在另一组开源实验中，动态预算平衡把共享 student 与分领域 RouteOPD 之间的能力整合差距从 3.50 分缩小到 0.31 分，并把领域 RL 能力的恢复比例从 35.6% 提高到 83.4%。[^mopd][^open_mopd]
+
 ### Overlap token 才是主战场
 
 论文里最有启发的实验是把 token 集合拆开：只在 student 和 teacher 都认为高概率的 overlap tokens 上优化，效果几乎不掉；只看 non-overlap tokens，几乎帮不上忙。这解释了为什么 top-$k$ OPD 往往已经够用，也解释了为什么失败 run 的 loss 看起来还在动，能力却没有涨。
@@ -268,6 +300,29 @@ OPD 的诱人之处是每个 token 都有 reward，但长思维链会暴露一�
 ## 动手：OPD 打分最小实现
 
 前面把 OPD 的机制和坑理清了。现在用代码实现 OPD 最核心的一步：student 生成回答，teacher 在 student 的轨迹上逐 token 打分。
+
+### 先理解 logits、probability 和 logps
+
+模型预测下一个 token 时，先输出 logits，再转成概率和 log-prob：
+
+| 候选 token       |   `4` |   `5` |  `\n` |
+| ---------------- | ----: | ----: | ----: |
+| logits           |   2.0 |   1.0 |   0.0 |
+| softmax 后的概率 |  0.67 |  0.24 |  0.09 |
+| log probability  | -0.41 | -1.41 | -2.41 |
+
+`logps` 是 log probabilities 的缩写，即“一组 token 的对数概率”。数值越接近 0，模型越认可该 token；teacher logp 减 student logp 为正，表示 teacher 更认可它。
+
+### `full_ids` 是什么
+
+tokenizer 把文字切成 token，并给每个 token 一个数字编号。`full_ids` 保存“题目 + 模型回答”的全部编号。
+
+| 文字片段 | `2+2` | `答案` | `是` |      `4` |     `。` |
+| -------- | ----: | -----: | ---: | -------: | -------: |
+| token ID |    18 |     42 |    9 |       27 |        6 |
+| 来源     |  题目 |   题目 | 题目 | 模型回答 | 模型回答 |
+
+因此，`full_ids = [[18, 42, 9, 27, 6]]`。前三个 token 是题目，所以 `prompt_len = 3`。表中的 ID 只是演示数字。
 
 ```python
 import torch
@@ -299,6 +354,7 @@ with torch.no_grad():
         temperature=0.7,
     )
 
+# full_ids 包含“prompt + student 生成的回答”的全部 token ID
 full_ids = output_ids
 
 # Step 2: 计算 student 和 teacher 的逐 token log-prob
@@ -308,8 +364,14 @@ def next_token_logps(model, input_ids):
     logps[:, i] 是位置 i 的 logits 预测的 token i+1 的 log-prob。
     """
     logits = model(input_ids).logits
+
+    # log_softmax 一步完成 softmax 和取对数
     logps = torch.log_softmax(logits[:, :-1], dim=-1)
+
+    # gather 只取实际出现的下一个 token；生成 4 时，只取 4 的 log-prob
     next_ids = input_ids[:, 1:]
+
+    # 输出形状：[batch_size, sequence_length - 1]
     return logps.gather(-1, next_ids.unsqueeze(-1)).squeeze(-1)
 
 with torch.no_grad():
@@ -320,6 +382,7 @@ with torch.no_grad():
 gen_mask = torch.zeros_like(student_logps, dtype=torch.bool)
 gen_mask[:, prompt_len - 1 :] = True  # 只看生成部分
 
+# 正值：teacher 更认可；负值：teacher 更不认可
 token_rewards = teacher_logps - student_logps
 generated_ids = full_ids[:, 1:][gen_mask]
 generated_rewards = token_rewards[gen_mask]
@@ -328,12 +391,6 @@ for tok_id, reward in zip(generated_ids[:32], generated_rewards[:32]):
     token = tokenizer.decode([tok_id.item()])
     print(f"{token!r:12s} reward={reward.item():+.3f}")
 ```
-
-设计要点：
-
-- `next_token_logps()` 同时用于 student 和 teacher，计算每个位置的 log probability。这个函数和 GRPO 里计算 log prob 的逻辑一样——OPD 的工程基础设施和 RL 高度复用。
-- `token_rewards = teacher_logps - student_logps`：这就是 OPD 的 per-token reward。正值表示 teacher 比 student 更认可这个 token，负值表示 teacher 不认可。
-- 这段代码只做了"打分"部分。如果要变成训练循环，核心只差三件事：batch rollout、reward 归一化/裁剪、policy gradient 更新。
 
 训练循环的伪代码：
 
@@ -358,7 +415,167 @@ for prompts in dataloader:
     optimizer.step()
 ```
 
-真实系统还会加 KL 到 reference、长度控制、重复惩罚、prompt 难度采样和 eval gating。OPD 不是"一个公式就完事"，它是把 teacher log-prob 接到现有 RL 训练基础设施里。
+### 从单 teacher 扩展到多 teacher 打分
+
+现在把同一段逻辑扩展到多教师 OPD。假设一个 batch 里有数学、代码和指令遵循三类轨迹，每条轨迹都带有已知的领域标签。打分时不需要让三位 teacher 同时评价每条轨迹；领域标签直接选择对应的 teacher。MiMo MOPD 和 Open-MOPD 都采用这种按 prompt 领域路由的方式。
+
+下面的 `samples` 来自 student 的 batch rollout。为了把路由过程写清楚，代码逐条处理轨迹；实际训练会先按 `domain` 分组，再把同一领域的轨迹批量送给对应的 teacher server。
+
+```python
+# 这里假设三个 Transformers teacher 已经加载；生产环境通常使用独立推理服务
+teachers = {
+    "math": math_teacher,
+    "code": code_teacher,
+    "if": instruction_teacher,
+}
+
+# full_ids 是“prompt + student 回答”的全部 token ID，形状为 [1, sequence_length]
+samples = [
+    {"domain": "math", "full_ids": math_ids, "prompt_len": math_prompt_len},
+    {"domain": "code", "full_ids": code_ids, "prompt_len": code_prompt_len},
+    {"domain": "if", "full_ids": if_ids, "prompt_len": if_prompt_len},
+]
+
+
+@torch.no_grad()
+def score_with_routed_teachers(samples, student, teachers):
+    scored = []
+
+    for sample in samples:
+        domain = sample["domain"]
+        teacher = teachers[domain]  # hard routing：每条轨迹只选一位 teacher
+        full_ids = sample["full_ids"]
+        prompt_len = sample["prompt_len"]
+
+        student_ids = full_ids.to(student.device)
+        teacher_ids = full_ids.to(teacher.device)
+        student_logps = next_token_logps(student, student_ids)
+        teacher_logps = next_token_logps(teacher, teacher_ids).to(student_logps.device)
+
+        # next_token_logps 的第 prompt_len-1 位开始预测回答 token
+        response_slice = slice(prompt_len - 1, None)
+        rewards = (teacher_logps - student_logps)[0, response_slice]
+
+        scored.append(
+            {
+                "domain": domain,
+                "rewards": rewards,
+                "num_tokens": rewards.numel(),
+            }
+        )
+
+    return scored
+
+
+scored = score_with_routed_teachers(samples, student, teachers)
+```
+
+#### 为什么切片从 `prompt_len - 1` 开始
+
+`full_ids` 是“题目 + 模型回答”的 token 编号。继续使用“`2+2 答案是 4。`”：
+
+| `logps` 位置 | 0      | 1    | **2**    | **3**    |
+| ------------ | ------ | ---- | -------- | -------- |
+| 预测的 token | `答案` | `是` | **`4`**  | **`。`** |
+| token 来源   | 题目   | 题目 | **回答** | **回答** |
+| reward       | 丢弃   | 丢弃 | **保留** | **保留** |
+
+`logps[i]` 预测下一个 token，所以回答中的 `4` 虽然位于完整序列的位置 3，分数却在 `logps[2]`。题目有 3 个 token，因此回答从 `prompt_len - 1 = 2` 开始。
+
+题目由数据集提供，模型只生成回答，所以训练时丢弃题目 reward，只保留回答 reward：
+
+```text
+all_rewards       = [[-0.20, +0.30, +0.70, -0.10]]
+all_rewards[0, 2:] = [               +0.70, -0.10]
+```
+
+`[0, 2:]` 的意思是：取第 0 条样本，再取位置 2 之后的值。
+
+到这里已经完成了朴素 M-OPD 的多教师打分。`teachers[domain]` 负责路由，`rewards` 保存被选中 teacher 给出的逐 token 信号。三位 teacher 的输出不会在同一条样本上求平均，每位 teacher 只负责自己的领域。
+
+#### 逐 token 信号的两种实现
+
+上面的 `rewards` 对应 MOPD 的策略梯度实现。对 student 实际采样的 token $y_t$，论文使用
+
+$$
+\hat A_{\text{MOPD},t}
+= \operatorname{sg}\!\left[
+\log \pi_{\phi_d}(y_t \mid c_t)
+- \log \pi_\theta(y_t \mid c_t)
+\right],
+$$
+
+其中 $\pi_{\phi_d}$ 是当前领域的 teacher，$\operatorname{sg}$ 表示停止梯度。实际训练会把这个逐 token 优势同时截断到 $[-A_{\max},A_{\max}]$，避免某些 token 的师生 log-prob 差距过大。这种形式只需要 teacher 返回 student 实际选中 token 的 log-prob，容易接入现有 PPO 或 GRPO 训练框架。
+
+若希望在每个位置使用更多 teacher 分布信息，MOPD 还提供 top-$k$ 实现。记 $\mathcal T_t^d$ 为 teacher 在位置 $t$ 的 top-$k$ token 集合，对该位置使用
+
+$$
+\sum_{v\in\mathcal T_t^d}
+\left[
+\pi_\theta(v)\log\frac{\pi_\theta(v)}{\pi_{\phi_d}(v)}
+-\pi_\theta(v)+\pi_{\phi_d}(v)
+\right].
+$$
+
+这里的 $-\pi_\theta(v)+\pi_{\phi_d}(v)$ 是截断校正项。如果只在 top-$k$ 集合上直接计算截断的 reverse KL，损失的最小点不再对应 $\pi_\theta=\pi_{\phi_d}$；加上这两项后，每个保留 token 的最优点恢复为师生概率相等。Top-$k$ 还把 teacher 服务需要传输的数据从全词表分布缩小到稀疏 logits。论文使用 $k=64$ 时，同源 teacher 下的策略梯度版和 top-$k$ 版分别得到 0.9373 和 0.9093，说明两者在该设置下表现接近。
+
+Teacher prefill 可以作为独立服务运行。Student 完成一条 rollout 后异步发送 prefill 请求，teacher 计算时间与 student 继续采样其他序列的时间重叠。这样，多教师带来的主要成本是额外计算资源，不必等比增加每个训练步的串行延迟。
+
+逐 token 损失解决了“每一步怎样学”，训练循环还要处理“每个领域学多少”。对每个领域，我们再计算两个量：回答 token 占整个 batch 的比例 `token_share`，以及逐 token 奖励绝对值的均值 `mean_abs_reward`。前者反映序列长度造成的预算差异，后者近似该领域尚未消除的师生差距。
+
+```python
+def compute_domain_weights(scored):
+    total_tokens = sum(item["num_tokens"] for item in scored)
+    stats = {}
+
+    for domain in {item["domain"] for item in scored}:
+        domain_rewards = torch.cat(
+            [item["rewards"] for item in scored if item["domain"] == domain]
+        )
+        stats[domain] = {
+            "token_share": domain_rewards.numel() / total_tokens,
+            "mean_abs_reward": domain_rewards.abs().mean(),
+        }
+
+    target_share = 1.0 / len(stats)
+    mean_gap = torch.stack(
+        [stat["mean_abs_reward"] for stat in stats.values()]
+    ).mean().clamp_min(1e-6)
+
+    raw_weights = {}
+    for domain, stat in stats.items():
+        share_weight = target_share / stat["token_share"]
+        gap_factor = torch.clamp(
+            stat["mean_abs_reward"] / mean_gap,
+            min=0.05,
+            max=20.0,
+        )
+        raw_weights[domain] = share_weight * gap_factor
+
+    # 保持加权前后 batch 的平均 reward 尺度接近
+    normalizer = sum(
+        stats[domain]["token_share"] * weight
+        for domain, weight in raw_weights.items()
+    )
+    return {
+        domain: weight / normalizer
+        for domain, weight in raw_weights.items()
+    }, stats
+
+
+domain_weights, domain_stats = compute_domain_weights(scored)
+
+for item in scored:
+    item["weighted_rewards"] = (
+        item["rewards"] * domain_weights[item["domain"]]
+    )
+```
+
+这段代码把 Open-MOPD 的前两项修复落成了具体变量：`share_weight` 补偿长短回答的 token 份额差异，`gap_factor` 让预算跟随仍未收敛的领域。`weighted_rewards` 随后进入归一化和策略梯度更新。
+
+还剩第三项 reward refresh。一次 rollout 被用于多次 PPO 内部更新时，teacher log-prob 可以缓存；每次更新前要重新计算当前 `student_logps`，再据此刷新 `rewards`、领域统计和权重。否则，上面的 `mean_abs_reward` 衡量的是旧 student 与 teacher 的差距。
+
+这个最小实现已经把两类约束放进了同一条训练链：先用 sampled-token log-prob 差或 top-$k$ 损失生成密集信号，再根据 token 份额和剩余师生差距调整领域权重。生产系统还会加入 PPO clipping、reference KL、长度控制和 eval gating，并把同一领域的轨迹合成 batch 发送给 teacher server。
 
 ## OPD 和相邻路线的关系
 
@@ -794,6 +1011,8 @@ OPD 的核心是一个训练范式选择：
 
 2026 年机制分析论文最值得带走的 insight，是把 OPD 的核心问题从"teacher 是否更强"换成"teacher 是否更可学"。更强的模型可能只是会在自己的轨迹上拿高分；更可学的 teacher 则能在 student 当前轨迹上提供新知识、相近思维路径和可吸收的局部偏好。这个视角会改变你设计整条蒸馏 pipeline 的方式：先冷启动让两者说同一种语言，再用 teacher-aligned prompt 让 teacher 站到熟悉的分布上，最后用任务奖励保证局部偏好没有背离全局目标。
 
+扩展到多个领域 teacher 后，完整流程需要同时处理三件事：从共享 SFT 检查点并行训练同源 teacher，用领域路由和逐 token reverse KL 整合能力，再按回答长度、剩余师生差距和当前策略刷新优化预算。同源性决定 teacher 的信号能否稳定被吸收，路由决定每条样本由谁教，预算平衡决定各种能力最终学到多少。
+
 从本章主线看，DPO、GRPO、RLVR 和 OPD 都在回答同一个问题：**当我们不想完整跑传统 RLHF 时，训练信号还能从哪里来？** DPO 用偏好对，RLVR 用验证器，OPD 用 teacher。理解这三类信号的边界，才是真正能迁移到新项目里的能力。
 
 ## 参考文献
@@ -815,6 +1034,12 @@ OPD 的核心是一个训练范式选择：
 [^tml_opd]: Lu K, Thinking Machines Lab. [On-Policy Distillation](https://thinkingmachines.ai/blog/on-policy-distillation/), 2025.（工程化 OPD 复现与 Tinker 实现，包含 Qwen3 对比和 personalization 实验）
 
 [^rethinking_opd]: Li Y, Zuo Y, He B, et al. [Rethinking On-Policy Distillation of Large Language Models: Phenomenology, Mechanism, and Recipe](https://arxiv.org/abs/2604.13016), arXiv 2026.（分析 OPD 成功条件、token-level 机制和失败恢复策略）
+
+[^minicpm5_opd]: OpenBMB. [MiniCPM5-1B Training Recipe](https://github.com/OpenBMB/MiniCPM#training-recipe), 2026.（公开 SFT、分领域 RL teacher、OPD 三阶段后训练流程；OPD 将多个专项 teacher 蒸馏回一个发布模型）
+
+[^mopd]: Ma W, Wei J, Zhao L, et al. [MOPD: Multi-Teacher On-Policy Distillation for Capability Integration in LLM Post-Training](https://mimo.xiaomi.com/papers/mopd.pdf), arXiv:2606.30406, 2026.（提出通用 SFT、分领域 RL teacher 和多教师在线策略蒸馏三阶段流程，并在 Qwen3-30B-A3B 与 MiMo-V2-Flash 上验证）
+
+[^open_mopd]: Gao H, Chi H, Yan Y, et al. [Open-MOPD: Diagnosing and Fixing Capability Imbalance in Multi-Teacher On-Policy Distillation](https://arxiv.org/abs/2608.19098), arXiv 2026；[项目页](https://bytedtsinghua-sia.github.io/Open-MOPD/)。（清华大学 AIR/SIA-Lab 与字节跳动 Seed 提出的首个完整开源多教师 OPD recipe，诊断跨领域 token 预算失衡并给出动态平衡方法）
 
 [^lightning_opd]: Wu Y, Han S, Cai H. [Lightning OPD: Efficient Post-Training for Large Reasoning Models with Offline On-Policy Distillation](https://arxiv.org/html/2604.13010v1), arXiv 2026.（把标准 OPD 离线化：预计算 teacher log-prob，避免训练时 live teacher server）
 

@@ -17,7 +17,7 @@
 
   <p>
     <a href="https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment01-cartpole">ModelScope 一键训练</a> ·
-    <a href="https://modelscope.cn/my/mynotebook">在魔搭 Notebook 中打开</a> ·
+    <a href="https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment01-cartpole.ipynb">运行 CartPole Notebook</a> ·
     <a href="https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment01-cartpole/file/view/master/train.py">ModelScope 训练脚本</a>
   </p>
 
@@ -40,6 +40,38 @@
 > **📣 公告**
 >
 > 感谢大家对教程的支持！近期将会有版本更新，目前很多内容还在整理和完善中，请大家多点耐心。也欢迎大家多提建议。
+
+## 🔥 最新动态 (News)
+
+> ⚠️ **备注**：本教程由于有 AI 协助生成，目前尚未全面审稿结束，很有可能会有事实性或代码不可运行的错误。欢迎大家在阅读过程中提交 Issue 或 PR 帮助指正。
+
+- **[2026-08-19]** 🎮 **经典强化学习在线环境与脚本更新**：过去两周，我们集中上线并完善了一批强化学习在线环境、训练脚本和配套 Notebook。现在可以直接在线运行经典强化学习实验，查看训练日志与评估结果，更方便地学习经典强化学习。同时，我们还修复了此前反馈的许多 Bug，涉及课程内容、链接和实验代码。
+- **[2026-05-15]** 📖 **全量英文翻译与 PDF 发布**：全部章节英文翻译完成，中英文版 PDF 均通过 CI 自动构建发布。
+- **[2026-05-13]** 🚀 **全面升级大模型与传统强化学习实战**：新增可复现的 **Agentic RL**（Deep Research / rLLM）与 **传统 RL**（Actor-Critic 连续控制）训练实例。包含从零构建 Agentic 训练系统的完整代码与微调过程解析，并同步上线 VLM 强化学习（GeoQA 几何推理）动手实验！
+- **[2026-05-02]** 🎉 教程初期浏览版正式开源发布，开放测试与建议收集。
+
+## 在线训练 Notebook
+
+WalkingLab 与 ModelScope 合作，为经典强化学习实验提供在线训练环境。ModelScope 创空间将实验界面、运行环境和训练入口集中在一个页面中，读者无需先配置本地环境，即可通过浏览器启动训练并观察智能体的行为。
+
+每个创空间都在 [`code/online-experiments`](code/online-experiments/README.md) 下配有实验 Notebook。Notebook 与创空间复用同一份训练运行时，可以调整实验参数、查看完整训练日志与检查点评估曲线，并显示本次训练生成的策略回放或结果文件。
+
+| 实验                        | 资源 | 配套 Notebook                                                                                                                                                                          | 在线创空间                                                                                                |
+| --------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| 01 · CartPole PPO           | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment01-cartpole.ipynb)           | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment01-cartpole)           |
+| Gymnasium 训练合集          | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment-gymnasium.ipynb)            | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment-gymnasium)            |
+| 02 · ViZDoom                | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment02-vizdoom.ipynb)            | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment02-vizdoom)            |
+| 03 · Atari / ALE            | xGPU | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment03-atari.ipynb)              | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment03-atari)              |
+| 04 · 棋盘游戏与自博弈       | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment04-board-selfplay.ipynb)     | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment04-board-selfplay)     |
+| 05 · 多智能体游戏           | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment05-multiagent-games.ipynb)   | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment05-multiagent-games)   |
+| 06 · MiniGrid 探索          | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment06-minigrid-adventure.ipynb) | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment06-minigrid-adventure) |
+| 07 · JAX MinAtar            | CPU  | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment07-jax-games.ipynb)          | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment07-jax-games)          |
+| 08 · ManiSkill              | xGPU | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment08-maniskill.ipynb)          | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment08-maniskill)          |
+| 10 · MineStudio / Minecraft | xGPU | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment10-minestudio.ipynb)         | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment10-minestudio)         |
+| 11 · Unity ML-Agents        | xGPU | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment11-unity-mlagents.ipynb)     | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment11-unity-mlagents)     |
+| 12 · AI2-THOR               | xGPU | [运行 Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment12-ai2thor-embodied.ipynb)   | [打开创空间](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment12-ai2thor-embodied)   |
+
+CPU 实验可使用普通 Notebook 运行；实验 03、08、10、11、12 需要调度 ModelScope xGPU Notebook，训练单元会在开始前检查 CUDA。
 
 ## 本书特色
 
@@ -155,14 +187,6 @@
 - 开源协议: [CC BY-NC-SA 4.0](LICENSE)
 
 欢迎提交 Issue 和 Pull Request 来修复拼写错误、修正概念、改进可复现性、补充参考文献以及在合理范围内的课程扩展。
-
-## 🔥 最新动态 (News)
-
-> ⚠️ **备注**：本教程由于有 AI 协助生成，目前尚未全面审稿结束，很有可能会有事实性或代码不可运行的错误。欢迎大家在阅读过程中提交 Issue 或 PR 帮助指正。
-
-- **[2026-05-15]** 📖 **全量英文翻译与 PDF 发布**：全部章节英文翻译完成，中英文版 PDF 均通过 CI 自动构建发布。
-- **[2026-05-13]** 🚀 **全面升级大模型与传统强化学习实战**：新增可复现的 **Agentic RL**（Deep Research / rLLM）与 **传统 RL**（Actor-Critic 连续控制）训练实例。包含从零构建 Agentic 训练系统的完整代码与微调过程解析，并同步上线 VLM 强化学习（GeoQA 几何推理）动手实验！
-- **[2026-05-02]** 🎉 教程初期浏览版正式开源发布，开放测试与建议收集。
 
 ## 🗺️ 演进路线图 (Roadmap)
 

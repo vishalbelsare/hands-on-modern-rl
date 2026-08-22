@@ -17,7 +17,7 @@
 
   <p>
     <a href="https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment01-cartpole">Train on ModelScope</a> ·
-    <a href="https://modelscope.cn/my/mynotebook">Open in ModelScope Notebook</a> ·
+    <a href="https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment01-cartpole.ipynb">Run the CartPole Notebook</a> ·
     <a href="https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment01-cartpole/file/view/master/train.py">ModelScope Script</a>
   </p>
 
@@ -40,6 +40,38 @@
 > **📣 Announcement**
 >
 > We sincerely thank everyone for your support of this tutorial! A new version is coming soon. Many sections are still being organized and refined, so we appreciate your patience. Suggestions and feedback are always welcome!
+
+## News
+
+> **Note:** This course was created with AI assistance and has not yet been fully reviewed. It may contain factual mistakes or code that does not run as expected. Issues and pull requests are very welcome.
+
+- **[2026-08-19]** 🎮 **Online Classic RL Environments and Scripts**: Over the past two weeks, we have added and refined a collection of online reinforcement learning environments, training scripts, and companion notebooks. Learners can now run classic reinforcement learning experiments online, inspect training logs and evaluation results, and study the algorithms more conveniently. We also fixed many previously reported bugs in the course content, links, and experiment code.
+- **[2026-05-15]** 📖 **Full English Translation & PDF Release**: Complete English translation of all chapters is now available. PDF builds for both Chinese and English editions are released automatically via CI.
+- **[2026-05-13]** 🚀 **Major Upgrade: LLM and Traditional RL Hands-on Labs**: Added reproducible training examples for **Agentic RL** (Deep Research / rLLM) and **Traditional RL** (Actor-Critic continuous control). Includes complete code and fine-tuning analysis for building an Agentic training system from scratch, along with new VLM RL (GeoQA geometry reasoning) hands-on experiments!
+- **[2026-05-02]** Initial browsable open-source release for testing and feedback.
+
+## Online Training Notebooks
+
+WalkingLab is collaborating with ModelScope to provide online training environments for classic reinforcement learning experiments. A ModelScope Studio brings the experiment interface, runtime, and training entry point together on one page, so learners can start training in a browser and observe the agent without first configuring a local environment.
+
+Every Studio has a companion notebook under [`code/online-experiments`](code/online-experiments/README.md). The notebook imports the same training runtime as the Studio, exposes the experiment parameters, prints the full training log, plots checkpoint evaluations, and displays the learned-policy replay or result artifact.
+
+| Experiment                   | Resource | Companion notebook                                                                                                                                                                    | Live Studio                                                                                                |
+| ---------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 01 · CartPole PPO            | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment01-cartpole.ipynb)           | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment01-cartpole)           |
+| Gymnasium Playground         | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment-gymnasium.ipynb)            | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment-gymnasium)            |
+| 02 · ViZDoom                 | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment02-vizdoom.ipynb)            | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment02-vizdoom)            |
+| 03 · Atari / ALE             | xGPU     | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment03-atari.ipynb)              | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment03-atari)              |
+| 04 · Board Games & Self-Play | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment04-board-selfplay.ipynb)     | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment04-board-selfplay)     |
+| 05 · Multi-Agent Games       | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment05-multiagent-games.ipynb)   | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment05-multiagent-games)   |
+| 06 · MiniGrid Adventures     | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment06-minigrid-adventure.ipynb) | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment06-minigrid-adventure) |
+| 07 · JAX MinAtar             | CPU      | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment07-jax-games.ipynb)          | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment07-jax-games)          |
+| 08 · ManiSkill               | xGPU     | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment08-maniskill.ipynb)          | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment08-maniskill)          |
+| 10 · MineStudio / Minecraft  | xGPU     | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment10-minestudio.ipynb)         | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment10-minestudio)         |
+| 11 · Unity ML-Agents         | xGPU     | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment11-unity-mlagents.ipynb)     | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment11-unity-mlagents)     |
+| 12 · AI2-THOR                | xGPU     | [Run Notebook](https://modelscope.cn/notebook/share/github/walkinglabs/hands-on-modern-rl/blob/main/code/online-experiments/hands-on-modern-rl-experiment12-ai2thor-embodied.ipynb)   | [Open Studio](https://modelscope.cn/studios/walkinglab/hands-on-modern-rl-experiment12-ai2thor-embodied)   |
+
+CPU entries run on an ordinary notebook instance. Experiments 03, 08, 10, 11, and 12 require a scheduled ModelScope xGPU Notebook and check CUDA before training.
 
 ## Book Features
 
@@ -155,14 +187,6 @@ This repository is an active courseware project. Content is being expanded chapt
 - License: [CC BY-NC-SA 4.0](LICENSE)
 
 Issues and pull requests are welcome for typo fixes, conceptual corrections, reproducibility improvements, references, and focused course extensions.
-
-## News
-
-> **Note:** This course was created with AI assistance and has not yet been fully reviewed. It may contain factual mistakes or code that does not run as expected. Issues and pull requests are very welcome.
-
-- **[2026-05-15]** 📖 **Full English Translation & PDF Release**: Complete English translation of all chapters is now available. PDF builds for both Chinese and English editions are released automatically via CI.
-- **[2026-05-13]** 🚀 **Major Upgrade: LLM and Traditional RL Hands-on Labs**: Added reproducible training examples for **Agentic RL** (Deep Research / rLLM) and **Traditional RL** (Actor-Critic continuous control). Includes complete code and fine-tuning analysis for building an Agentic training system from scratch, along with new VLM RL (GeoQA geometry reasoning) hands-on experiments!
-- **[2026-05-02]** Initial browsable open-source release for testing and feedback.
 
 ## Roadmap
 
